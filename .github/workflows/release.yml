@@ -1,0 +1,227 @@
+name: Release Build & Publish
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Release Tag (e.g. v1.0.0)'
+        required: true
+        default: 'v1.0.0'
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    name: Build Windows x64 (MSI & ZIP)
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+
+      - name: Build Rust binary
+        run: cargo build --release --locked
+
+      - name: Install WiX Toolset
+        run: dotnet tool install --global wix
+
+      - name: Extract Tag / Version
+        id: vars
+        shell: bash
+        run: |
+          TAG="${{ github.event.inputs.tag_name || github.ref_name }}"
+          VERSION="${TAG#v}"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Build MSI Installer
+        shell: bash
+        run: |
+          wix build installer/Package.wxs -d CargoTargetDir=target/release -o "tally-mcp-${{ steps.vars.outputs.version }}-x64.msi"
+
+      - name: Package Windows ZIP
+        shell: pwsh
+        run: |
+          $ver = "${{ steps.vars.outputs.version }}"
+          Copy-Item target/release/tally-mcp.exe -Destination "tally-mcp.exe"
+          Compress-Archive -Path "tally-mcp.exe", "README.md" -DestinationPath "tally-mcp-$ver-windows-x64.zip"
+          Copy-Item "tally-mcp-$ver-windows-x64.zip" -Destination "tally-mcp-windows-x64.zip"
+          Copy-Item "tally-mcp-${ver}-x64.msi" -Destination "tally-mcp-windows-x64.msi"
+
+      - name: Upload Windows Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-artifacts
+          path: |
+            tally-mcp-*-x64.msi
+            tally-mcp-*.zip
+            target/release/tally-mcp.exe
+
+  build-linux:
+    name: Build Linux x86_64
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-unknown-linux-gnu
+
+      - name: Build Rust binary
+        run: cargo build --release --locked
+
+      - name: Extract Tag / Version
+        id: vars
+        run: |
+          TAG="${{ github.event.inputs.tag_name || github.ref_name }}"
+          VERSION="${TAG#v}"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Package Linux Archive
+        run: |
+          tar -czvf "tally-mcp-${{ steps.vars.outputs.version }}-linux-x64.tar.gz" -C target/release tally-mcp
+          cp "tally-mcp-${{ steps.vars.outputs.version }}-linux-x64.tar.gz" "tally-mcp-linux-x64.tar.gz"
+
+      - name: Upload Linux Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-artifacts
+          path: tally-mcp-*.tar.gz
+
+  build-macos:
+    name: Build macOS Apple Silicon
+    runs-on: macos-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin
+
+      - name: Build Rust binary
+        run: cargo build --release --locked
+
+      - name: Extract Tag / Version
+        id: vars
+        run: |
+          TAG="${{ github.event.inputs.tag_name || github.ref_name }}"
+          VERSION="${TAG#v}"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Package macOS Archive
+        run: |
+          tar -czvf "tally-mcp-${{ steps.vars.outputs.version }}-darwin-arm64.tar.gz" -C target/release tally-mcp
+          cp "tally-mcp-${{ steps.vars.outputs.version }}-darwin-arm64.tar.gz" "tally-mcp-darwin-arm64.tar.gz"
+
+      - name: Upload macOS Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-artifacts
+          path: tally-mcp-*.tar.gz
+
+  publish-release:
+    name: Publish GitHub Release & Notify Landing Page
+    needs: [build-windows, build-linux, build-macos]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download all built artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+
+      - name: Prepare Release Assets & Checksums
+        id: prepare
+        run: |
+          TAG="${{ github.event.inputs.tag_name || github.ref_name }}"
+          VERSION="${TAG#v}"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+
+          mkdir -p release-files
+          find dist -type f -exec cp {} release-files/ \;
+          cd release-files
+
+          # Generate SHA256 checksums
+          sha256sum * > checksums.txt
+
+          # Generate structured release-manifest.json for tallymcp-web landing page
+          cat <<EOF > release-manifest.json
+          {
+            "schema_version": 1,
+            "version": "${VERSION}",
+            "release_date": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "channel": "stable",
+            "signer": {
+              "publisher_name": "TallyMCP Project",
+              "thumbprint": "E04C2548BC9F3FE7A1448E4B9296C03544D5F8A2",
+              "timestamp_authority": "DigiCert Timestamp Responder"
+            },
+            "min_windows_version": "10.0.19041",
+            "min_tally_version": "3.0",
+            "release_notes_url": "https://github.com/Shivvam/tallyprimemcp/releases/tag/${TAG}",
+            "winget_package_id": "TallyMCP.TallyMCP",
+            "assets": [
+              {
+                "name": "tally-mcp-${VERSION}-x64.msi",
+                "url": "https://github.com/Shivvam/tallyprimemcp/releases/download/${TAG}/tally-mcp-${VERSION}-x64.msi",
+                "sha256": "$(grep "tally-mcp-${VERSION}-x64.msi" checksums.txt 2>/dev/null | awk '{print $1}')",
+                "size_bytes": $(wc -c < "tally-mcp-${VERSION}-x64.msi" 2>/dev/null || echo 0),
+                "type": "msi"
+              },
+              {
+                "name": "checksums.txt",
+                "url": "https://github.com/Shivvam/tallyprimemcp/releases/download/${TAG}/checksums.txt",
+                "sha256": "$(sha256sum checksums.txt | awk '{print $1}')",
+                "size_bytes": $(wc -c < checksums.txt),
+                "type": "checksums"
+              }
+            ]
+          }
+          EOF
+
+      - name: Create or Update GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ steps.prepare.outputs.tag }}"
+          VERSION="${{ steps.prepare.outputs.version }}"
+
+          gh release create "$TAG" release-files/* \
+            --title "TallyMCP Release $TAG" \
+            --notes "Release $TAG for TallyPrime MCP Server. Native binary & Windows installer." \
+            --draft=false \
+            --prerelease=false || \
+          gh release upload "$TAG" release-files/* --clobber
+
+      - name: Trigger Landing Page Cache Revalidation (Webhook)
+        if: env.WEBHOOK_SECRET != '' && env.WEBHOOK_URL != ''
+        env:
+          WEBHOOK_SECRET: ${{ secrets.RELEASE_WEBHOOK_SECRET }}
+          WEBHOOK_URL: ${{ secrets.RELEASE_WEBHOOK_URL }}
+        run: |
+          TIMESTAMP=$(date +%s%3N)
+          BODY="{\"event\":\"release\",\"tag\":\"${{ steps.prepare.outputs.tag }}\"}"
+          SIG=$(printf "%s.%s" "$TIMESTAMP" "$BODY" | openssl dgst -sha256 -hmac "$WEBHOOK_SECRET" | sed 's/^.* //')
+
+          curl -X POST "$WEBHOOK_URL" \
+            -H "Content-Type: application/json" \
+            -H "x-timestamp: $TIMESTAMP" \
+            -H "x-hub-signature-256: sha256=$SIG" \
+            -d "$BODY" || echo "Webhook notification failed; landing page will poll via TTL"
