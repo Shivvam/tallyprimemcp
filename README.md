@@ -17,7 +17,7 @@
 **A local, safety-first [Model Context Protocol](https://modelcontextprotocol.io) server for TallyPrime.**
 Let AI assistants read your accounting data and *propose* vouchers, while a human always approves the write.
 
-[![CI](https://github.com/Shivvam/tallyprimemcp/actions/workflows/ci.yml/badge.svg)](https://github.com/Shivvam/tallyprimemcp/actions)
+[![CI](https://github.com/Shivvam/tallyprimemcp/actions/workflows/release.yml/badge.svg)](https://github.com/Shivvam/tallyprimemcp/actions/workflows/release.yml)
 [![Release](https://img.shields.io/github/v/release/Shivvam/tallyprimemcp?style=flat-square)](https://github.com/Shivvam/tallyprimemcp/releases)
 [![Downloads](https://img.shields.io/github/downloads/Shivvam/tallyprimemcp/total?style=flat-square)](https://github.com/Shivvam/tallyprimemcp/releases)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green?style=flat-square)](LICENSE)

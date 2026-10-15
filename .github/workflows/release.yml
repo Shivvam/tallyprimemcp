@@ -36,7 +36,7 @@ jobs:
         run: cargo build --release --locked
 
       - name: Install WiX Toolset
-        run: dotnet tool install --global wix
+        run: dotnet tool install --global wix --version 4.0.5
 
       - name: Extract Tag / Version
         id: vars
