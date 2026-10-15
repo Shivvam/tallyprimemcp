@@ -75,6 +75,19 @@ impl CompanionUiServer {
                 }
             }
 
+            // Strict Cross-Origin Request Forgery (CSRF) protection on state-modifying requests
+            if method == "POST" {
+                let origin_header = request.headers().iter().find(|h| h.field.as_str().as_str().eq_ignore_ascii_case("origin"));
+                if let Some(orig) = origin_header {
+                    let o_val = orig.value.as_str();
+                    if !o_val.starts_with("http://127.0.0.1") && !o_val.starts_with("http://localhost") {
+                        let resp = Response::from_string("Forbidden: Cross-origin request rejected").with_status_code(403);
+                        let _ = request.respond(resp);
+                        continue;
+                    }
+                }
+            }
+
             if url == "/" || url.starts_with("/?token=") {
                 let header = Header::from_bytes(&b"Content-Type"[..], &b"text/html; charset=utf-8"[..]).unwrap();
                 let csp = Header::from_bytes(&b"Content-Security-Policy"[..], &b"default-src 'self' 'unsafe-inline'"[..]).unwrap();

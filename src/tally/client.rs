@@ -186,6 +186,26 @@ pub struct TallyStatus {
     pub circuit_breaker: String,
 }
 
+pub fn validate_tally_target_host(target: &str) -> Result<(), TallyError> {
+    let clean = target.trim().trim_start_matches("http://").trim_start_matches("https://");
+    let host_only = clean.split(':').next().unwrap_or(clean).split('/').next().unwrap_or(clean);
+
+    // Block cloud instance metadata and broadcast addresses (SSRF prevention)
+    if host_only == "169.254.169.254"
+        || host_only == "metadata.google.internal"
+        || host_only.starts_with("169.254.")
+        || host_only == "0.0.0.0"
+        || host_only == "255.255.255.255"
+    {
+        return Err(TallyError::ConnectionError(
+            target.to_string(),
+            "Connection to cloud metadata or broadcast addresses is prohibited for security".to_string(),
+        ));
+    }
+
+    Ok(())
+}
+
 // Low-overhead TCP HTTP sender using tokio::net::TcpStream for zero heavyweight dependencies
 async fn reqwest_like_send(url: &str, body: Vec<u8>, timeout: Duration) -> Result<Vec<u8>, TallyError> {
     use tokio::io::{AsyncReadExt, AsyncWriteExt};
@@ -197,6 +217,8 @@ async fn reqwest_like_send(url: &str, body: Vec<u8>, timeout: Duration) -> Resul
     } else {
         target
     };
+
+    validate_tally_target_host(host_port)?;
 
     let connect_future = TcpStream::connect(host_port);
     let mut stream = tokio::time::timeout(timeout, connect_future)
