@@ -12,8 +12,8 @@ use tiny_http::{Header, Response, Server};
 const UI_HTML: &str = include_str!("assets/index.html");
 
 pub struct CompanionUiServer {
-    config: Config,
-    tally: Arc<TallyClient>,
+    config: Arc<std::sync::RwLock<Config>>,
+    tally: Arc<std::sync::RwLock<Arc<TallyClient>>>,
     journal: Arc<JournalManager>,
     audit: Arc<AuditLogger>,
     launch_token: String,
@@ -21,7 +21,8 @@ pub struct CompanionUiServer {
 
 impl CompanionUiServer {
     pub fn new(config: Config) -> Self {
-        let tally = Arc::new(TallyClient::new(config.tally.clone()));
+        let tally = Arc::new(std::sync::RwLock::new(Arc::new(TallyClient::new(config.tally.clone()))));
+        let config = Arc::new(std::sync::RwLock::new(config));
         let journal = Arc::new(JournalManager::new().expect("Failed to initialize journal manager"));
         let audit = Arc::new(AuditLogger::new());
         let launch_token = format!("tok_{}", uuid::Uuid::new_v4().simple());
@@ -49,19 +50,35 @@ impl CompanionUiServer {
         println!("Press Ctrl+C to terminate the companion UI.");
 
         // Fast sync reachability check helper supporting both localhost and LAN IPs
-        let check_tally_quick = |host: &str, port: u16| -> bool {
+        let check_tally_quick = |host: &str, port: u16| -> (bool, u128) {
             use std::net::{TcpStream, ToSocketAddrs};
+            let start = std::time::Instant::now();
             let addr = format!("{}:{}", host, port);
             if let Ok(mut addrs) = addr.to_socket_addrs() {
                 if let Some(sock_addr) = addrs.next() {
-                    return TcpStream::connect_timeout(&sock_addr, Duration::from_millis(500)).is_ok();
+                    let reachable = TcpStream::connect_timeout(&sock_addr, Duration::from_millis(800)).is_ok();
+                    let elapsed = start.elapsed().as_millis();
+                    return (reachable, elapsed);
                 }
             }
-            false
+            (false, start.elapsed().as_millis())
+        };
+
+        // Helper to query company list from Tally with timeout
+        let query_companies = |tally_client: Arc<TallyClient>| -> Vec<String> {
+            let (tx, rx) = std::sync::mpsc::channel();
+            std::thread::spawn(move || {
+                if let Ok(rt) = tokio::runtime::Builder::new_current_thread().enable_all().build() {
+                    let res = rt.block_on(async move { tally_client.list_companies().await });
+                    let _ = tx.send(res);
+                }
+            });
+            rx.recv_timeout(Duration::from_millis(1500)).ok().and_then(|r| r.ok()).unwrap_or_default()
         };
 
         for mut request in server.incoming_requests() {
-            let url = request.url().to_string();
+            let raw_url = request.url().to_string();
+            let url_path = raw_url.split('?').next().unwrap_or("/").to_string();
             let method = request.method().as_str().to_string();
 
             // Strict Host header verification against DNS rebinding
@@ -88,22 +105,36 @@ impl CompanionUiServer {
                 }
             }
 
-            if url == "/" || url.starts_with("/?token=") {
+            if url_path == "/" {
                 let header = Header::from_bytes(&b"Content-Type"[..], &b"text/html; charset=utf-8"[..]).unwrap();
-                let csp = Header::from_bytes(&b"Content-Security-Policy"[..], &b"default-src 'self' 'unsafe-inline'"[..]).unwrap();
+                let csp = Header::from_bytes(&b"Content-Security-Policy"[..], &b"default-src 'self' 'unsafe-inline' data:"[..]).unwrap();
                 let resp = Response::from_string(UI_HTML).with_header(header).with_header(csp);
                 let _ = request.respond(resp);
                 continue;
             }
 
-            if url == "/api/status" && method == "GET" {
-                let reachable = check_tally_quick(&self.config.tally.host, self.config.tally.port);
+            if url_path == "/api/status" && method == "GET" {
+                let cfg = self.config.read().unwrap().clone();
+                let tally_arc = self.tally.read().unwrap().clone();
+                let (reachable, latency_ms) = check_tally_quick(&cfg.tally.host, cfg.tally.port);
+
+                let loaded_companies = if reachable {
+                    query_companies(tally_arc.clone())
+                } else {
+                    Vec::new()
+                };
 
                 let payload = json!({
                     "reachable": reachable,
-                    "target_url": self.tally.target_url(),
+                    "target_url": tally_arc.target_url(),
+                    "host": cfg.tally.host,
+                    "port": cfg.tally.port,
                     "circuit_breaker": "Closed",
-                    "write_mode": self.config.safety.write_mode
+                    "write_mode": cfg.safety.write_mode,
+                    "loaded_companies": loaded_companies,
+                    "active_company": loaded_companies.first().cloned(),
+                    "latency_ms": latency_ms,
+                    "last_sync": chrono::Utc::now().to_rfc3339()
                 });
 
                 let header = Header::from_bytes(&b"Content-Type"[..], &b"application/json"[..]).unwrap();
@@ -112,7 +143,356 @@ impl CompanionUiServer {
                 continue;
             }
 
-            if url == "/api/drafts" && method == "GET" {
+            // Change Tally URL (Host / Port)
+            if url_path == "/api/tally/config" && method == "POST" {
+                let mut body = String::new();
+                let _ = request.as_reader().read_to_string(&mut body);
+
+                let parsed: Result<serde_json::Value, _> = serde_json::from_str(&body);
+                let mut outcome = json!({ "success": false, "error": "Invalid request body" });
+                let mut status_code = 400;
+
+                if let Ok(val) = parsed {
+                    let new_host = val.get("host").and_then(|h| h.as_str()).unwrap_or("").trim().to_string();
+                    let new_port = val.get("port").and_then(|p| p.as_u64()).map(|p| p as u16).unwrap_or(0);
+
+                    if new_host.is_empty() {
+                        outcome = json!({ "success": false, "error": "Host / IP address cannot be empty." });
+                    } else if new_port == 0 {
+                        outcome = json!({ "success": false, "error": "Port number must be between 1 and 65535." });
+                    } else if let Err(e) = crate::tally::client::validate_tally_target_host(&new_host) {
+                        outcome = json!({ "success": false, "error": e.to_string() });
+                    } else {
+                        // Validated! Update config in memory and save to disk
+                        {
+                            let mut cfg = self.config.write().unwrap();
+                            cfg.tally.host = new_host.clone();
+                            cfg.tally.port = new_port;
+                            cfg.tally.allow_remote_tally = new_host != "127.0.0.1" && new_host != "localhost";
+                            let _ = crate::config::save_config(&cfg);
+                        }
+
+                        // Reconfigure TallyClient
+                        let new_tally = {
+                            let cfg = self.config.read().unwrap();
+                            Arc::new(TallyClient::new(cfg.tally.clone()))
+                        };
+                        {
+                            let mut t_lock = self.tally.write().unwrap();
+                            *t_lock = new_tally.clone();
+                        }
+
+                        self.audit.log("companion_ui_change_target", None, None, &format!("Target changed to {}:{}", new_host, new_port));
+
+                        // Test reachability immediately
+                        let (reachable, latency_ms) = check_tally_quick(&new_host, new_port);
+                        let loaded_companies = if reachable {
+                            query_companies(new_tally.clone())
+                        } else {
+                            Vec::new()
+                        };
+
+                        outcome = json!({
+                            "success": true,
+                            "reachable": reachable,
+                            "target_url": format!("http://{}:{}", new_host, new_port),
+                            "host": new_host,
+                            "port": new_port,
+                            "latency_ms": latency_ms,
+                            "loaded_companies": loaded_companies,
+                            "active_company": loaded_companies.first().cloned()
+                        });
+                        status_code = 200;
+                    }
+                }
+
+                let header = Header::from_bytes(&b"Content-Type"[..], &b"application/json"[..]).unwrap();
+                let resp = Response::from_string(outcome.to_string()).with_header(header).with_status_code(status_code);
+                let _ = request.respond(resp);
+                continue;
+            }
+
+            // Reconnect button handler
+            if url_path == "/api/reconnect" && method == "POST" {
+                let cfg = self.config.read().unwrap().clone();
+                let tally_arc = self.tally.read().unwrap().clone();
+
+                let (reachable, latency_ms) = check_tally_quick(&cfg.tally.host, cfg.tally.port);
+                let loaded_companies = if reachable {
+                    query_companies(tally_arc.clone())
+                } else {
+                    Vec::new()
+                };
+
+                let message = if reachable {
+                    format!("Successfully connected to TallyPrime at {}:{} ({}ms). Open companies: {}",
+                        cfg.tally.host, cfg.tally.port, latency_ms,
+                        if loaded_companies.is_empty() { "None (Open a company in Tally)".to_string() } else { loaded_companies.join(", ") }
+                    )
+                } else {
+                    format!("Cannot reach TallyPrime at {}:{}. Ensure Tally is open and ODBC/XML port {} is enabled in F1 ▸ Settings ▸ Connectivity.",
+                        cfg.tally.host, cfg.tally.port, cfg.tally.port
+                    )
+                };
+
+                let outcome = json!({
+                    "success": reachable,
+                    "reachable": reachable,
+                    "target_url": format!("http://{}:{}", cfg.tally.host, cfg.tally.port),
+                    "host": cfg.tally.host,
+                    "port": cfg.tally.port,
+                    "latency_ms": latency_ms,
+                    "loaded_companies": loaded_companies,
+                    "active_company": loaded_companies.first().cloned(),
+                    "message": message
+                });
+
+                let header = Header::from_bytes(&b"Content-Type"[..], &b"application/json"[..]).unwrap();
+                let resp = Response::from_string(outcome.to_string()).with_header(header);
+                let _ = request.respond(resp);
+                continue;
+            }
+
+            // Sync button handler
+            if url_path == "/api/sync" && method == "POST" {
+                let cfg = self.config.read().unwrap().clone();
+                let tally_arc = self.tally.read().unwrap().clone();
+
+                let (reachable, latency_ms) = check_tally_quick(&cfg.tally.host, cfg.tally.port);
+                let loaded_companies = if reachable {
+                    query_companies(tally_arc.clone())
+                } else {
+                    Vec::new()
+                };
+                let drafts = self.journal.list_pending_drafts().unwrap_or_default();
+
+                let outcome = json!({
+                    "success": true,
+                    "reachable": reachable,
+                    "target_url": format!("http://{}:{}", cfg.tally.host, cfg.tally.port),
+                    "host": cfg.tally.host,
+                    "port": cfg.tally.port,
+                    "latency_ms": latency_ms,
+                    "loaded_companies": loaded_companies,
+                    "active_company": loaded_companies.first().cloned(),
+                    "drafts_count": drafts.len(),
+                    "synced_at": chrono::Utc::now().to_rfc3339()
+                });
+
+                let header = Header::from_bytes(&b"Content-Type"[..], &b"application/json"[..]).unwrap();
+                let resp = Response::from_string(outcome.to_string()).with_header(header);
+                let _ = request.respond(resp);
+                continue;
+            }
+
+            // Get BYOK AI Configuration
+            if url_path == "/api/byok/config" && method == "GET" {
+                let cfg = self.config.read().unwrap().clone();
+                let provider = if cfg.ai.provider.is_empty() { "anthropic".to_string() } else { cfg.ai.provider.clone() };
+                let masked_key = crate::byok::get_masked_api_key(&provider).unwrap_or_default();
+                let has_api_key = crate::byok::get_api_key(&provider).is_some();
+
+                let outcome = json!({
+                    "provider": provider,
+                    "profile": cfg.ai.profile,
+                    "model": cfg.ai.model,
+                    "base_url": cfg.ai.base_url,
+                    "has_api_key": has_api_key,
+                    "masked_api_key": masked_key,
+                    "builtin_hosts": crate::byok::BUILTIN_ALLOWED_HOSTS,
+                    "extra_allowed_hosts": cfg.ai.extra_allowed_hosts
+                });
+
+                let header = Header::from_bytes(&b"Content-Type"[..], &b"application/json"[..]).unwrap();
+                let resp = Response::from_string(outcome.to_string()).with_header(header);
+                let _ = request.respond(resp);
+                continue;
+            }
+
+            // Save BYOK AI Configuration & API Key
+            if url_path == "/api/byok/config" && method == "POST" {
+                let mut body = String::new();
+                let _ = request.as_reader().read_to_string(&mut body);
+
+                let parsed: Result<serde_json::Value, _> = serde_json::from_str(&body);
+                let mut outcome = json!({ "success": false, "error": "Invalid request body" });
+                let mut status_code = 400;
+
+                if let Ok(val) = parsed {
+                    let provider = val.get("provider").and_then(|p| p.as_str()).unwrap_or("anthropic").trim().to_lowercase();
+                    let api_key = val.get("api_key").and_then(|k| k.as_str()).unwrap_or("").trim();
+                    let model = val.get("model").and_then(|m| m.as_str()).unwrap_or("").trim();
+                    let base_url = val.get("base_url").and_then(|b| b.as_str()).unwrap_or("").trim();
+                    let profile = val.get("profile").and_then(|p| p.as_str()).unwrap_or("cloud").trim();
+
+                    if !api_key.is_empty() {
+                        let _ = crate::byok::set_api_key(&provider, api_key);
+                    }
+
+                    {
+                        let mut cfg = self.config.write().unwrap();
+                        cfg.ai.provider = provider.clone();
+                        cfg.ai.profile = profile.to_string();
+                        cfg.ai.model = model.to_string();
+                        cfg.ai.base_url = base_url.to_string();
+                        let _ = crate::config::save_config(&cfg);
+                    }
+
+                    self.audit.log("companion_ui_change_ai", None, None, &format!("AI settings saved: provider={}, profile={}", provider, profile));
+
+                    let masked_key = crate::byok::get_masked_api_key(&provider).unwrap_or_default();
+                    outcome = json!({
+                        "success": true,
+                        "provider": provider,
+                        "profile": profile,
+                        "model": model,
+                        "base_url": base_url,
+                        "has_api_key": crate::byok::get_api_key(&provider).is_some(),
+                        "masked_api_key": masked_key
+                    });
+                    status_code = 200;
+                }
+
+                let header = Header::from_bytes(&b"Content-Type"[..], &b"application/json"[..]).unwrap();
+                let resp = Response::from_string(outcome.to_string()).with_header(header).with_status_code(status_code);
+                let _ = request.respond(resp);
+                continue;
+            }
+
+            // Test BYOK / AI provider connection
+            if url_path == "/api/byok/test" && method == "POST" {
+                let cfg = self.config.read().unwrap().clone();
+                let provider = cfg.ai.provider.trim().to_lowercase();
+
+                let outcome = if provider == "ollama" {
+                    let base_url = if cfg.ai.base_url.trim().is_empty() { "http://127.0.0.1:11434" } else { cfg.ai.base_url.trim() };
+                    let clean = base_url.trim_start_matches("http://").trim_start_matches("https://");
+                    let host_port = clean.split('/').next().unwrap_or(clean);
+                    let hp_parts: Vec<&str> = host_port.split(':').collect();
+                    let host = hp_parts.first().unwrap_or(&"127.0.0.1");
+                    let port = hp_parts.get(1).and_then(|p| p.parse::<u16>().ok()).unwrap_or(11434);
+
+                    let (reachable, ms) = check_tally_quick(host, port);
+                    if reachable {
+                        json!({ "success": true, "message": format!("Local Ollama server is online and reachable at {} ({}ms).", base_url, ms) })
+                    } else {
+                        json!({ "success": false, "message": format!("Cannot connect to Ollama at {}. Make sure 'ollama serve' is running.", base_url) })
+                    }
+                } else {
+                    let has_key = crate::byok::get_api_key(&provider).is_some();
+                    if has_key {
+                        json!({ "success": true, "message": format!("API key for provider '{}' is configured and stored securely.", provider) })
+                    } else {
+                        json!({ "success": false, "message": format!("No API key found for '{}'. Please enter and save your API key above.", provider) })
+                    }
+                };
+
+                let header = Header::from_bytes(&b"Content-Type"[..], &b"application/json"[..]).unwrap();
+                let resp = Response::from_string(outcome.to_string()).with_header(header);
+                let _ = request.respond(resp);
+                continue;
+            }
+
+            // Ready-to-copy MCP Client Configs
+            if url_path == "/api/mcp/configs" && method == "GET" {
+                let cfg = self.config.read().unwrap().clone();
+                let host = cfg.tally.host.clone();
+                let port = cfg.tally.port;
+
+                let serve_args = if host != "127.0.0.1" && host != "localhost" {
+                    vec!["serve".to_string(), "--host".to_string(), host.clone(), "--port".to_string(), port.to_string()]
+                } else {
+                    vec!["serve".to_string()]
+                };
+
+                let claude_config = json!({
+                    "mcpServers": {
+                        "tally": {
+                            "command": "tally-mcp",
+                            "args": serve_args
+                        }
+                    }
+                });
+
+                let cursor_config = json!({
+                    "mcpServers": {
+                        "tally": {
+                            "command": "tally-mcp",
+                            "args": serve_args
+                        }
+                    }
+                });
+
+                let windsurf_config = json!({
+                    "mcpServers": {
+                        "tally": {
+                            "command": "tally-mcp",
+                            "args": serve_args
+                        }
+                    }
+                });
+
+                let cline_config = json!({
+                    "mcpServers": {
+                        "tally": {
+                            "command": "tally-mcp",
+                            "args": serve_args,
+                            "disabled": false,
+                            "autoApprove": []
+                        }
+                    }
+                });
+
+                let payload = json!({
+                    "current_host": host,
+                    "current_port": port,
+                    "claude": {
+                        "filename": "claude_desktop_config.json",
+                        "paths": {
+                            "windows": "%APPDATA%\\Claude\\claude_desktop_config.json",
+                            "macos": "~/Library/Application Support/Claude/claude_desktop_config.json",
+                            "linux": "~/.config/Claude/claude_desktop_config.json"
+                        },
+                        "json": serde_json::to_string_pretty(&claude_config).unwrap_or_default()
+                    },
+                    "cursor": {
+                        "filename": ".cursor/mcp.json",
+                        "paths": {
+                            "project": ".cursor/mcp.json",
+                            "windows": "%APPDATA%\\Cursor\\User\\globalStorage\\mcp.json",
+                            "macos": "~/Library/Application Support/Cursor/User/globalStorage/mcp.json",
+                            "linux": "~/.config/Cursor/User/globalStorage/mcp.json"
+                        },
+                        "json": serde_json::to_string_pretty(&cursor_config).unwrap_or_default()
+                    },
+                    "windsurf": {
+                        "filename": "mcp_config.json",
+                        "paths": {
+                            "all": "~/.codeium/windsurf/mcp_config.json"
+                        },
+                        "json": serde_json::to_string_pretty(&windsurf_config).unwrap_or_default()
+                    },
+                    "cline": {
+                        "filename": "cline_mcp_settings.json",
+                        "paths": {
+                            "windows": "%APPDATA%\\Code\\User\\globalStorage\\saoudrizwan.claude-dev\\settings\\cline_mcp_settings.json",
+                            "macos": "~/Library/Application Support/Code/User/globalStorage/saoudrizwan.claude-dev/settings/cline_mcp_settings.json",
+                            "linux": "~/.config/Code/User/globalStorage/saoudrizwan.claude-dev/settings/cline_mcp_settings.json"
+                        },
+                        "json": serde_json::to_string_pretty(&cline_config).unwrap_or_default()
+                    },
+                    "cli": {
+                        "command": format!("tally-mcp serve{}", if host != "127.0.0.1" && host != "localhost" { format!(" --host {} --port {}", host, port) } else { String::new() })
+                    }
+                });
+
+                let header = Header::from_bytes(&b"Content-Type"[..], &b"application/json"[..]).unwrap();
+                let resp = Response::from_string(payload.to_string()).with_header(header);
+                let _ = request.respond(resp);
+                continue;
+            }
+
+            if url_path == "/api/drafts" && method == "GET" {
                 let drafts = self.journal.list_pending_drafts().unwrap_or_default();
                 let header = Header::from_bytes(&b"Content-Type"[..], &b"application/json"[..]).unwrap();
                 let resp = Response::from_string(serde_json::to_string(&drafts).unwrap_or_default()).with_header(header);
@@ -120,7 +500,7 @@ impl CompanionUiServer {
                 continue;
             }
 
-            if url == "/api/drafts/approve" && method == "POST" {
+            if url_path == "/api/drafts/approve" && method == "POST" {
                 let mut body = String::new();
                 let _ = request.as_reader().read_to_string(&mut body);
 
@@ -150,7 +530,7 @@ impl CompanionUiServer {
                 continue;
             }
 
-            if url == "/api/drafts/commit" && method == "POST" {
+            if url_path == "/api/drafts/commit" && method == "POST" {
                 let mut body = String::new();
                 let _ = request.as_reader().read_to_string(&mut body);
 
@@ -161,7 +541,7 @@ impl CompanionUiServer {
                     let draft_id = val.get("draft_id").and_then(|d| d.as_str()).unwrap_or("");
                     if let Ok(draft) = self.journal.get_draft(draft_id) {
                         if draft.status == DraftStatus::Approved {
-                            let tally = self.tally.clone();
+                            let tally = self.tally.read().unwrap().clone();
                             let xml = build_voucher_import_xml(&draft);
 
                             // Execute in worker thread with fresh runtime
@@ -201,7 +581,7 @@ impl CompanionUiServer {
                 continue;
             }
 
-            if url == "/api/extract" && method == "POST" {
+            if url_path == "/api/extract" && method == "POST" {
                 let mut body = String::new();
                 let _ = request.as_reader().read_to_string(&mut body);
 
@@ -212,15 +592,25 @@ impl CompanionUiServer {
                 if let Ok(val) = parsed {
                     let name = val.get("name").and_then(|n| n.as_str()).unwrap_or("document.json").to_string();
                     let mime = val.get("mime").and_then(|m| m.as_str()).unwrap_or("application/json").to_string();
+                    let content_b64 = val.get("content_base64").and_then(|c| c.as_str());
                     let content_str = val.get("content").and_then(|c| c.as_str()).unwrap_or("");
+
+                    use base64::Engine;
+                    let bytes = if let Some(b64) = content_b64 {
+                        base64::engine::general_purpose::STANDARD.decode(b64.trim())
+                            .unwrap_or_else(|_| content_str.as_bytes().to_vec())
+                    } else {
+                        content_str.as_bytes().to_vec()
+                    };
 
                     let doc = crate::byok::Document {
                         mime,
-                        bytes: content_str.as_bytes().to_vec(),
+                        bytes,
                         name,
                     };
 
-                    match crate::byok::parse_invoice(&doc) {
+                    let cfg = self.config.read().unwrap().clone();
+                    match crate::byok::extract_document(&cfg, &doc) {
                         Ok(extraction) => {
                             outcome = serde_json::to_value(extraction).unwrap_or_default();
                             status_code = 200;
@@ -233,6 +623,14 @@ impl CompanionUiServer {
 
                 let header = Header::from_bytes(&b"Content-Type"[..], &b"application/json"[..]).unwrap();
                 let resp = Response::from_string(outcome.to_string()).with_header(header).with_status_code(status_code);
+                let _ = request.respond(resp);
+                continue;
+            }
+
+            if url_path == "/api/audit" && method == "GET" {
+                let entries = self.audit.read_recent_entries(50);
+                let header = Header::from_bytes(&b"Content-Type"[..], &b"application/json"[..]).unwrap();
+                let resp = Response::from_string(serde_json::to_string(&entries).unwrap_or_default()).with_header(header);
                 let _ = request.respond(resp);
                 continue;
             }

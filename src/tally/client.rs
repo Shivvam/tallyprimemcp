@@ -23,6 +23,7 @@ pub enum TallyError {
     TallyResponseError(String),
 }
 
+#[derive(Clone)]
 pub struct TallyClient {
     config: TallyConfig,
     breaker: Arc<CircuitBreaker>,
@@ -31,6 +32,10 @@ pub struct TallyClient {
 }
 
 impl TallyClient {
+    #[allow(dead_code)]
+    pub fn config(&self) -> &TallyConfig {
+        &self.config
+    }
     pub fn new(config: TallyConfig) -> Self {
         let queue_depth = config.queue_depth;
         let breaker_failures = config.breaker_failures;

@@ -222,3 +222,18 @@ pub fn load_config() -> (Config, PathBuf) {
 
     (config, config_path)
 }
+
+pub fn save_config(config: &Config) -> Result<PathBuf, std::io::Error> {
+    let config_dir = get_app_data_dir();
+    let config_path = config_dir.join("config.toml");
+
+    if let Some(parent) = config_path.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+
+    let serialized = toml::to_string_pretty(config)
+        .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?;
+    std::fs::write(&config_path, serialized)?;
+
+    Ok(config_path)
+}

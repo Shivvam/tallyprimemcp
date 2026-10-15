@@ -97,4 +97,36 @@ mod ui_and_byok_tests {
         let loaded = journal.get_draft(&draft_id).expect("Draft should be saved");
         assert_eq!(loaded.status, DraftStatus::PendingApproval);
     }
+
+    #[test]
+    fn test_byok_key_storage_and_masking() {
+        use tally_mcp::byok::{get_api_key, get_masked_api_key, set_api_key};
+
+        // Ollama needs no key
+        assert_eq!(get_masked_api_key("ollama"), Some("Local (No key required)".to_string()));
+
+        // Anthropic key setting and retrieval
+        let test_key = "sk-ant-api03-testkey1234567890abcdef";
+        set_api_key("anthropic", test_key).expect("Key should save");
+        assert_eq!(get_api_key("anthropic"), Some(test_key.to_string()));
+
+        let masked = get_masked_api_key("anthropic").expect("Masked key should exist");
+        assert!(masked.contains("••••"));
+        assert!(masked.starts_with("sk-a"));
+        assert!(masked.ends_with("cdef"));
+    }
+
+    #[test]
+    fn test_config_persistence() {
+        use tally_mcp::config::{save_config, Config};
+
+        let mut config = Config::default();
+        config.tally.host = "192.168.1.188".to_string();
+        config.tally.port = 9005;
+        config.tally.allow_remote_tally = true;
+        config.ai.provider = "ollama".to_string();
+
+        let path = save_config(&config).expect("save_config should succeed");
+        assert!(path.exists());
+    }
 }

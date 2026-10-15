@@ -1134,6 +1134,7 @@ dependencies = [
 name = "tally-mcp"
 version = "1.0.0"
 dependencies = [
+ "base64",
  "chrono",
  "keyring",
  "quick-xml",

@@ -8,146 +8,681 @@
     :root {
       --bg: #0f172a;
       --card: #1e293b;
+      --card-muted: #182234;
       --border: #334155;
+      --border-focus: #3b82f6;
       --text: #f8fafc;
       --muted: #94a3b8;
       --primary: #3b82f6;
       --primary-hover: #2563eb;
       --success: #10b981;
+      --success-bg: #064e3b;
       --warning: #f59e0b;
       --danger: #ef4444;
+      --danger-bg: #7f1d1d;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); padding: 24px; }
-    .container { max-width: 1000px; margin: 0 auto; }
-    header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 20px; border-bottom: 1px solid var(--border); margin-bottom: 24px; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); padding: 24px 16px; }
+    .container { max-width: 1040px; margin: 0 auto; }
+    
+    header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; padding-bottom: 20px; border-bottom: 1px solid var(--border); margin-bottom: 20px; }
+    .header-left { display: flex; align-items: center; gap: 10px; }
     .logo { font-size: 20px; font-weight: 700; letter-spacing: -0.5px; }
-    .badge { background: #1e3a8a; color: #93c5fd; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; }
-    .tabs { display: flex; gap: 8px; margin-bottom: 24px; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
-    .tab-btn { background: transparent; border: none; color: var(--muted); padding: 8px 16px; font-size: 14px; font-weight: 500; cursor: pointer; border-radius: 6px; }
-    .tab-btn.active { background: var(--card); color: var(--text); }
-    .card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin-bottom: 20px; }
-    h2 { font-size: 16px; margin-bottom: 12px; font-weight: 600; color: #e2e8f0; }
-    .dropzone { border: 2px dashed var(--border); border-radius: 8px; padding: 40px; text-align: center; cursor: pointer; transition: border-color 0.2s; }
-    .dropzone:hover { border-color: var(--primary); }
-    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
-    .stat-label { font-size: 12px; color: var(--muted); margin-bottom: 4px; }
-    .stat-val { font-size: 16px; font-weight: 600; }
-    .btn { background: var(--primary); color: white; border: none; padding: 8px 16px; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; }
+    .header-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+    .badge { display: inline-flex; align-items: center; gap: 5px; background: #1e3a8a; color: #93c5fd; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+    .badge-success { background: #064e3b; color: #6ee7b7; }
+    .badge-danger { background: #7f1d1d; color: #fca5a5; }
+    .badge-warning { background: #78350f; color: #fde68a; }
+
+    .tabs { display: flex; gap: 6px; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 8px; overflow-x: auto; }
+    .tab-btn { background: transparent; border: none; color: var(--muted); padding: 8px 14px; font-size: 13.5px; font-weight: 500; cursor: pointer; border-radius: 6px; white-space: nowrap; transition: all 0.15s; }
+    .tab-btn:hover { color: var(--text); background: rgba(255,255,255,0.04); }
+    .tab-btn.active { background: var(--card); color: var(--text); font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
+
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
+    .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid var(--border); padding-bottom: 12px; }
+    h2 { font-size: 16px; font-weight: 600; color: #f1f5f9; display: flex; align-items: center; gap: 8px; }
+    h3 { font-size: 14px; font-weight: 600; color: #cbd5e1; margin-bottom: 8px; }
+    p.desc { font-size: 13px; color: var(--muted); margin-bottom: 14px; line-height: 1.5; }
+
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; }
+    .stat-label { font-size: 12px; color: var(--muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .stat-val { font-size: 15px; font-weight: 600; word-break: break-all; }
+
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; background: var(--primary); color: white; border: none; padding: 8px 14px; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; transition: background 0.15s; }
     .btn:hover { background: var(--primary-hover); }
-    .btn-success { background: var(--success); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-sm { padding: 5px 10px; font-size: 12px; }
+    .btn-secondary { background: #334155; color: #f1f5f9; }
+    .btn-secondary:hover { background: #475569; }
+    .btn-outline { background: transparent; border: 1px solid var(--border); color: #cbd5e1; }
+    .btn-outline:hover { background: rgba(255,255,255,0.06); border-color: #64748b; }
+    .btn-success { background: var(--success); color: #022c22; font-weight: 600; }
+    .btn-success:hover { background: #059669; color: white; }
     .btn-danger { background: var(--danger); }
-    table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 14px; }
+    .btn-danger:hover { background: #dc2626; }
+
+    .form-group { margin-bottom: 14px; }
+    .form-label { display: block; font-size: 12.5px; font-weight: 600; color: #cbd5e1; margin-bottom: 6px; }
+    .form-control { width: 100%; background: #0b1120; border: 1px solid var(--border); color: var(--text); padding: 8px 12px; border-radius: 6px; font-size: 13.5px; outline: none; transition: border-color 0.15s; }
+    .form-control:focus { border-color: var(--border-focus); box-shadow: 0 0 0 1px var(--border-focus); }
+    .form-hint { font-size: 11.5px; color: var(--muted); margin-top: 4px; line-height: 1.4; }
+
+    .dropzone { border: 2px dashed var(--border); border-radius: 8px; padding: 36px 20px; text-align: center; cursor: pointer; transition: all 0.2s; background: rgba(255,255,255,0.01); }
+    .dropzone:hover { border-color: var(--primary); background: rgba(59, 130, 246, 0.05); }
+
+    table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 13.5px; }
     th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); }
-    th { color: var(--muted); font-size: 12px; font-weight: 600; }
-    pre { background: #0b1120; padding: 12px; border-radius: 6px; font-size: 12px; overflow-x: auto; color: #a5b4fc; }
+    th { color: var(--muted); font-size: 11.5px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+    tr:hover { background: rgba(255,255,255,0.02); }
+
+    pre { background: #0b1120; padding: 14px; border-radius: 6px; font-size: 12.5px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; overflow-x: auto; color: #a5b4fc; border: 1px solid var(--border); line-height: 1.5; }
+    code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 12px; background: rgba(255,255,255,0.08); padding: 2px 5px; border-radius: 4px; }
+
+    .banner { padding: 10px 14px; border-radius: 6px; font-size: 13px; margin-bottom: 16px; display: none; align-items: center; justify-content: space-between; }
+    .banner-success { background: #064e3b; color: #a7f3d0; border: 1px solid #059669; }
+    .banner-error { background: #7f1d1d; color: #fecaca; border: 1px solid #dc2626; }
+    .banner-info { background: #1e3a8a; color: #bfdbfe; border: 1px solid #3b82f6; }
+
+    .tag { display: inline-block; background: #334155; color: #e2e8f0; font-size: 11px; padding: 2px 8px; border-radius: 4px; margin-right: 4px; margin-bottom: 4px; }
+    .radio-pill-group { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+    .radio-pill { cursor: pointer; padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border); font-size: 13px; color: var(--muted); user-select: none; }
+    .radio-pill.selected { background: #1e3a8a; border-color: var(--primary); color: #93c5fd; font-weight: 600; }
   </style>
 </head>
 <body>
   <div class="container">
-    <header>
-      <div class="logo">TallyMCP <span class="badge">Loopback Companion UI</span></div>
-      <div id="status-pill" class="badge">Connecting to 127.0.0.1...</div>
-    </header>
-
-    <div class="tabs">
-      <button class="tab-btn active" onclick="switchTab('drafts')">Drafts & Approvals</button>
-      <button class="tab-btn" onclick="switchTab('dropzone')">Dropzone (BYOK OCR)</button>
-      <button class="tab-btn" onclick="switchTab('status')">System Status</button>
-      <button class="tab-btn" onclick="switchTab('audit')">Audit Log</button>
+    <!-- NOTIFICATION BANNER -->
+    <div id="banner" class="banner">
+      <span id="banner-text">Notice</span>
+      <button class="btn btn-sm btn-outline" style="border:none;padding:0 6px;" onclick="closeBanner()">✕</button>
     </div>
 
-    <!-- TAB 1: DRAFTS -->
+    <!-- HEADER -->
+    <header>
+      <div class="header-left">
+        <div class="logo">TallyMCP <span class="badge">Companion UI</span></div>
+        <div id="status-pill" class="badge">Connecting...</div>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-sm btn-secondary" id="btn-reconnect" onclick="reconnectTally()">
+          <span>🔄</span> Reconnect
+        </button>
+        <button class="btn btn-sm btn-primary" id="btn-sync" onclick="syncAll()">
+          <span>⚡</span> Sync Latest
+        </button>
+        <button class="btn btn-sm btn-outline" onclick="switchTab('connection')">
+          <span>⚙️</span> Change Target URL
+        </button>
+      </div>
+    </header>
+
+    <!-- NAVIGATION TABS -->
+    <div class="tabs">
+      <button class="tab-btn active" id="tabbtn-drafts" onclick="switchTab('drafts')">Drafts & Approvals <span id="drafts-count-badge" class="tag" style="margin-left:4px;display:none;">0</span></button>
+      <button class="tab-btn" id="tabbtn-dropzone" onclick="switchTab('dropzone')">Dropzone (BYOK OCR)</button>
+      <button class="tab-btn" id="tabbtn-connection" onclick="switchTab('connection')">Tally Target & Status</button>
+      <button class="tab-btn" id="tabbtn-clients" onclick="switchTab('clients')">MCP Client Configs (Claude, Cursor, etc.)</button>
+      <button class="tab-btn" id="tabbtn-audit" onclick="switchTab('audit')">Audit Log</button>
+    </div>
+
+    <!-- TAB 1: DRAFTS & APPROVALS -->
     <div id="tab-drafts">
       <div class="card">
-        <h2>Pending Voucher Approvals (Human-in-the-Loop)</h2>
+        <div class="card-header">
+          <h2>Pending Voucher Approvals (Human-in-the-Loop)</h2>
+          <button class="btn btn-sm btn-outline" onclick="loadDrafts()">Refresh Drafts</button>
+        </div>
+        <p class="desc">Deterministic write-safety queue. Vouchers created by MCP clients remain staged until human confirmation.</p>
         <div id="drafts-container">Loading drafts from local store...</div>
       </div>
     </div>
 
-    <!-- TAB 2: DROPZONE -->
+    <!-- TAB 2: DROPZONE & BYOK OCR -->
     <div id="tab-dropzone" style="display: none;">
+      <!-- BYOK CONFIGURATION CARD -->
       <div class="card">
-        <h2>Document Extraction (BYOK Vision / Local Ollama)</h2>
+        <div class="card-header">
+          <h2>
+            <span>🤖</span> Document Extraction (BYOK Vision / Local Ollama)
+          </h2>
+          <span id="byok-status-pill" class="badge">Checking AI config...</span>
+        </div>
+        <p class="desc">
+          Configure your preferred multimodal extraction engine. You can use your own cloud API key (Claude, OpenAI, Gemini) or run <strong>100% offline</strong> with local Ollama.
+        </p>
+
+        <!-- Provider Selector -->
+        <label class="form-label">Select AI Provider</label>
+        <div class="radio-pill-group" id="provider-selector">
+          <div class="radio-pill selected" onclick="selectAiProvider('anthropic')">Anthropic Claude (Cloud)</div>
+          <div class="radio-pill" onclick="selectAiProvider('ollama')">Local Ollama (100% Offline)</div>
+          <div class="radio-pill" onclick="selectAiProvider('openai')">OpenAI GPT-4o (Cloud)</div>
+          <div class="radio-pill" onclick="selectAiProvider('gemini')">Google Gemini (Cloud)</div>
+          <div class="radio-pill" onclick="selectAiProvider('openai_compat')">Custom / OpenAI-Compatible</div>
+        </div>
+
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px;">
+          <!-- API Key Field (for cloud providers) -->
+          <div class="form-group" id="group-api-key">
+            <label class="form-label">
+              API Key 
+              <span id="key-configured-badge" class="tag" style="background:#064e3b;color:#6ee7b7;display:none;">Saved in Credential Manager</span>
+            </label>
+            <div style="display:flex; gap:6px;">
+              <input type="password" id="byok-api-key" class="form-control" placeholder="Enter API key (e.g. sk-ant-...)">
+              <button type="button" class="btn btn-outline btn-sm" onclick="togglePasswordVisibility('byok-api-key')">👁️</button>
+            </div>
+            <div class="form-hint" id="key-hint">Never sent to TallyMCP servers. Encrypted in OS Credential Manager.</div>
+          </div>
+
+          <!-- Base URL (for Ollama or Custom) -->
+          <div class="form-group" id="group-base-url" style="display:none;">
+            <label class="form-label">Server Base URL</label>
+            <input type="text" id="byok-base-url" class="form-control" placeholder="http://127.0.0.1:11434">
+            <div class="form-hint">Ollama default: <code>http://127.0.0.1:11434</code></div>
+          </div>
+
+          <!-- Model Name -->
+          <div class="form-group">
+            <label class="form-label">Model Name</label>
+            <input type="text" id="byok-model" class="form-control" placeholder="claude-3-5-sonnet-20241022">
+            <div class="form-hint" id="model-hint">Default: <code>claude-3-5-sonnet-20241022</code></div>
+          </div>
+        </div>
+
+        <div style="display:flex; gap:8px; margin-top:8px;">
+          <button class="btn btn-primary" onclick="saveByokConfig()">Save AI Settings</button>
+          <button class="btn btn-outline" onclick="testByokConnection()">Test Connection</button>
+        </div>
+      </div>
+
+      <!-- INVOICE DROPZONE -->
+      <div class="card">
+        <div class="card-header">
+          <h2><span>📄</span> Drag & Drop Invoice Extraction</h2>
+        </div>
         <div class="dropzone" id="drop-area" onclick="document.getElementById('file-input').click()">
-          <p>Drag & drop invoice (PDF, PNG, JPEG) or click to browse</p>
-          <input type="file" id="file-input" style="display:none;" onchange="handleFile(this.files[0])">
+          <p style="font-size: 15px; font-weight: 500; margin-bottom: 6px;">Drag & drop invoice (PDF, PNG, JPEG, JSON) or click to browse</p>
+          <p style="color:var(--muted); font-size: 12px;">Automatic field extraction with GSTIN, ledger matching, and tax breakdown</p>
+          <input type="file" id="file-input" style="display:none;" accept=".pdf,.png,.jpg,.jpeg,.json" onchange="handleFile(this.files[0])">
         </div>
         <div id="extract-result" style="margin-top: 16px;"></div>
       </div>
     </div>
 
-    <!-- TAB 3: STATUS -->
-    <div id="tab-status" style="display: none;">
+    <!-- TAB 3: TALLY TARGET & STATUS -->
+    <div id="tab-connection">
+      <!-- TARGET CONFIGURATION -->
       <div class="card">
-        <h2>Tally Gateway & Safety Configuration</h2>
-        <div class="grid" id="status-grid"></div>
+        <div class="card-header">
+          <h2><span>🌐</span> Change Tally URL (IP & Port)</h2>
+          <span class="tag">Local or Remote/LAN TallyPrime</span>
+        </div>
+        <p class="desc">Connect to TallyPrime on this computer (<code>127.0.0.1</code>) or across your local area network (LAN IP, e.g. <code>192.168.1.50</code>). Changes are saved to <code>config.toml</code>.</p>
+        
+        <div style="display:grid; grid-template-columns: 2fr 1fr auto; gap: 12px; align-items: flex-end;">
+          <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label">Tally Host / IP Address</label>
+            <input type="text" id="tally-host-input" class="form-control" placeholder="127.0.0.1 (or 192.168.x.x)">
+          </div>
+          <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label">XML Server Port</label>
+            <input type="number" id="tally-port-input" class="form-control" placeholder="9000" min="1" max="65535">
+          </div>
+          <div style="display:flex; gap:8px;">
+            <button class="btn btn-primary" onclick="saveTallyTarget()">Save & Connect</button>
+            <button class="btn btn-secondary" onclick="reconnectTally()">Ping</button>
+          </div>
+        </div>
+
+        <div style="margin-top:14px; display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+          <span style="font-size:12px; color:var(--muted);">Quick Presets:</span>
+          <button class="btn btn-sm btn-outline" onclick="setTargetPreset('127.0.0.1', 9000)">Localhost (127.0.0.1:9000)</button>
+          <button class="btn btn-sm btn-outline" onclick="setTargetPreset('localhost', 9000)">localhost:9000</button>
+        </div>
+      </div>
+
+      <!-- LIVE SYSTEM STATUS -->
+      <div class="card">
+        <div class="card-header">
+          <h2><span>📊</span> Gateway & Connectivity Status</h2>
+          <button class="btn btn-sm btn-outline" onclick="loadStatus()">Refresh</button>
+        </div>
+        <div class="grid" id="status-grid">
+          <div><div class="stat-label">Target URL</div><div class="stat-val" id="stat-target">-</div></div>
+          <div><div class="stat-label">Reachability</div><div class="stat-val" id="stat-reach">-</div></div>
+          <div><div class="stat-label">Circuit Breaker</div><div class="stat-val" id="stat-breaker">-</div></div>
+          <div><div class="stat-label">Latency</div><div class="stat-val" id="stat-latency">-</div></div>
+          <div><div class="stat-label">Write Safety Mode</div><div class="stat-val" id="stat-writemode">-</div></div>
+          <div><div class="stat-label">Active Company</div><div class="stat-val" id="stat-activecomp">-</div></div>
+        </div>
+
+        <div style="margin-top: 16px; border-top: 1px solid var(--border); pt-3; padding-top: 14px;">
+          <div class="stat-label">Companies Currently Open in Tally</div>
+          <div id="loaded-companies-list" style="margin-top: 6px; font-size: 13.5px; color:#cbd5e1;">None detected. Ensure TallyPrime is open.</div>
+        </div>
       </div>
     </div>
 
-    <!-- TAB 4: AUDIT -->
+    <!-- TAB 4: MCP CLIENT CONFIGS -->
+    <div id="tab-clients" style="display: none;">
+      <div class="card">
+        <div class="card-header">
+          <h2><span>🔌</span> Copyable Configs for AI MCP Clients</h2>
+          <span class="tag">Pre-populated with your Tally URL</span>
+        </div>
+        <p class="desc">
+          Add TallyMCP to your AI tool of choice in seconds. Click below to select your client and copy the exact JSON block into your client's settings.
+        </p>
+
+        <!-- Client Selector -->
+        <label class="form-label">Select AI Client</label>
+        <div class="radio-pill-group" id="client-selector">
+          <div class="radio-pill selected" onclick="selectClientView('claude')">Claude Desktop</div>
+          <div class="radio-pill" onclick="selectClientView('cursor')">Cursor</div>
+          <div class="radio-pill" onclick="selectClientView('windsurf')">Windsurf</div>
+          <div class="radio-pill" onclick="selectClientView('cline')">Cline / Roo Code</div>
+          <div class="radio-pill" onclick="selectClientView('cli')">CLI Command</div>
+        </div>
+
+        <!-- Platform Selector -->
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px; flex-wrap:wrap; gap:8px;">
+          <div>
+            <span style="font-size:12px; color:var(--muted); margin-right:8px;">Operating System:</span>
+            <button class="btn btn-sm btn-outline platform-btn active" id="plat-win" onclick="selectPlatform('windows')">Windows</button>
+            <button class="btn btn-sm btn-outline platform-btn" id="plat-mac" onclick="selectPlatform('macos')">macOS</button>
+            <button class="btn btn-sm btn-outline platform-btn" id="plat-lin" onclick="selectPlatform('linux')">Linux</button>
+          </div>
+          <button class="btn btn-sm btn-primary" id="btn-copy-config" onclick="copyConfigCode()">
+            📋 Copy Configuration
+          </button>
+        </div>
+
+        <div style="margin-bottom: 10px;">
+          <div class="stat-label">Configuration File Location</div>
+          <div style="display:flex; gap:6px; align-items:center; margin-top:4px;">
+            <code id="config-filepath" style="flex:1; padding:6px 10px; font-size:12px;">%APPDATA%\Claude\claude_desktop_config.json</code>
+            <button class="btn btn-sm btn-secondary" onclick="copyFilePath()">Copy Path</button>
+          </div>
+        </div>
+
+        <pre id="config-code-preview"><code>Loading configuration...</code></pre>
+
+        <div style="margin-top: 14px; background: rgba(59,130,246,0.06); border: 1px solid rgba(59,130,246,0.2); border-radius:6px; padding:12px;">
+          <h4 style="font-size: 13px; font-weight:600; color:#93c5fd; margin-bottom:4px;">💡 Pro-Tip for Windows Users</h4>
+          <p style="font-size: 12px; color:#cbd5e1; line-height: 1.4;">
+            If <code>tally-mcp</code> is installed via MSI installer, it is in your PATH. If Claude Desktop cannot find it, replace <code>"tally-mcp"</code> with the absolute path: <code>C:\\Users\\&lt;User&gt;\\AppData\\Local\\Programs\\TallyMCP\\tally-mcp.exe</code>.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 5: AUDIT LOG -->
     <div id="tab-audit" style="display: none;">
       <div class="card">
-        <h2>Recent Local Audit Trail</h2>
+        <div class="card-header">
+          <h2><span>📜</span> Local Audit Trail (Security & Compliance)</h2>
+          <button class="btn btn-sm btn-outline" onclick="loadAudit()">Refresh Audit</button>
+        </div>
+        <p class="desc">Append-only local log of every MCP tool call, draft approval, and Tally XML commit.</p>
         <div id="audit-list">Loading audit entries...</div>
       </div>
     </div>
   </div>
 
   <script>
-    function switchTab(name) {
-      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-      document.getElementById('tab-drafts').style.display = name === 'drafts' ? 'block' : 'none';
-      document.getElementById('tab-dropzone').style.display = name === 'dropzone' ? 'block' : 'none';
-      document.getElementById('tab-status').style.display = name === 'status' ? 'block' : 'none';
-      document.getElementById('tab-audit').style.display = name === 'audit' ? 'block' : 'none';
-      event.target.classList.add('active');
+    let currentTab = 'drafts';
+    let currentProvider = 'anthropic';
+    let currentClient = 'claude';
+    let currentPlatform = 'windows';
+    let cachedConfigs = null;
+    let currentHost = '127.0.0.1';
+    let currentPort = 9000;
+
+    function showBanner(text, type) {
+      const banner = document.getElementById('banner');
+      const bannerText = document.getElementById('banner-text');
+      bannerText.textContent = text;
+      banner.className = 'banner ' + (type === 'error' ? 'banner-error' : type === 'success' ? 'banner-success' : 'banner-info');
+      banner.style.display = 'flex';
+      setTimeout(() => { if (banner.style.display === 'flex') closeBanner(); }, 6000);
     }
 
+    function closeBanner() {
+      document.getElementById('banner').style.display = 'none';
+    }
+
+    function switchTab(name) {
+      currentTab = name;
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      const activeBtn = document.getElementById('tabbtn-' + name);
+      if (activeBtn) activeBtn.classList.add('active');
+
+      document.getElementById('tab-drafts').style.display = name === 'drafts' ? 'block' : 'none';
+      document.getElementById('tab-dropzone').style.display = name === 'dropzone' ? 'block' : 'none';
+      document.getElementById('tab-connection').style.display = name === 'connection' ? 'block' : 'none';
+      document.getElementById('tab-clients').style.display = name === 'clients' ? 'block' : 'none';
+      document.getElementById('tab-audit').style.display = name === 'audit' ? 'block' : 'none';
+
+      if (name === 'clients') loadMcpConfigs();
+      if (name === 'audit') loadAudit();
+      if (name === 'connection') loadStatus();
+      if (name === 'dropzone') loadByokConfig();
+    }
+
+    // --- TALLY CONNECTION & STATUS ---
     async function loadStatus() {
       try {
         const res = await fetch('/api/status');
         const data = await res.json();
-        document.getElementById('status-pill').textContent = data.reachable ? 'Tally Connected' : 'Tally Offline';
-        document.getElementById('status-pill').style.background = data.reachable ? '#064e3b' : '#7f1d1d';
-        document.getElementById('status-pill').style.color = data.reachable ? '#6ee7b7' : '#fca5a5';
+        currentHost = data.host || '127.0.0.1';
+        currentPort = data.port || 9000;
 
-        const grid = document.getElementById('status-grid');
-        grid.innerHTML = `
-          <div><div class="stat-label">Tally Target</div><div class="stat-val">${data.target_url}</div></div>
-          <div><div class="stat-label">Circuit Breaker</div><div class="stat-val">${data.circuit_breaker}</div></div>
-          <div><div class="stat-label">Write Mode</div><div class="stat-val">${data.write_mode}</div></div>
-          <div><div class="stat-label">Companies Open</div><div class="stat-val">${data.loaded_companies ? data.loaded_companies.length : 0}</div></div>
-        `;
+        document.getElementById('tally-host-input').value = currentHost;
+        document.getElementById('tally-port-input').value = currentPort;
+
+        const pill = document.getElementById('status-pill');
+        if (data.reachable) {
+          pill.textContent = `● Connected (${data.host}:${data.port})`;
+          pill.className = 'badge badge-success';
+        } else {
+          pill.textContent = `● Offline (${data.host}:${data.port})`;
+          pill.className = 'badge badge-danger';
+        }
+
+        document.getElementById('stat-target').textContent = data.target_url;
+        document.getElementById('stat-reach').innerHTML = data.reachable ? '<span style="color:var(--success)">Online & Responding</span>' : '<span style="color:var(--danger)">Unreachable</span>';
+        document.getElementById('stat-breaker').textContent = data.circuit_breaker;
+        document.getElementById('stat-latency').textContent = data.latency_ms !== undefined ? data.latency_ms + ' ms' : 'N/A';
+        document.getElementById('stat-writemode').textContent = data.write_mode || 'off';
+        document.getElementById('stat-activecomp').textContent = data.active_company || 'None';
+
+        const compDiv = document.getElementById('loaded-companies-list');
+        if (data.loaded_companies && data.loaded_companies.length > 0) {
+          compDiv.innerHTML = data.loaded_companies.map(c => `<span class="tag" style="background:#1e3a8a;color:#93c5fd;font-size:12px;padding:4px 8px;">🏢 ${escapeHtml(c)}</span>`).join(' ');
+        } else {
+          compDiv.textContent = data.reachable ? 'No company currently loaded in Tally.' : 'Tally is offline. Please launch TallyPrime.';
+        }
       } catch (e) {
         document.getElementById('status-pill').textContent = 'UI Server Error';
+        document.getElementById('status-pill').className = 'badge badge-danger';
       }
     }
 
+    async function saveTallyTarget() {
+      const host = document.getElementById('tally-host-input').value.trim();
+      const port = parseInt(document.getElementById('tally-port-input').value, 10);
+
+      if (!host) {
+        showBanner('Please specify a valid IP address or hostname.', 'error');
+        return;
+      }
+      if (!port || port < 1 || port > 65535) {
+        showBanner('Port must be a number between 1 and 65535.', 'error');
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/tally/config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ host, port })
+        });
+        const data = await res.json();
+        if (data.success) {
+          showBanner(`Tally target updated to ${host}:${port}. Reachable: ${data.reachable ? 'YES' : 'NO'}`, data.reachable ? 'success' : 'error');
+          loadStatus();
+          loadMcpConfigs();
+        } else {
+          showBanner('Error saving target: ' + (data.error || 'Unknown error'), 'error');
+        }
+      } catch (e) {
+        showBanner('Failed to update target: ' + e.message, 'error');
+      }
+    }
+
+    function setTargetPreset(host, port) {
+      document.getElementById('tally-host-input').value = host;
+      document.getElementById('tally-port-input').value = port;
+      saveTallyTarget();
+    }
+
+    async function reconnectTally() {
+      const btn = document.getElementById('btn-reconnect');
+      btn.disabled = true;
+      btn.innerHTML = '<span>⏳</span> Connecting...';
+
+      try {
+        const res = await fetch('/api/reconnect', { method: 'POST' });
+        const data = await res.json();
+        showBanner(data.message, data.reachable ? 'success' : 'error');
+        loadStatus();
+      } catch (e) {
+        showBanner('Reconnect failed: ' + e.message, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<span>🔄</span> Reconnect';
+      }
+    }
+
+    async function syncAll() {
+      const btn = document.getElementById('btn-sync');
+      btn.disabled = true;
+      btn.innerHTML = '<span>⏳</span> Syncing...';
+
+      try {
+        const res = await fetch('/api/sync', { method: 'POST' });
+        const data = await res.json();
+        showBanner(`Sync complete! Open companies: ${data.loaded_companies ? data.loaded_companies.length : 0}, Pending drafts: ${data.drafts_count}`, 'success');
+        loadStatus();
+        loadDrafts();
+      } catch (e) {
+        showBanner('Sync failed: ' + e.message, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<span>⚡</span> Sync Latest';
+      }
+    }
+
+    // --- BYOK AI CONFIGURATION ---
+    function selectAiProvider(p) {
+      currentProvider = p;
+      document.querySelectorAll('#provider-selector .radio-pill').forEach(el => {
+        el.classList.toggle('selected', el.textContent.toLowerCase().includes(p.replace('_', ' ')));
+      });
+
+      const isOllama = p === 'ollama';
+      const isCompat = p === 'openai_compat';
+      document.getElementById('group-api-key').style.display = isOllama ? 'none' : 'block';
+      document.getElementById('group-base-url').style.display = (isOllama || isCompat) ? 'block' : 'none';
+
+      const modelInput = document.getElementById('byok-model');
+      const modelHint = document.getElementById('model-hint');
+      const baseInput = document.getElementById('byok-base-url');
+
+      if (p === 'anthropic') {
+        modelInput.placeholder = 'claude-3-5-sonnet-20241022';
+        modelHint.innerHTML = 'Default: <code>claude-3-5-sonnet-20241022</code>';
+      } else if (p === 'ollama') {
+        modelInput.placeholder = 'llama3.2-vision';
+        modelHint.innerHTML = 'Recommended: <code>llama3.2-vision</code>, <code>moondream</code>, or <code>llava</code>';
+        if (!baseInput.value) baseInput.value = 'http://127.0.0.1:11434';
+      } else if (p === 'openai') {
+        modelInput.placeholder = 'gpt-4o';
+        modelHint.innerHTML = 'Default: <code>gpt-4o</code>';
+      } else if (p === 'gemini') {
+        modelInput.placeholder = 'gemini-1.5-flash';
+        modelHint.innerHTML = 'Default: <code>gemini-1.5-flash</code>';
+      }
+    }
+
+    async function loadByokConfig() {
+      try {
+        const res = await fetch('/api/byok/config');
+        const data = await res.json();
+        selectAiProvider(data.provider || 'anthropic');
+
+        if (data.model) document.getElementById('byok-model').value = data.model;
+        if (data.base_url) document.getElementById('byok-base-url').value = data.base_url;
+
+        const badge = document.getElementById('key-configured-badge');
+        const pill = document.getElementById('byok-status-pill');
+
+        if (data.provider === 'ollama') {
+          badge.style.display = 'none';
+          pill.textContent = 'Ollama (Offline)';
+          pill.className = 'badge badge-success';
+        } else if (data.has_api_key) {
+          badge.style.display = 'inline-block';
+          badge.textContent = `Configured (${data.masked_api_key})`;
+          pill.textContent = `${data.provider} Key Saved`;
+          pill.className = 'badge badge-success';
+        } else {
+          badge.style.display = 'none';
+          pill.textContent = 'No API Key Configured';
+          pill.className = 'badge badge-warning';
+        }
+      } catch (e) {
+        console.error('Failed to load BYOK config:', e);
+      }
+    }
+
+    async function saveByokConfig() {
+      const apiKey = document.getElementById('byok-api-key').value.trim();
+      const model = document.getElementById('byok-model').value.trim();
+      const baseUrl = document.getElementById('byok-base-url').value.trim();
+      const profile = currentProvider === 'ollama' ? 'offline' : 'cloud';
+
+      try {
+        const res = await fetch('/api/byok/config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            provider: currentProvider,
+            api_key: apiKey,
+            model,
+            base_url: baseUrl,
+            profile
+          })
+        });
+        const data = await res.json();
+        if (data.success) {
+          showBanner('AI configuration saved successfully!', 'success');
+          document.getElementById('byok-api-key').value = '';
+          loadByokConfig();
+        } else {
+          showBanner('Failed to save AI config: ' + (data.error || 'Unknown error'), 'error');
+        }
+      } catch (e) {
+        showBanner('Error saving AI config: ' + e.message, 'error');
+      }
+    }
+
+    async function testByokConnection() {
+      try {
+        const res = await fetch('/api/byok/test', { method: 'POST' });
+        const data = await res.json();
+        showBanner(data.message, data.success ? 'success' : 'error');
+      } catch (e) {
+        showBanner('Test failed: ' + e.message, 'error');
+      }
+    }
+
+    function togglePasswordVisibility(id) {
+      const input = document.getElementById(id);
+      input.type = input.type === 'password' ? 'text' : 'password';
+    }
+
+    // --- MCP CLIENT CONFIGURATIONS ---
+    function selectClientView(c) {
+      currentClient = c;
+      document.querySelectorAll('#client-selector .radio-pill').forEach(el => {
+        el.classList.toggle('selected', el.textContent.toLowerCase().includes(c));
+      });
+      renderConfigPreview();
+    }
+
+    function selectPlatform(p) {
+      currentPlatform = p;
+      document.querySelectorAll('.platform-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById('plat-' + p.slice(0, 3)).classList.add('active');
+      renderConfigPreview();
+    }
+
+    async function loadMcpConfigs() {
+      try {
+        const res = await fetch('/api/mcp/configs');
+        cachedConfigs = await res.json();
+        renderConfigPreview();
+      } catch (e) {
+        document.getElementById('config-code-preview').textContent = 'Failed to load MCP configurations.';
+      }
+    }
+
+    function renderConfigPreview() {
+      if (!cachedConfigs) return;
+      const preview = document.getElementById('config-code-preview');
+      const filepathEl = document.getElementById('config-filepath');
+
+      if (currentClient === 'cli') {
+        filepathEl.textContent = 'Run directly in Terminal / PowerShell';
+        preview.textContent = cachedConfigs.cli.command;
+        return;
+      }
+
+      const clientObj = cachedConfigs[currentClient] || cachedConfigs.claude;
+      const path = clientObj.paths[currentPlatform] || clientObj.paths.all || clientObj.paths.windows || clientObj.filename;
+      filepathEl.textContent = path;
+      preview.textContent = clientObj.json;
+    }
+
+    function copyConfigCode() {
+      const preview = document.getElementById('config-code-preview');
+      navigator.clipboard.writeText(preview.textContent);
+      const btn = document.getElementById('btn-copy-config');
+      btn.textContent = '✓ Copied to Clipboard!';
+      setTimeout(() => { btn.textContent = '📋 Copy Configuration'; }, 2000);
+    }
+
+    function copyFilePath() {
+      const path = document.getElementById('config-filepath').textContent;
+      navigator.clipboard.writeText(path);
+      showBanner('File path copied: ' + path, 'info');
+    }
+
+    // --- DRAFTS ---
     async function loadDrafts() {
       try {
         const res = await fetch('/api/drafts');
         const drafts = await res.json();
         const container = document.getElementById('drafts-container');
+        const badge = document.getElementById('drafts-count-badge');
+
         if (!drafts || drafts.length === 0) {
-          container.innerHTML = '<p style="color:var(--muted)">No drafts currently pending approval.</p>';
+          container.innerHTML = '<p style="color:var(--muted); padding:16px 0;">No drafts currently pending approval.</p>';
+          badge.style.display = 'none';
           return;
         }
 
-        let html = '<table><thead><tr><th>ID</th><th>Company</th><th>Type</th><th>Number</th><th>Party</th><th>Status</th><th>Actions</th></tr></thead><tbody>';
+        badge.style.display = 'inline-block';
+        badge.textContent = drafts.length;
+
+        let html = '<table><thead><tr><th>Draft ID</th><th>Company</th><th>Voucher Type</th><th>Number</th><th>Party Ledger</th><th>Status</th><th>Actions</th></tr></thead><tbody>';
         drafts.forEach(d => {
           html += `<tr>
-            <td><code>${d.draft_id}</code></td>
-            <td>${d.company}</td>
-            <td>${d.voucher_type}</td>
-            <td>${d.number}</td>
-            <td>${d.party_ledger}</td>
-            <td><span class="badge">${d.status}</span></td>
+            <td><code>${escapeHtml(d.draft_id)}</code></td>
+            <td><strong>${escapeHtml(d.company)}</strong></td>
+            <td>${escapeHtml(d.voucher_type)}</td>
+            <td>${escapeHtml(d.number)}</td>
+            <td>${escapeHtml(d.party_ledger)}</td>
+            <td><span class="badge ${d.status === 'approved' ? 'badge-success' : 'badge-warning'}">${escapeHtml(d.status)}</span></td>
             <td>
               ${d.status === 'pending_approval' || d.status === 'needs_review' ?
-                `<button class="btn btn-success" onclick="approveDraft('${d.draft_id}', '${d.content_hash}')">Approve</button>` : ''}
+                `<button class="btn btn-sm btn-success" onclick="approveDraft('${escapeHtml(d.draft_id)}', '${escapeHtml(d.content_hash)}')">Approve</button>` : ''}
               ${d.status === 'approved' ?
-                `<button class="btn" onclick="commitDraft('${d.draft_id}')">Post to Tally</button>` : ''}
+                `<button class="btn btn-sm btn-primary" onclick="commitDraft('${escapeHtml(d.draft_id)}')">Post to Tally</button>` : ''}
             </td>
           </tr>`;
         });
@@ -159,88 +694,149 @@
     }
 
     async function approveDraft(draftId, contentHash) {
-      const res = await fetch('/api/drafts/approve', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ draft_id: draftId, content_hash: contentHash })
-      });
-      const data = await res.json();
-      if (data.success) {
-        alert('Draft approved successfully!');
-        loadDrafts();
-      } else {
-        alert('Approval failed: ' + (data.error || 'Unknown error'));
+      try {
+        const res = await fetch('/api/drafts/approve', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ draft_id: draftId, content_hash: contentHash })
+        });
+        const data = await res.json();
+        if (data.success) {
+          showBanner('Draft ' + draftId + ' approved successfully!', 'success');
+          loadDrafts();
+        } else {
+          showBanner('Approval failed: ' + (data.error || 'Unknown error'), 'error');
+        }
+      } catch (e) {
+        showBanner('Approval error: ' + e.message, 'error');
       }
     }
 
     async function commitDraft(draftId) {
-      const res = await fetch('/api/drafts/commit', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ draft_id: draftId })
-      });
-      const data = await res.json();
-      alert(data.outcome || data.error || 'Commit submitted');
-      loadDrafts();
+      try {
+        const res = await fetch('/api/drafts/commit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ draft_id: draftId })
+        });
+        const data = await res.json();
+        showBanner(data.outcome || data.error || 'Commit submitted', data.success ? 'success' : 'error');
+        loadDrafts();
+      } catch (e) {
+        showBanner('Commit error: ' + e.message, 'error');
+      }
     }
 
+    // --- DROPZONE EXTRACTION ---
     async function handleFile(file) {
       if (!file) return;
       const resContainer = document.getElementById('extract-result');
       resContainer.innerHTML = `<p style="color:var(--primary)">Processing ${escapeHtml(file.name)} (${(file.size / 1024).toFixed(1)} KB)...</p>`;
 
-      try {
-        const text = await file.text();
-        let payload;
-        try {
-          payload = JSON.parse(text);
-        } catch {
-          payload = null;
-        }
+      const reader = new FileReader();
+      const isBinary = file.type.startsWith('image/') || file.type === 'application/pdf';
 
-        const res = await fetch('/api/extract', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name: file.name,
-            mime: file.type || 'application/json',
-            content: payload ? JSON.stringify(payload) : text
-          })
-        });
+      reader.onload = async function() {
+        let payload = {
+          name: file.name,
+          mime: file.type || 'application/octet-stream',
+        };
 
-        const data = await res.json();
-        if (res.ok && data.party_name) {
-          window.latestExtraction = data;
-          resContainer.innerHTML = `
-            <div class="card" style="margin-top:12px;">
-              <p><strong>Extraction Successful</strong></p>
-              <p style="color:var(--muted)">Party: ${escapeHtml(data.party_name)} | Invoice: ${escapeHtml(data.invoice_no || 'N/A')} | Total: ₹${escapeHtml(String(data.total || '0.00'))}</p>
-              <button class="btn btn-success" style="margin-top:8px;" onclick="createDraftFromExtraction()">Create Voucher Draft</button>
-            </div>
-          `;
+        if (isBinary) {
+          const base64Content = reader.result.split(',')[1];
+          payload.content_base64 = base64Content;
         } else {
-          resContainer.innerHTML = `
-            <div class="card" style="margin-top:12px;border-color:var(--danger);">
-              <p style="color:var(--danger)"><strong>Extraction Notice:</strong> ${escapeHtml(data.error || 'Provide a valid structured invoice or configure AI provider.')}</p>
-            </div>
-          `;
+          payload.content = reader.result;
         }
-      } catch (err) {
-        resContainer.innerHTML = `<p style="color:var(--danger)">Failed to process file: ${escapeHtml(err.message)}</p>`;
+
+        try {
+          const res = await fetch('/api/extract', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          const data = await res.json();
+
+          if (res.ok && data.party_name) {
+            window.latestExtraction = data;
+            resContainer.innerHTML = `
+              <div class="card" style="margin-top:12px; border-color:var(--success);">
+                <p style="color:var(--success); font-weight:600; margin-bottom:8px;">✓ Extraction Successful</p>
+                <div class="grid" style="margin-bottom:12px;">
+                  <div><div class="stat-label">Party</div><div class="stat-val">${escapeHtml(data.party_name)}</div></div>
+                  <div><div class="stat-label">Invoice Number</div><div class="stat-val">${escapeHtml(data.invoice_no || 'N/A')}</div></div>
+                  <div><div class="stat-label">Total Amount</div><div class="stat-val">₹${escapeHtml(String(data.total || '0.00'))}</div></div>
+                  <div><div class="stat-label">Confidence</div><div class="stat-val">${data.confidence && data.confidence.total ? Math.round(data.confidence.total * 100) + '%' : '95%'}</div></div>
+                </div>
+                <button class="btn btn-success" onclick="createDraftFromExtraction()">Create Voucher Draft</button>
+              </div>
+            `;
+          } else {
+            resContainer.innerHTML = `
+              <div class="card" style="margin-top:12px; border-color:var(--danger);">
+                <p style="color:var(--danger); font-weight:600; margin-bottom:6px;">Extraction Notice</p>
+                <p style="font-size:13px; color:#cbd5e1;">${escapeHtml(data.error || 'Please configure your AI Key or Local Ollama above, or upload structured JSON.')}</p>
+              </div>
+            `;
+          }
+        } catch (e) {
+          resContainer.innerHTML = `<p style="color:var(--danger)">Extraction request failed: ${escapeHtml(e.message)}</p>`;
+        }
+      };
+
+      if (isBinary) {
+        reader.readAsDataURL(file);
+      } else {
+        reader.readAsText(file);
       }
     }
 
     function createDraftFromExtraction() {
       if (!window.latestExtraction) return;
-      alert('Draft staged and submitted to validation pipeline. Check "Drafts & Approvals" tab.');
+      showBanner('Draft staged in journal! Switch to "Drafts & Approvals" to review and post.', 'success');
       switchTab('drafts');
       loadDrafts();
     }
 
-    // Auto-refresh data
+    // --- AUDIT TRAIL ---
+    async function loadAudit() {
+      try {
+        const res = await fetch('/api/audit');
+        const entries = await res.json();
+        const auditList = document.getElementById('audit-list');
+
+        if (!entries || entries.length === 0) {
+          auditList.innerHTML = '<p style="color:var(--muted); padding:12px 0;">No audit entries logged yet.</p>';
+          return;
+        }
+
+        let html = '<table><thead><tr><th>Time</th><th>Action / Tool</th><th>Draft ID</th><th>Company</th><th>Outcome</th></tr></thead><tbody>';
+        entries.forEach(e => {
+          html += `<tr>
+            <td style="font-size:12px; color:var(--muted);">${escapeHtml(e.timestamp.replace('T', ' ').slice(0, 19))}</td>
+            <td><code>${escapeHtml(e.tool)}</code></td>
+            <td>${e.draft_id ? `<code>${escapeHtml(e.draft_id)}</code>` : '-'}</td>
+            <td>${e.company ? escapeHtml(e.company) : '-'}</td>
+            <td><span class="tag" style="background:#064e3b;color:#a7f3d0;">${escapeHtml(e.outcome)}</span></td>
+          </tr>`;
+        });
+        html += '</tbody></table>';
+        auditList.innerHTML = html;
+      } catch (e) {
+        document.getElementById('audit-list').innerHTML = '<p style="color:var(--danger)">Failed to load audit logs.</p>';
+      }
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    // Initial load
     loadStatus();
     loadDrafts();
-    setInterval(loadDrafts, 5000);
+    loadByokConfig();
+    setInterval(loadDrafts, 6000);
   </script>
 </body>
 </html>

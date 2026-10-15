@@ -57,4 +57,22 @@ impl AuditLogger {
             }
         }
     }
+
+    pub fn read_recent_entries(&self, limit: usize) -> Vec<AuditEntry> {
+        let _guard = self.lock.lock().unwrap();
+        let path = self.current_audit_path();
+        if !path.exists() {
+            return Vec::new();
+        }
+        let Ok(content) = fs::read_to_string(&path) else {
+            return Vec::new();
+        };
+        let mut entries: Vec<AuditEntry> = content
+            .lines()
+            .filter_map(|line| serde_json::from_str::<AuditEntry>(line).ok())
+            .collect();
+        entries.reverse();
+        entries.truncate(limit);
+        entries
+    }
 }

@@ -29,6 +29,7 @@ uuid = { version = "1", features = ["v4"] }
 tiny_http = { version = "0.12", optional = true }
 ureq = { version = "3", default-features = false, features = ["rustls", "json"], optional = true }
 keyring = { version = "3", features = ["windows-native"], optional = true }
+base64 = "0.23"
 
 [profile.release]
 opt-level = "z"
