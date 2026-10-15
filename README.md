@@ -22,10 +22,11 @@ Let AI assistants read your accounting data and *propose* vouchers, while a huma
 [![Downloads](https://img.shields.io/github/downloads/Shivvam/tallyprimemcp/total?style=flat-square)](https://github.com/Shivvam/tallyprimemcp/releases)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green?style=flat-square)](LICENSE)
 [![MCP](https://img.shields.io/badge/MCP-2024--11--05-blueviolet?style=flat-square)](https://modelcontextprotocol.io)
-[![Platform](https://img.shields.io/badge/platform-Windows%2010%2F11%20x64-lightgrey?style=flat-square)](#requirements)
+[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey?style=flat-square)](#requirements)
+[![Website](https://img.shields.io/badge/website-tallymcp.com-blue?style=flat-square)](https://tallymcp.com)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen?style=flat-square)](CONTRIBUTING.md)
 
-[Quick Start](#quick-start) · [Examples](#example-prompts) · [Tools](#mcp-tools-reference) · [Security](#security-model) · [Configuration](#configuration) · [Troubleshooting](#troubleshooting) · [Contributing](#contributing)
+[Website](https://tallymcp.com) · [Quick Start](#quick-start) · [LAN Setup](#connecting-to-tallyprime-over-local-network-lan) · [Examples](#example-prompts) · [Tools](#mcp-tools-reference) · [Security](#security-model) · [Configuration](#configuration) · [Contributing](#contributing)
 
 </div>
 
@@ -59,11 +60,11 @@ Let AI assistants read your accounting data and *propose* vouchers, while a huma
 
 ## Overview
 
-TallyMCP is a single native Windows executable, written in Rust, that connects **TallyPrime** to any MCP-compatible client such as Claude Desktop, Cursor, Cline, or Windsurf.
+TallyMCP is an ultra-lightweight, open-source Model Context Protocol (MCP) server written in Rust that bridges **TallyPrime** to AI assistants including Claude Desktop, Cursor, Cline, and Windsurf.
 
-It talks to TallyPrime through its built-in XML-over-HTTP interface on the local machine (`127.0.0.1:9000` by default). No cloud relay, reverse-engineered API, or hosted service is involved.
+It communicates with TallyPrime via its native XML-over-HTTP interface on loopback (`127.0.0.1:9000` by default) or across your local network (`LAN_IP:9000`). No cloud relay, third-party backend, or reverse-engineered API is involved. Pre-built binaries are officially distributed for **Windows (MSI installer & portable EXE)**, **Linux (x86_64)**, and **macOS (Apple Silicon arm64)**.
 
-**Design principle:** an AI model can *read* accounting data and *draft* changes, but it can never commit a change on its own. Every write needs an explicit human click in a local approval page.
+**Design principle:** An AI model can *read* accounting data and *propose* drafts, but it can never commit a change on its own. Every write strictly requires an explicit human click on a local loopback approval page.
 
 ### Why this exists
 
@@ -123,7 +124,7 @@ Accounting data is high-stakes. Letting an LLM emit raw XML straight into a ledg
 
 | Requirement | Details |
 |---|---|
-| OS | Windows 10 / 11 (x64) |
+| OS | Windows 10 / 11 (x64), Linux (x86_64), or macOS Apple Silicon (arm64). *(Note: TallyPrime itself runs on Windows; tally-mcp can run on the same PC or connect over LAN).* |
 | TallyPrime | **TallyPrime Release 5.0+** (latest) and Release 4.x / 3.x recommended (Release 2.x / 1.x supported; Tally.ERP 9 best-effort). Fully compatible with Silver, Gold, and TallyPrime Edit Log editions |
 | Tally HTTP/XML | Must be enabled (see [Quick Start](#1-enable-tallyprimes-xml-server)) |
 | MCP client | Any client supporting MCP over stdio |
@@ -163,21 +164,53 @@ winget install TallyMCP.TallyMCP
 
 **Installer or standalone binary**
 
-Download `tally-mcp-<version>-x64.msi` or `tally-mcp.exe` from [Releases](https://github.com/Shivvam/tallyprimemcp/releases).
+Download the appropriate binary for your platform from [tallymcp.com](https://tallymcp.com) or [GitHub Releases](https://github.com/Shivvam/tallyprimemcp/releases):
+- **Windows:** `tally-mcp-<version>-x64.msi` (installer) or `tally-mcp.exe` (portable)
+- **Linux:** `tally-mcp-<version>-linux-x64.tar.gz`
+- **macOS (Apple Silicon):** `tally-mcp-<version>-darwin-arm64.tar.gz`
 
 **Verify your download** (recommended):
 ```powershell
 Get-FileHash .\tally-mcp.exe -Algorithm SHA256
-# Compare with SHA256SUMS.txt attached to the release
+# Compare with checksums.txt attached to the release
 ```
 
 **Guided setup**
 ```powershell
-tally-mcp.exe setup
-tally-mcp.exe doctor    # confirms Tally is reachable
+tally-mcp setup
+tally-mcp doctor    # confirms Tally is reachable
 ```
 
-### 3. Connect your MCP client
+### 3. Connecting to TallyPrime over Local Network (LAN)
+
+If TallyPrime is running on another machine across your local network (e.g. `192.168.1.50:9000`):
+
+- **Via CLI flag:**
+  ```bash
+  tally-mcp serve --host 192.168.1.50 --port 9000
+  ```
+- **Via MCP Client Config (`claude_desktop_config.json`):**
+  ```json
+  {
+    "mcpServers": {
+      "tally": {
+        "command": "tally-mcp",
+        "args": ["serve", "--host", "192.168.1.50", "--port", "9000"]
+      }
+    }
+  }
+  ```
+- **Via Environment Variable:**
+  ```powershell
+  $env:TALLY_HOST = "192.168.1.50"
+  $env:TALLY_PORT = "9000"
+  ```
+- **Save Permanently in Config:**
+  ```bash
+  tally-mcp setup --host 192.168.1.50 --port 9000
+  ```
+
+### 4. Connect your MCP client
 
 <details>
 <summary><b>Claude Desktop</b></summary>
@@ -231,7 +264,7 @@ Cline Settings → MCP Servers → Add:
 Any client that launches a stdio MCP server works. Use the same `command` / `args` pattern as above.
 </details>
 
-### 4. Try it
+### 5. Try it
 
 Ask your assistant: *"List my Tally companies and show the trial balance for FY 2025-26."*
 
@@ -317,7 +350,8 @@ AI draft → Validate → Journal (atomic .tmp→.json) → Approval token
 2. **Idempotency:** duplicate fingerprints are rejected.
 3. **No LLM commits:** approval is a human-only action.
 4. **Crash reconciliation:** drafts stuck in `committing` are checked against Tally by GUID, then verified or reverted.
-5. **Egress allow-list:** only `127.0.0.1` / `localhost`, plus the AI provider endpoints you configure (`api.anthropic.com`, `api.openai.com`, `generativelanguage.googleapis.com`) and **only when document extraction is enabled**.
+5. **Egress allow-list:** only `127.0.0.1` / `localhost` and verified local LAN ranges, plus configured AI provider endpoints (`api.anthropic.com`, `api.openai.com`, `generativelanguage.googleapis.com`) **only when document extraction is enabled**. Cloud instance metadata (`169.254.169.254`, `metadata.google.internal`) is strictly blocked to prevent SSRF.
+6. **Web Companion UI protection:** Local companion UI enforces strict loopback Host header verification and reject cross-origin requests (`Origin` header check on `POST`), preventing DNS rebinding and CSRF attacks.
 
 > This project has not yet undergone an independent security audit. See [SECURITY.md](SECURITY.md) to report vulnerabilities.
 
@@ -334,18 +368,26 @@ Choose your MCP client according to your organisation's data-handling policy. Us
 
 ## CLI Reference
 
-```
-tally-mcp.exe <COMMAND>
+```bash
+tally-mcp <COMMAND> [OPTIONS]
 ```
 
+### Commands
 | Command | Purpose |
 |---|---|
 | `serve` | Run the stdio MCP server (used by MCP clients) |
 | `ui` | Launch the loopback companion UI for approvals and document drop |
-| `setup` | Interactive setup (Tally detection, port, API keys) |
+| `setup` | Interactive setup (Tally detection, host, port, API keys) |
 | `doctor` | Diagnostics: Tally reachability, circuit breaker, companies, journal reconciliation |
-| `cleanup` | Uninstall and data scrub (`--dry-run` supported) |
-| `version` | Print version and build commit |
+| `cleanup` | Manage application state, drafts, and caches (`--dry-run` supported) |
+| `version` | Print version, architecture, and build commit |
+
+### Options
+| Flag | Description | Default |
+|---|---|---|
+| `--host <IP/HOST>` | TallyPrime target address (Local or LAN IP) | `127.0.0.1` |
+| `--port <PORT>` | TallyPrime XML-over-HTTP port | `9000` |
+| `--show-names` | (`doctor` only) Show un-redacted company names in diagnostics | `false` |
 
 > During `serve`, `stdout` is reserved for JSON-RPC. All logs go to `stderr` and the audit log.
 
