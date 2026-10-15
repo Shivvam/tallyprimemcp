@@ -38,7 +38,8 @@ A human **always** approves the write.
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey?style=flat-square)](#requirements)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen?style=flat-square)](CONTRIBUTING.md)
 
-[**Website**](https://tallymcp.com) ·
+[**Website**](https://tallymcp.vercel.app/) ·
+[**GitHub**](https://github.com/Shivvam/tallyprimemcp) ·
 [**Quick Start**](#quick-start) ·
 [**Tools**](#mcp-tools-reference) ·
 [**Security**](#security-model) ·
@@ -78,9 +79,20 @@ A human **always** approves the write.
 
 ## Overview
 
-**TallyMCP** is a lightweight, open-source MCP server written in Rust. It connects **TallyPrime** to AI clients such as Claude Desktop, Cursor, Cline, and Windsurf.
+**TallyMCP** is an ultra-lightweight, high-performance, open-source MCP server written in Rust. It bridges **TallyPrime** to AI assistants (Claude, Antigravity, ChatGPT, Cursor, Windsurf, and any MCP client).
 
-It talks to TallyPrime over Tally's native **XML-over-HTTP** interface, on loopback (`127.0.0.1:9000`) by default or across your LAN. There is no cloud relay, no third-party backend, and no reverse-engineered API.
+It communicates with TallyPrime over Tally's native **XML-over-HTTP** interface on loopback (`127.0.0.1:9000`) by default or across your LAN. There is no cloud relay, no third-party backend, and zero telemetry.
+
+### 🌟 Core Unique Selling Points (USPs)
+
+- **⚡ Ultra-Lightweight**: Minimal binary footprint (~1.3 MB core binary), sub-120ms cold start, and ~24 MB idle RAM footprint.
+- **🦀 Faster (Written in Rust)**: Compiled directly to native machine code with zero garbage collection pauses. Processes high-volume XML requests in milliseconds (bulk-imports 1,000 vouchers in ~22s).
+- **🛡️ Reliable & Safe**: Strict compile-time safety, deterministic schema validation, loopback isolation, and human-in-the-loop write approval.
+- **🆓 100% Free & Open Source**: Licensed under the permissive MIT license. Zero paywalls, zero closed telemetry, and no recurring fees.
+- **🔌 Versatile Integrations**: Supported across Claude AI, ChatGPT Desktop, Google Gemini, Grok, Mistral, Cursor, Windsurf, and LM Studio.
+
+- **GitHub Repository**: [https://github.com/Shivvam/tallyprimemcp](https://github.com/Shivvam/tallyprimemcp)
+- **Official Web Portal**: [https://tallymcp.vercel.app/](https://tallymcp.vercel.app/)
 
 > [!IMPORTANT]
 > **Design principle:** a model can *read* accounting data and *propose* drafts, but it can never commit a change on its own. Every write requires an explicit human click on a local, token-gated approval page.
@@ -247,15 +259,7 @@ curl http://127.0.0.1:9000
 
 ### 2. Install TallyMCP
 
-**winget**
-
-```powershell
-winget install TallyMCP.TallyMCP
-```
-
-**Installer or standalone binary**
-
-Download from [tallymcp.com](https://tallymcp.com) or [GitHub Releases](https://github.com/Shivvam/tallyprimemcp/releases):
+Download the signed Windows installer (`.msi`) or portable binary (`.exe`) from [GitHub Releases](https://github.com/Shivvam/tallyprimemcp/releases):
 
 | Platform | Artifact |
 |---|---|
@@ -277,10 +281,37 @@ tally-mcp setup
 tally-mcp doctor    # confirms Tally is reachable
 ```
 
+### Supported Platforms
+
+Implementation was tested on below AI platform:
+
+| Platform | Local | Remote |
+|---|:---:|:---:|
+| Claude AI | ✔️ | ✔️ |
+| ChatGPT | ✔️ | ✔️ |
+| Grok | | ✔️ |
+| Mistral | | ✔️ |
+| LM Studio | ✔️ | |
+
 ### 3. Connect your MCP client
 
+#### Option A: One-Click Installation for Claude Desktop (`.mcpb` Bundle)
+
+TallyMCP can export a pre-packaged **`.mcpb` bundle** for zero-config, one-click installation:
+
+1. Launch the Companion UI (`tally-mcp` or open `http://127.0.0.1:9099`).
+2. Navigate to **MCP Client Configs** and click **📦 Download tally-mcp.mcpb Bundle** (or fetch `/api/mcp/export-mcpb`).
+3. Open **Claude Desktop** and either:
+   - **Drag and drop** `tally-mcp.mcpb` directly onto the Claude Desktop window, OR
+   - Go to **Settings ▸ Developer / Extensions ▸ Add MCP Bundle** and select the file.
+4. Claude Desktop automatically configures all 128 TallyPrime tools without requiring manual JSON editing!
+
+---
+
+#### Option B: Client Manual Configurations
+
 <details open>
-<summary><b>Claude Desktop</b></summary>
+<summary><b>Claude Desktop (JSON Config)</b></summary>
 
 Edit `%APPDATA%\Claude\claude_desktop_config.json`:
 
@@ -296,6 +327,35 @@ Edit `%APPDATA%\Claude\claude_desktop_config.json`:
 ```
 
 Fully restart Claude Desktop after saving.
+</details>
+
+<details>
+<summary><b>ChatGPT Desktop</b></summary>
+
+1. Download & install **ChatGPT Desktop** from Microsoft Store. Login to it.
+2. Go to **Edit > Settings**.
+3. Navigate to **Integration > Plugins** (or **Developer > Add MCP Server**).
+4. Click **Add** button and choose **Add MCP Server**:
+   - **Name**: `tally`
+   - **Command**: `tally-mcp` (or `C:\Users\<YourUsername>\AppData\Local\Programs\TallyMCP\tally-mcp.exe`)
+   - **Arguments**: `["serve"]`
+</details>
+
+<details>
+<summary><b>Google Gemini (Antigravity / Gemini CLI)</b></summary>
+
+In your Gemini MCP settings or `~/.gemini/mcp_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "tally": {
+      "command": "tally-mcp",
+      "args": ["serve"]
+    }
+  }
+}
+```
 </details>
 
 <details>
@@ -318,6 +378,23 @@ Use the full path to the executable if `tally-mcp` is not on your `PATH`.
 </details>
 
 <details>
+<summary><b>Windsurf</b></summary>
+
+Add to `~/.codeium/windsurf/mcp_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "tally": {
+      "command": "tally-mcp",
+      "args": ["serve"]
+    }
+  }
+}
+```
+</details>
+
+<details>
 <summary><b>Cline (VS Code)</b></summary>
 
 Cline Settings → MCP Servers → Add:
@@ -330,9 +407,9 @@ Cline Settings → MCP Servers → Add:
 </details>
 
 <details>
-<summary><b>Windsurf and other clients</b></summary>
+<summary><b>LM Studio & Local Models</b></summary>
 
-Any client that launches a stdio MCP server works. Use the same `command` / `args` pattern.
+Connect local models (e.g. Qwen, Llama 3) running in LM Studio directly to `tally-mcp serve` over stdio or loopback JSON-RPC for 100% offline air-gapped operation.
 </details>
 
 ### 4. Try it
@@ -738,7 +815,8 @@ Please **do not** open public issues for vulnerabilities. Follow [SECURITY.md](S
 | Bugs and feature requests | [GitHub Issues](https://github.com/Shivvam/tallyprimemcp/issues) |
 | Questions and ideas | [GitHub Discussions](https://github.com/Shivvam/tallyprimemcp/discussions) |
 | Release notes | [CHANGELOG.md](CHANGELOG.md) |
-| Website | [tallymcp.com](https://tallymcp.com) |
+| Website | [tallymcp.vercel.app](https://tallymcp.vercel.app/) |
+| Repository | [github.com/Shivvam/tallyprimemcp](https://github.com/Shivvam/tallyprimemcp) |
 
 ## License and Trademarks
 

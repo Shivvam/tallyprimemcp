@@ -6,20 +6,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     :root {
-      --bg: #0f172a;
-      --card: #1e293b;
-      --card-muted: #182234;
-      --border: #334155;
-      --border-focus: #3b82f6;
-      --text: #f8fafc;
-      --muted: #94a3b8;
-      --primary: #3b82f6;
-      --primary-hover: #2563eb;
-      --success: #10b981;
-      --success-bg: #064e3b;
-      --warning: #f59e0b;
-      --danger: #ef4444;
-      --danger-bg: #7f1d1d;
+      --bg: #ffffff;
+      --card: #ffffff;
+      --card-muted: #fffbe5;
+      --border: rgba(108, 108, 112, 0.2);
+      --border-focus: #006ea6;
+      --text: #111827;
+      --muted: #6c6c70;
+      --primary: #006ea6;
+      --primary-hover: #005a88;
+      --cream: #fffbe5;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); padding: 24px 16px; }
@@ -27,68 +23,69 @@
     
     header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; padding-bottom: 20px; border-bottom: 1px solid var(--border); margin-bottom: 20px; }
     .header-left { display: flex; align-items: center; gap: 10px; }
-    .logo { font-size: 20px; font-weight: 700; letter-spacing: -0.5px; }
+    .logo { font-size: 20px; font-weight: 700; letter-spacing: -0.5px; color: #111827; }
+    .logo span.brand-mcp { color: var(--primary); }
     .header-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 
-    .badge { display: inline-flex; align-items: center; gap: 5px; background: #1e3a8a; color: #93c5fd; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; }
-    .badge-success { background: #064e3b; color: #6ee7b7; }
-    .badge-danger { background: #7f1d1d; color: #fca5a5; }
-    .badge-warning { background: #78350f; color: #fde68a; }
+    .badge { display: inline-flex; align-items: center; gap: 5px; background: var(--cream); color: var(--primary); border: 1px solid rgba(0, 110, 166, 0.3); padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+    .badge-success { background: var(--cream); color: var(--primary); border: 1px solid var(--primary); }
+    .badge-danger { background: #ffffff; color: #111827; border: 1px solid var(--muted); }
+    .badge-warning { background: var(--cream); color: var(--muted); border: 1px solid var(--border); }
 
     .tabs { display: flex; gap: 6px; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 8px; overflow-x: auto; }
     .tab-btn { background: transparent; border: none; color: var(--muted); padding: 8px 14px; font-size: 13.5px; font-weight: 500; cursor: pointer; border-radius: 6px; white-space: nowrap; transition: all 0.15s; }
-    .tab-btn:hover { color: var(--text); background: rgba(255,255,255,0.04); }
-    .tab-btn.active { background: var(--card); color: var(--text); font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
+    .tab-btn:hover { color: var(--text); background: var(--cream); }
+    .tab-btn.active { background: var(--primary); color: #ffffff; font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
 
-    .card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin-bottom: 20px; box-shadow: 0 1px 4px rgba(0,0,0,0.04); }
     .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid var(--border); padding-bottom: 12px; }
-    h2 { font-size: 16px; font-weight: 600; color: #f1f5f9; display: flex; align-items: center; gap: 8px; }
-    h3 { font-size: 14px; font-weight: 600; color: #cbd5e1; margin-bottom: 8px; }
+    h2 { font-size: 16px; font-weight: 600; color: #111827; display: flex; align-items: center; gap: 8px; }
+    h3 { font-size: 14px; font-weight: 600; color: #111827; margin-bottom: 8px; }
     p.desc { font-size: 13px; color: var(--muted); margin-bottom: 14px; line-height: 1.5; }
 
     .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; }
     .stat-label { font-size: 12px; color: var(--muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
-    .stat-val { font-size: 15px; font-weight: 600; word-break: break-all; }
+    .stat-val { font-size: 15px; font-weight: 600; word-break: break-all; color: var(--primary); }
 
     .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; background: var(--primary); color: white; border: none; padding: 8px 14px; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; transition: background 0.15s; }
     .btn:hover { background: var(--primary-hover); }
     .btn:disabled { opacity: 0.5; cursor: not-allowed; }
     .btn-sm { padding: 5px 10px; font-size: 12px; }
-    .btn-secondary { background: #334155; color: #f1f5f9; }
-    .btn-secondary:hover { background: #475569; }
-    .btn-outline { background: transparent; border: 1px solid var(--border); color: #cbd5e1; }
-    .btn-outline:hover { background: rgba(255,255,255,0.06); border-color: #64748b; }
-    .btn-success { background: var(--success); color: #022c22; font-weight: 600; }
-    .btn-success:hover { background: #059669; color: white; }
-    .btn-danger { background: var(--danger); }
-    .btn-danger:hover { background: #dc2626; }
+    .btn-secondary { background: var(--cream); border: 1px solid rgba(0, 110, 166, 0.3); color: var(--primary); font-weight: 600; }
+    .btn-secondary:hover { background: #fff8cc; }
+    .btn-outline { background: #ffffff; border: 1px solid var(--border); color: var(--text); }
+    .btn-outline:hover { background: var(--cream); border-color: var(--primary); color: var(--primary); }
+    .btn-success { background: var(--primary); color: #ffffff; font-weight: 600; }
+    .btn-success:hover { background: var(--primary-hover); }
+    .btn-danger { background: #ffffff; border: 1px solid var(--muted); color: var(--text); }
+    .btn-danger:hover { background: var(--cream); }
 
     .form-group { margin-bottom: 14px; }
-    .form-label { display: block; font-size: 12.5px; font-weight: 600; color: #cbd5e1; margin-bottom: 6px; }
-    .form-control { width: 100%; background: #0b1120; border: 1px solid var(--border); color: var(--text); padding: 8px 12px; border-radius: 6px; font-size: 13.5px; outline: none; transition: border-color 0.15s; }
+    .form-label { display: block; font-size: 12.5px; font-weight: 600; color: #111827; margin-bottom: 6px; }
+    .form-control { width: 100%; background: #ffffff; border: 1px solid var(--border); color: var(--text); padding: 8px 12px; border-radius: 6px; font-size: 13.5px; outline: none; transition: border-color 0.15s; }
     .form-control:focus { border-color: var(--border-focus); box-shadow: 0 0 0 1px var(--border-focus); }
     .form-hint { font-size: 11.5px; color: var(--muted); margin-top: 4px; line-height: 1.4; }
 
-    .dropzone { border: 2px dashed var(--border); border-radius: 8px; padding: 36px 20px; text-align: center; cursor: pointer; transition: all 0.2s; background: rgba(255,255,255,0.01); }
-    .dropzone:hover { border-color: var(--primary); background: rgba(59, 130, 246, 0.05); }
+    .dropzone { border: 2px dashed rgba(0, 110, 166, 0.3); border-radius: 8px; padding: 36px 20px; text-align: center; cursor: pointer; transition: all 0.2s; background: var(--cream); }
+    .dropzone:hover { border-color: var(--primary); background: #fff9d6; }
 
     table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 13.5px; }
     th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); }
-    th { color: var(--muted); font-size: 11.5px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
-    tr:hover { background: rgba(255,255,255,0.02); }
+    th { background: var(--cream); color: #111827; font-size: 11.5px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+    tr:hover { background: rgba(255, 251, 229, 0.5); }
 
-    pre { background: #0b1120; padding: 14px; border-radius: 6px; font-size: 12.5px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; overflow-x: auto; color: #a5b4fc; border: 1px solid var(--border); line-height: 1.5; }
-    code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 12px; background: rgba(255,255,255,0.08); padding: 2px 5px; border-radius: 4px; }
+    pre { background: #ffffff; padding: 14px; border-radius: 6px; font-size: 12.5px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; overflow-x: auto; color: #111827; border: 1px solid var(--border); line-height: 1.5; }
+    code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 12px; background: var(--cream); color: var(--primary); padding: 2px 5px; border-radius: 4px; border: 1px solid rgba(0, 110, 166, 0.2); }
 
     .banner { padding: 10px 14px; border-radius: 6px; font-size: 13px; margin-bottom: 16px; display: none; align-items: center; justify-content: space-between; }
-    .banner-success { background: #064e3b; color: #a7f3d0; border: 1px solid #059669; }
-    .banner-error { background: #7f1d1d; color: #fecaca; border: 1px solid #dc2626; }
-    .banner-info { background: #1e3a8a; color: #bfdbfe; border: 1px solid #3b82f6; }
+    .banner-success { background: var(--cream); color: var(--primary); border: 1px solid var(--primary); }
+    .banner-error { background: #ffffff; color: #111827; border: 1px solid var(--muted); }
+    .banner-info { background: var(--cream); color: var(--primary); border: 1px solid var(--border); }
 
-    .tag { display: inline-block; background: #334155; color: #e2e8f0; font-size: 11px; padding: 2px 8px; border-radius: 4px; margin-right: 4px; margin-bottom: 4px; }
+    .tag { display: inline-block; background: var(--cream); color: var(--primary); border: 1px solid rgba(0, 110, 166, 0.2); font-size: 11px; padding: 2px 8px; border-radius: 4px; margin-right: 4px; margin-bottom: 4px; }
     .radio-pill-group { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
-    .radio-pill { cursor: pointer; padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border); font-size: 13px; color: var(--muted); user-select: none; }
-    .radio-pill.selected { background: #1e3a8a; border-color: var(--primary); color: #93c5fd; font-weight: 600; }
+    .radio-pill { cursor: pointer; padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border); font-size: 13px; color: var(--muted); user-select: none; background: #ffffff; }
+    .radio-pill.selected { background: var(--cream); border-color: var(--primary); color: var(--primary); font-weight: 600; }
   </style>
 </head>
 <body>
@@ -268,6 +265,35 @@
 
     <!-- TAB 4: MCP CLIENT CONFIGS -->
     <div id="tab-clients" style="display: none;">
+      <!-- ONE-CLICK CLAUDE DESKTOP MCPB CARD -->
+      <div class="card" style="background: linear-gradient(135deg, rgba(0, 110, 166, 0.15), rgba(255, 251, 229, 0.05)); border: 1px solid #006ea6; margin-bottom: 20px;">
+        <div class="card-header" style="border-bottom: 1px solid rgba(0, 110, 166, 0.3);">
+          <h2><span>⚡</span> One-Click Installation for Claude Desktop (MCP Bundle)</h2>
+          <span class="badge badge-success">Recommended</span>
+        </div>
+        <p class="desc" style="color: #cbd5e1; margin-bottom: 12px;">
+          No manual JSON editing required. Export our pre-configured <strong>.mcpb</strong> bundle and drop it directly into Claude Desktop for instant registration.
+        </p>
+        <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+          <button class="btn btn-primary" onclick="exportMcpbFile()" style="background:#006ea6; font-size:13.5px; padding:9px 16px;">
+            📦 Download tally-mcp.mcpb Bundle
+          </button>
+          <button class="btn btn-outline" onclick="toggleMcpbGuide()">
+            📖 How to install .mcpb in Claude Desktop
+          </button>
+        </div>
+
+        <div id="mcpb-guide" style="display:none; margin-top:14px; background: rgba(0,0,0,0.35); border-radius:8px; padding:14px; border:1px solid #334155; font-size:13px; line-height:1.6;">
+          <h4 style="color:#93c5fd; margin-bottom:6px; font-size:13px; font-weight:600;">How to use .mcpb in Claude Desktop:</h4>
+          <ol style="margin-left:20px; color:#cbd5e1; margin-bottom: 8px;">
+            <li>Click <strong>Download tally-mcp.mcpb Bundle</strong> above.</li>
+            <li>Open <strong>Claude Desktop</strong>.</li>
+            <li>Either <strong>drag and drop</strong> the downloaded <code>tally-mcp.mcpb</code> file onto Claude Desktop, or go to <strong>Settings ▸ Developer / Extensions ▸ Add MCP Bundle</strong> and select the file.</li>
+            <li>Confirm installation. All 128 TallyPrime tools are connected and available in your chat!</li>
+          </ol>
+        </div>
+      </div>
+
       <div class="card">
         <div class="card-header">
           <h2><span>🔌</span> Copyable Configs for AI MCP Clients</h2>
@@ -281,6 +307,8 @@
         <label class="form-label">Select AI Client</label>
         <div class="radio-pill-group" id="client-selector">
           <div class="radio-pill selected" onclick="selectClientView('claude')">Claude Desktop</div>
+          <div class="radio-pill" onclick="selectClientView('chatgpt')">ChatGPT Desktop</div>
+          <div class="radio-pill" onclick="selectClientView('gemini')">Google Gemini</div>
           <div class="radio-pill" onclick="selectClientView('cursor')">Cursor</div>
           <div class="radio-pill" onclick="selectClientView('windsurf')">Windsurf</div>
           <div class="radio-pill" onclick="selectClientView('cline')">Cline / Roo Code</div>
@@ -644,6 +672,62 @@
       const btn = document.getElementById('btn-copy-config');
       btn.textContent = '✓ Copied to Clipboard!';
       setTimeout(() => { btn.textContent = '📋 Copy Configuration'; }, 2000);
+    }
+
+    function toggleMcpbGuide() {
+      const guide = document.getElementById('mcpb-guide');
+      guide.style.display = guide.style.display === 'none' ? 'block' : 'none';
+    }
+
+    async function exportMcpbFile() {
+      try {
+        const res = await fetch('/api/mcp/export-mcpb');
+        if (res.ok) {
+          const blob = await res.blob();
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.style.display = 'none';
+          a.href = url;
+          a.download = 'tally-mcp.mcpb';
+          document.body.appendChild(a);
+          a.click();
+          window.URL.revokeObjectURL(url);
+          a.remove();
+          showBanner('tally-mcp.mcpb bundle downloaded successfully! Drag it into Claude Desktop.', 'success');
+        } else {
+          // Fallback client-side generation
+          const mcpb = {
+            "$schema": "https://modelcontextprotocol.io/schema/bundle/v1.json",
+            "name": "TallyMCP",
+            "version": "1.0.0",
+            "description": "Open Source Model Context Protocol server connecting TallyPrime accounting software to AI assistants.",
+            "author": "Shivvam",
+            "homepage": "https://tallymcp.vercel.app/",
+            "repository": "https://github.com/Shivvam/tallyprimemcp",
+            "server": {
+              "type": "stdio",
+              "command": "tally-mcp",
+              "args": ["serve"],
+              "env": {
+                "TALLY_HOST": currentHost || "127.0.0.1",
+                "TALLY_PORT": String(currentPort || 9000)
+              }
+            }
+          };
+          const blob = new Blob([JSON.stringify(mcpb, null, 2)], { type: 'application/json' });
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'tally-mcp.mcpb';
+          document.body.appendChild(a);
+          a.click();
+          window.URL.revokeObjectURL(url);
+          a.remove();
+          showBanner('tally-mcp.mcpb bundle exported! Drag it into Claude Desktop.', 'success');
+        }
+      } catch (e) {
+        showBanner('Error exporting .mcpb bundle: ' + e.message, 'error');
+      }
     }
 
     function copyFilePath() {

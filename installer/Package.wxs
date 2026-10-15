@@ -90,9 +90,9 @@
     </InstallExecuteSequence>
 
     <!-- Control Panel / Add-Remove Programs Properties -->
-    <Property Id="ARPHELPLINK" Value="https://tallymcp.com" />
-    <Property Id="ARPURLINFOABOUT" Value="https://tallymcp.com" />
-    <Property Id="ARPURLUPDATEINFO" Value="https://tallymcp.com/api/version" />
+    <Property Id="ARPHELPLINK" Value="https://github.com/Shivvam/tallyprimemcp" />
+    <Property Id="ARPURLINFOABOUT" Value="https://github.com/Shivvam/tallyprimemcp" />
+    <Property Id="ARPURLUPDATEINFO" Value="https://github.com/Shivvam/tallyprimemcp/releases" />
     <Property Id="ARPNOREPAIR" Value="0" />
     <Property Id="ARPNOMODIFY" Value="1" />
   </Package>

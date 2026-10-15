@@ -281,7 +281,7 @@ jobs:
           - **\`tally-mcp.exe\`** — Standalone portable Windows executable (single binary, no installer needed).
           - **\`tally-mcp-${VERSION}-windows-x64.zip\`** — Windows portable archive.
           - **\`checksums.txt\`** — Cryptographic SHA-256 hashes of all released binaries.
-          - **\`release-manifest.json\`** — Structured metadata consumed by [tallymcp.com](https://tallymcp.com).
+          - **\`release-manifest.json\`** — Structured metadata for releases and update checks.
 
           ### ⚡ Quickstart
 
@@ -307,7 +307,6 @@ jobs:
           - Zero external network telemetry (CI-verified).
           - Browser-confirmed human-in-the-loop approval before any voucher draft.
 
-          🌐 **Official Web & Distribution**: [https://tallymcp.com](https://tallymcp.com)  
           ⭐ **Source Code**: [https://github.com/Shivvam/tallyprimemcp](https://github.com/Shivvam/tallyprimemcp)
           EOF
 

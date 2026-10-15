@@ -481,6 +481,32 @@ impl CompanionUiServer {
                         },
                         "json": serde_json::to_string_pretty(&cline_config).unwrap_or_default()
                     },
+                    "chatgpt": {
+                        "filename": "ChatGPT Desktop (Settings > Integration > Plugins)",
+                        "paths": {
+                            "all": "ChatGPT Desktop ▸ Edit ▸ Settings ▸ Integration ▸ Plugins ▸ Add MCP Server"
+                        },
+                        "json": serde_json::to_string_pretty(&json!({
+                            "name": "tally",
+                            "type": "stdio",
+                            "command": "tally-mcp",
+                            "args": serve_args
+                        })).unwrap_or_default()
+                    },
+                    "gemini": {
+                        "filename": "gemini_mcp_config.json",
+                        "paths": {
+                            "all": "~/.gemini/mcp_config.json"
+                        },
+                        "json": serde_json::to_string_pretty(&json!({
+                            "mcpServers": {
+                                "tally": {
+                                    "command": "tally-mcp",
+                                    "args": serve_args
+                                }
+                            }
+                        })).unwrap_or_default()
+                    },
                     "cli": {
                         "command": format!("tally-mcp serve{}", if host != "127.0.0.1" && host != "localhost" { format!(" --host {} --port {}", host, port) } else { String::new() })
                     }
@@ -488,6 +514,56 @@ impl CompanionUiServer {
 
                 let header = Header::from_bytes(&b"Content-Type"[..], &b"application/json"[..]).unwrap();
                 let resp = Response::from_string(payload.to_string()).with_header(header);
+                let _ = request.respond(resp);
+                continue;
+            }
+
+            // Export .mcpb bundle for one-click installation in Claude Desktop
+            if url_path == "/api/mcp/export-mcpb" && method == "GET" {
+                let cfg = self.config.read().unwrap().clone();
+                let host = cfg.tally.host.clone();
+                let port = cfg.tally.port;
+
+                let serve_args = if host != "127.0.0.1" && host != "localhost" {
+                    vec!["serve".to_string(), "--host".to_string(), host.clone(), "--port".to_string(), port.to_string()]
+                } else {
+                    vec!["serve".to_string()]
+                };
+
+                let mcpb_manifest = json!({
+                    "$schema": "https://modelcontextprotocol.io/schema/bundle/v1.json",
+                    "name": "TallyMCP",
+                    "version": "1.0.0",
+                    "description": "Open Source Model Context Protocol server connecting TallyPrime accounting software to AI assistants.",
+                    "author": "Shivvam",
+                    "homepage": "https://tallymcp.vercel.app/",
+                    "repository": "https://github.com/Shivvam/tallyprimemcp",
+                    "server": {
+                        "type": "stdio",
+                        "command": "tally-mcp",
+                        "args": serve_args,
+                        "env": {
+                            "TALLY_HOST": host,
+                            "TALLY_PORT": port.to_string()
+                        }
+                    },
+                    "tools": [
+                        "tally_list_companies",
+                        "tally_set_active_company",
+                        "tally_list_ledgers",
+                        "tally_get_ledger",
+                        "tally_trial_balance",
+                        "tally_day_book",
+                        "tally_draft_voucher",
+                        "tally_preview_draft"
+                    ]
+                });
+
+                let content_type = Header::from_bytes(&b"Content-Type"[..], &b"application/json"[..]).unwrap();
+                let content_disp = Header::from_bytes(&b"Content-Disposition"[..], &b"attachment; filename=\"tally-mcp.mcpb\""[..]).unwrap();
+                let resp = Response::from_string(serde_json::to_string_pretty(&mcpb_manifest).unwrap_or_default())
+                    .with_header(content_type)
+                    .with_header(content_disp);
                 let _ = request.respond(resp);
                 continue;
             }
