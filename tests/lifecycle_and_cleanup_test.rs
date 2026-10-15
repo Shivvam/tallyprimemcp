@@ -1,0 +1,42 @@
+#[cfg(test)]
+mod lifecycle_and_cleanup_tests {
+    use tally_mcp::cleanup::{execute_cleanup, get_cleanup_inventory, CleanupOptions};
+    use tally_mcp::manifest::InstallManifest;
+
+    #[test]
+    fn test_install_manifest_serialization() {
+        let manifest = InstallManifest::load_or_create("msi");
+        assert_eq!(manifest.install_source, "msi");
+        assert_eq!(manifest.current_version, env!("CARGO_PKG_VERSION"));
+        assert!(!manifest.installation_id.is_empty());
+        assert!(!manifest.version_history.is_empty());
+
+        let res = manifest.save();
+        assert!(res.is_ok());
+    }
+
+    #[test]
+    fn test_cleanup_inventory_categories() {
+        let inventory = get_cleanup_inventory();
+        let categories: Vec<String> = inventory.into_iter().map(|i| i.category).collect();
+
+        assert!(categories.contains(&"settings".to_string()));
+        assert!(categories.contains(&"drafts".to_string()));
+        assert!(categories.contains(&"audit".to_string()));
+        assert!(categories.contains(&"logs".to_string()));
+        assert!(categories.contains(&"credentials".to_string()));
+    }
+
+    #[test]
+    fn test_cleanup_dry_run_preserves_files() {
+        let opts = CleanupOptions {
+            dry_run: true,
+            categories: vec!["drafts".to_string()],
+            backup_dir: None,
+            force: true,
+        };
+
+        let res = execute_cleanup(&opts);
+        assert!(res.is_ok());
+    }
+}

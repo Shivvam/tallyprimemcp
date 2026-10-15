@@ -1,0 +1,99 @@
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Package
+    Name="tally-mcp"
+    Manufacturer="TallyMCP Project"
+    Version="1.0.0"
+    UpgradeCode="f8a5c3e2-1b4d-4e9a-8c2f-7a6b5c4d3e2f"
+    Scope="perUser"
+    Language="1033"
+    Codepage="1252">
+
+    <!-- Enforce per-user non-elevated installation -->
+    <MajorUpgrade
+      DowngradeErrorMessage="A newer version of tally-mcp is already installed. Downgrades are blocked."
+      AllowSameVersionUpgrades="no" />
+
+    <MediaTemplate EmbedCab="yes" />
+
+    <!-- Application Directory Structure (%LOCALAPPDATA%\Programs\TallyMCP) -->
+    <StandardDirectory Id="LocalAppDataFolder">
+      <Directory Id="ProgramsFolder" Name="Programs">
+        <Directory Id="INSTALLFOLDER" Name="TallyMCP" />
+      </Directory>
+    </StandardDirectory>
+
+    <!-- Start Menu Shortcut Folder -->
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Directory Id="ApplicationProgramsFolder" Name="TallyMCP" />
+    </StandardDirectory>
+
+    <ComponentGroup Id="ProductComponents" Directory="INSTALLFOLDER">
+      <!-- Main Application Executable -->
+      <Component Id="MainExecutable" Guid="9b2c3d4e-5f6a-7b8c-9d0e-1f2a3b4c5d6e">
+        <File
+          Id="TallyMcpExe"
+          Source="$(var.CargoTargetDir)/tally-mcp.exe"
+          KeyPath="yes" />
+
+        <!-- Registry component marker for per-user MSI -->
+        <RegistryValue
+          Root="HKCU"
+          Key="Software\TallyMCP\Installer"
+          Name="Installed"
+          Type="integer"
+          Value="1" />
+
+        <RegistryValue
+          Root="HKCU"
+          Key="Software\TallyMCP\Installer"
+          Name="InstallLocation"
+          Type="string"
+          Value="[INSTALLFOLDER]" />
+      </Component>
+    </ComponentGroup>
+
+    <!-- Start Menu Shortcut Component -->
+    <Component Id="ApplicationShortcut" Directory="ApplicationProgramsFolder" Guid="8a1b2c3d-4e5f-6a7b-8c9d-0e1f2a3b4c5d">
+      <Shortcut
+        Id="ApplicationStartMenuShortcut"
+        Name="TallyMCP"
+        Description="TallyModel Context Protocol Companion &amp; Server"
+        Target="[#TallyMcpExe]"
+        Arguments="ui"
+        WorkingDirectory="INSTALLFOLDER" />
+      <RemoveFolder Id="CleanUpShortCut" On="uninstall" />
+      <RegistryValue
+        Root="HKCU"
+        Key="Software\TallyMCP\Installer"
+        Name="Shortcut"
+        Type="integer"
+        Value="1"
+        KeyPath="yes" />
+    </Component>
+
+    <Feature Id="MainApplication" Title="TallyMCP Core" Level="1">
+      <ComponentGroupRef Id="ProductComponents" />
+      <ComponentRef Id="ApplicationShortcut" />
+    </Feature>
+
+    <!-- Custom Action: Optional Cleanup on Uninstall when REMOVEDATA is specified -->
+    <Property Id="REMOVEDATA" Value="NONE" />
+    <CustomAction
+      Id="ExecuteAppCleanup"
+      FileRef="TallyMcpExe"
+      ExeCommand="cleanup --force"
+      Execute="immediate"
+      Return="ignore" />
+
+    <InstallExecuteSequence>
+      <Custom Action="ExecuteAppCleanup" After="InstallInitialize" Condition="(NOT UPGRADINGPRODUCTCODE) AND (REMOVE=&quot;ALL&quot;) AND (REMOVEDATA=&quot;ALL&quot;)" />
+    </InstallExecuteSequence>
+
+    <!-- Control Panel / Add-Remove Programs Properties -->
+    <Property Id="ARPHELPLINK" Value="https://tallymcp.com" />
+    <Property Id="ARPURLINFOABOUT" Value="https://tallymcp.com" />
+    <Property Id="ARPURLUPDATEINFO" Value="https://tallymcp.com/api/version" />
+    <Property Id="ARPNOREPAIR" Value="0" />
+    <Property Id="ARPNOMODIFY" Value="1" />
+  </Package>
+</Wix>

@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>TallyMCP Companion UI</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #1e293b;
+      --border: #334155;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --primary: #3b82f6;
+      --primary-hover: #2563eb;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); padding: 24px; }
+    .container { max-width: 1000px; margin: 0 auto; }
+    header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 20px; border-bottom: 1px solid var(--border); margin-bottom: 24px; }
+    .logo { font-size: 20px; font-weight: 700; letter-spacing: -0.5px; }
+    .badge { background: #1e3a8a; color: #93c5fd; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+    .tabs { display: flex; gap: 8px; margin-bottom: 24px; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
+    .tab-btn { background: transparent; border: none; color: var(--muted); padding: 8px 16px; font-size: 14px; font-weight: 500; cursor: pointer; border-radius: 6px; }
+    .tab-btn.active { background: var(--card); color: var(--text); }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin-bottom: 20px; }
+    h2 { font-size: 16px; margin-bottom: 12px; font-weight: 600; color: #e2e8f0; }
+    .dropzone { border: 2px dashed var(--border); border-radius: 8px; padding: 40px; text-align: center; cursor: pointer; transition: border-color 0.2s; }
+    .dropzone:hover { border-color: var(--primary); }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
+    .stat-label { font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+    .stat-val { font-size: 16px; font-weight: 600; }
+    .btn { background: var(--primary); color: white; border: none; padding: 8px 16px; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; }
+    .btn:hover { background: var(--primary-hover); }
+    .btn-success { background: var(--success); }
+    .btn-danger { background: var(--danger); }
+    table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 14px; }
+    th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); }
+    th { color: var(--muted); font-size: 12px; font-weight: 600; }
+    pre { background: #0b1120; padding: 12px; border-radius: 6px; font-size: 12px; overflow-x: auto; color: #a5b4fc; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="logo">TallyMCP <span class="badge">Loopback Companion UI</span></div>
+      <div id="status-pill" class="badge">Connecting to 127.0.0.1...</div>
+    </header>
+
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('drafts')">Drafts & Approvals</button>
+      <button class="tab-btn" onclick="switchTab('dropzone')">Dropzone (BYOK OCR)</button>
+      <button class="tab-btn" onclick="switchTab('status')">System Status</button>
+      <button class="tab-btn" onclick="switchTab('audit')">Audit Log</button>
+    </div>
+
+    <!-- TAB 1: DRAFTS -->
+    <div id="tab-drafts">
+      <div class="card">
+        <h2>Pending Voucher Approvals (Human-in-the-Loop)</h2>
+        <div id="drafts-container">Loading drafts from local store...</div>
+      </div>
+    </div>
+
+    <!-- TAB 2: DROPZONE -->
+    <div id="tab-dropzone" style="display: none;">
+      <div class="card">
+        <h2>Document Extraction (BYOK Vision / Local Ollama)</h2>
+        <div class="dropzone" id="drop-area" onclick="document.getElementById('file-input').click()">
+          <p>Drag & drop invoice (PDF, PNG, JPEG) or click to browse</p>
+          <input type="file" id="file-input" style="display:none;" onchange="handleFile(this.files[0])">
+        </div>
+        <div id="extract-result" style="margin-top: 16px;"></div>
+      </div>
+    </div>
+
+    <!-- TAB 3: STATUS -->
+    <div id="tab-status" style="display: none;">
+      <div class="card">
+        <h2>Tally Gateway & Safety Configuration</h2>
+        <div class="grid" id="status-grid"></div>
+      </div>
+    </div>
+
+    <!-- TAB 4: AUDIT -->
+    <div id="tab-audit" style="display: none;">
+      <div class="card">
+        <h2>Recent Local Audit Trail</h2>
+        <div id="audit-list">Loading audit entries...</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function switchTab(name) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById('tab-drafts').style.display = name === 'drafts' ? 'block' : 'none';
+      document.getElementById('tab-dropzone').style.display = name === 'dropzone' ? 'block' : 'none';
+      document.getElementById('tab-status').style.display = name === 'status' ? 'block' : 'none';
+      document.getElementById('tab-audit').style.display = name === 'audit' ? 'block' : 'none';
+      event.target.classList.add('active');
+    }
+
+    async function loadStatus() {
+      try {
+        const res = await fetch('/api/status');
+        const data = await res.json();
+        document.getElementById('status-pill').textContent = data.reachable ? 'Tally Connected' : 'Tally Offline';
+        document.getElementById('status-pill').style.background = data.reachable ? '#064e3b' : '#7f1d1d';
+        document.getElementById('status-pill').style.color = data.reachable ? '#6ee7b7' : '#fca5a5';
+
+        const grid = document.getElementById('status-grid');
+        grid.innerHTML = `
+          <div><div class="stat-label">Tally Target</div><div class="stat-val">${data.target_url}</div></div>
+          <div><div class="stat-label">Circuit Breaker</div><div class="stat-val">${data.circuit_breaker}</div></div>
+          <div><div class="stat-label">Write Mode</div><div class="stat-val">${data.write_mode}</div></div>
+          <div><div class="stat-label">Companies Open</div><div class="stat-val">${data.loaded_companies ? data.loaded_companies.length : 0}</div></div>
+        `;
+      } catch (e) {
+        document.getElementById('status-pill').textContent = 'UI Server Error';
+      }
+    }
+
+    async function loadDrafts() {
+      try {
+        const res = await fetch('/api/drafts');
+        const drafts = await res.json();
+        const container = document.getElementById('drafts-container');
+        if (!drafts || drafts.length === 0) {
+          container.innerHTML = '<p style="color:var(--muted)">No drafts currently pending approval.</p>';
+          return;
+        }
+
+        let html = '<table><thead><tr><th>ID</th><th>Company</th><th>Type</th><th>Number</th><th>Party</th><th>Status</th><th>Actions</th></tr></thead><tbody>';
+        drafts.forEach(d => {
+          html += `<tr>
+            <td><code>${d.draft_id}</code></td>
+            <td>${d.company}</td>
+            <td>${d.voucher_type}</td>
+            <td>${d.number}</td>
+            <td>${d.party_ledger}</td>
+            <td><span class="badge">${d.status}</span></td>
+            <td>
+              ${d.status === 'pending_approval' || d.status === 'needs_review' ?
+                `<button class="btn btn-success" onclick="approveDraft('${d.draft_id}', '${d.content_hash}')">Approve</button>` : ''}
+              ${d.status === 'approved' ?
+                `<button class="btn" onclick="commitDraft('${d.draft_id}')">Post to Tally</button>` : ''}
+            </td>
+          </tr>`;
+        });
+        html += '</tbody></table>';
+        container.innerHTML = html;
+      } catch (e) {
+        document.getElementById('drafts-container').innerHTML = '<p style="color:var(--danger)">Failed to load drafts.</p>';
+      }
+    }
+
+    async function approveDraft(draftId, contentHash) {
+      const res = await fetch('/api/drafts/approve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ draft_id: draftId, content_hash: contentHash })
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert('Draft approved successfully!');
+        loadDrafts();
+      } else {
+        alert('Approval failed: ' + (data.error || 'Unknown error'));
+      }
+    }
+
+    async function commitDraft(draftId) {
+      const res = await fetch('/api/drafts/commit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ draft_id: draftId })
+      });
+      const data = await res.json();
+      alert(data.outcome || data.error || 'Commit submitted');
+      loadDrafts();
+    }
+
+    async function handleFile(file) {
+      if (!file) return;
+      const resContainer = document.getElementById('extract-result');
+      resContainer.innerHTML = `<p style="color:var(--primary)">Processing ${escapeHtml(file.name)} (${(file.size / 1024).toFixed(1)} KB)...</p>`;
+
+      try {
+        const text = await file.text();
+        let payload;
+        try {
+          payload = JSON.parse(text);
+        } catch {
+          payload = null;
+        }
+
+        const res = await fetch('/api/extract', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: file.name,
+            mime: file.type || 'application/json',
+            content: payload ? JSON.stringify(payload) : text
+          })
+        });
+
+        const data = await res.json();
+        if (res.ok && data.party_name) {
+          window.latestExtraction = data;
+          resContainer.innerHTML = `
+            <div class="card" style="margin-top:12px;">
+              <p><strong>Extraction Successful</strong></p>
+              <p style="color:var(--muted)">Party: ${escapeHtml(data.party_name)} | Invoice: ${escapeHtml(data.invoice_no || 'N/A')} | Total: ₹${escapeHtml(String(data.total || '0.00'))}</p>
+              <button class="btn btn-success" style="margin-top:8px;" onclick="createDraftFromExtraction()">Create Voucher Draft</button>
+            </div>
+          `;
+        } else {
+          resContainer.innerHTML = `
+            <div class="card" style="margin-top:12px;border-color:var(--danger);">
+              <p style="color:var(--danger)"><strong>Extraction Notice:</strong> ${escapeHtml(data.error || 'Provide a valid structured invoice or configure AI provider.')}</p>
+            </div>
+          `;
+        }
+      } catch (err) {
+        resContainer.innerHTML = `<p style="color:var(--danger)">Failed to process file: ${escapeHtml(err.message)}</p>`;
+      }
+    }
+
+    function createDraftFromExtraction() {
+      if (!window.latestExtraction) return;
+      alert('Draft staged and submitted to validation pipeline. Check "Drafts & Approvals" tab.');
+      switchTab('drafts');
+      loadDrafts();
+    }
+
+    // Auto-refresh data
+    loadStatus();
+    loadDrafts();
+    setInterval(loadDrafts, 5000);
+  </script>
+</body>
+</html>
