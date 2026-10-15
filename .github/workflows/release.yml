@@ -251,6 +251,52 @@ jobs:
           }
           EOF
 
+      - name: Generate Release Notes
+        id: notes
+        run: |
+          TAG="${{ steps.prepare.outputs.tag }}"
+          VERSION="${{ steps.prepare.outputs.version }}"
+
+          cat <<EOF > release-notes.md
+          ## TallyMCP ${TAG} — Native Windows MCP Server for TallyPrime
+
+          TallyMCP is a single native Windows executable, written in Rust, that connects TallyPrime to any MCP-compatible client such as Claude Desktop, Cursor, Cline, or Windsurf.
+
+          ### 📦 Released Binaries & Assets
+          - **\`tally-mcp-${VERSION}-x64.msi\`** — Standard Windows Installer (installs to AppData, adds \`tally-mcp\` to PATH).
+          - **\`tally-mcp.exe\`** — Standalone portable Windows executable (single binary, no installer needed).
+          - **\`tally-mcp-${VERSION}-windows-x64.zip\`** — Windows portable archive.
+          - **\`checksums.txt\`** — Cryptographic SHA-256 hashes of all released binaries.
+          - **\`release-manifest.json\`** — Structured metadata consumed by [tallymcp.com](https://tallymcp.com).
+
+          ### ⚡ Quickstart
+
+          \`\`\`powershell
+          # Run automatic client setup
+          tally-mcp setup
+          \`\`\`
+
+          **Claude Desktop Config (\`claude_desktop_config.json\`):**
+          \`\`\`json
+          {
+            "mcpServers": {
+              "tally": {
+                "command": "C:\\\\Users\\\\<YOUR_USER>\\\\AppData\\\\Local\\\\Programs\\\\TallyMCP\\\\tally-mcp.exe",
+                "args": ["serve"]
+              }
+            }
+          }
+          \`\`\`
+
+          ### 🛡️ Security Invariants
+          - Read-only default operations over loopback (\`http://127.0.0.1:9000\`).
+          - Zero external network telemetry (CI-verified).
+          - Browser-confirmed human-in-the-loop approval before any voucher draft.
+
+          🌐 **Official Web & Distribution**: [https://tallymcp.com](https://tallymcp.com)  
+          ⭐ **Source Code**: [https://github.com/Shivvam/tallyprimemcp](https://github.com/Shivvam/tallyprimemcp)
+          EOF
+
       - name: Create or Update GitHub Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -259,13 +305,14 @@ jobs:
           VERSION="${{ steps.prepare.outputs.version }}"
 
           if gh release view "$TAG" >/dev/null 2>&1; then
-            echo "Release $TAG exists. Uploading/clobbering assets..."
+            echo "Release $TAG exists. Uploading assets and updating release notes..."
             gh release upload "$TAG" release-files/* --clobber
+            gh release edit "$TAG" --notes-file release-notes.md
           else
-            echo "Creating release $TAG..."
+            echo "Creating release $TAG with release notes..."
             gh release create "$TAG" release-files/* \
               --title "TallyMCP Release $TAG" \
-              --notes "Automated release $TAG for TallyPrime MCP Server. Native binary & Windows installer." \
+              --notes-file release-notes.md \
               --draft=false \
               --prerelease=false
           fi
