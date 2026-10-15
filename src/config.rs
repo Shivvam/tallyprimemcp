@@ -192,13 +192,33 @@ pub fn load_config() -> (Config, PathBuf) {
     let config_dir = get_app_data_dir();
     let config_path = config_dir.join("config.toml");
 
-    if config_path.exists() {
+    let mut config = if config_path.exists() {
         if let Ok(content) = std::fs::read_to_string(&config_path) {
-            if let Ok(config) = toml::from_str::<Config>(&content) {
-                return (config, config_path);
+            if let Ok(cfg) = toml::from_str::<Config>(&content) {
+                cfg
+            } else {
+                Config::default()
             }
+        } else {
+            Config::default()
+        }
+    } else {
+        Config::default()
+    };
+
+    // Environment variable overrides (supports connecting to TallyPrime over LAN)
+    if let Ok(host) = std::env::var("TALLY_HOST") {
+        let trimmed = host.trim();
+        if !trimmed.is_empty() {
+            config.tally.host = trimmed.to_string();
+            config.tally.allow_remote_tally = true;
+        }
+    }
+    if let Ok(port_str) = std::env::var("TALLY_PORT") {
+        if let Ok(port) = port_str.trim().parse::<u16>() {
+            config.tally.port = port;
         }
     }
 
-    (Config::default(), config_path)
+    (config, config_path)
 }

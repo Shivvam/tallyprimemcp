@@ -48,11 +48,16 @@ impl CompanionUiServer {
         println!("URL: http://127.0.0.1:{}/?token={}", port, self.launch_token);
         println!("Press Ctrl+C to terminate the companion UI.");
 
-        // Fast sync reachability check helper that never blocks the main thread
+        // Fast sync reachability check helper supporting both localhost and LAN IPs
         let check_tally_quick = |host: &str, port: u16| -> bool {
-            use std::net::TcpStream;
+            use std::net::{TcpStream, ToSocketAddrs};
             let addr = format!("{}:{}", host, port);
-            TcpStream::connect_timeout(&addr.parse().unwrap_or_else(|_| "127.0.0.1:9000".parse().unwrap()), Duration::from_millis(200)).is_ok()
+            if let Ok(mut addrs) = addr.to_socket_addrs() {
+                if let Some(sock_addr) = addrs.next() {
+                    return TcpStream::connect_timeout(&sock_addr, Duration::from_millis(500)).is_ok();
+                }
+            }
+            false
         };
 
         for mut request in server.incoming_requests() {
