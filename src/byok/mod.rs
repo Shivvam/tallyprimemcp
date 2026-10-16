@@ -728,14 +728,48 @@ pub fn chat(
             ]
         });
 
-        let mut req = ureq::post(&endpoint).header("content-type", "application/json");
-        if !is_ollama && !api_key.is_empty() && api_key != "none" {
-            req = req.header("Authorization", &format!("Bearer {}", api_key));
+        let mut last_error = String::new();
+        let mut resp_opt = None;
+
+        for attempt in 0..3 {
+            let mut req = ureq::post(&endpoint).header("content-type", "application/json");
+            if !is_ollama && !api_key.is_empty() && api_key != "none" {
+                req = req.header("Authorization", &format!("Bearer {}", api_key));
+            }
+
+            match req.send_json(body.clone()) {
+                Ok(resp) => {
+                    resp_opt = Some(resp);
+                    break;
+                }
+                Err(e) => {
+                    last_error = e.to_string();
+                    if (last_error.contains("503") || last_error.contains("429")) && attempt < 2 {
+                        std::thread::sleep(std::time::Duration::from_millis(
+                            1000 * (attempt as u64 + 1),
+                        ));
+                        continue;
+                    }
+                    break;
+                }
+            }
         }
 
-        let resp = req
-            .send_json(body)
-            .map_err(|e| ExtractError::RequestFailed(api_key_provider.clone(), e.to_string()))?;
+        let resp = match resp_opt {
+            Some(r) => r,
+            None => {
+                if last_error.contains("503") {
+                    return Err(ExtractError::RequestFailed(
+                        api_key_provider.clone(),
+                        format!(
+                            "Provider service temporarily overloaded (HTTP 503). Retried 3 times with backoff. Details: {}",
+                            last_error
+                        ),
+                    ));
+                }
+                return Err(ExtractError::RequestFailed(api_key_provider.clone(), last_error));
+            }
+        };
 
         let resp_json: serde_json::Value = resp
             .into_body()
