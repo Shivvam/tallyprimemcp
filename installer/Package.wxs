@@ -52,6 +52,16 @@
           Name="InstallLocation"
           Type="string"
           Value="[INSTALLFOLDER]" />
+
+        <!-- Automatically add installation folder to User PATH environment variable -->
+        <Environment
+          Id="UpdatePath"
+          Name="PATH"
+          Value="[INSTALLFOLDER]"
+          Permanent="no"
+          Part="last"
+          Action="set"
+          System="no" />
       </Component>
     </ComponentGroup>
 

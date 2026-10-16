@@ -682,6 +682,8 @@ impl CompanionUiServer {
                     })
                     .unwrap_or_else(|| "tally-mcp".to_string());
 
+                let claude_diag = crate::config::diagnose_client_config("claude");
+
                 let claude_config = json!({
                     "mcpServers": {
                         "tally": {
@@ -796,6 +798,14 @@ impl CompanionUiServer {
                             }
                         })).unwrap_or_default()
                     },
+                    "claude_diagnostic": {
+                        "is_healthy": claude_diag.is_healthy,
+                        "tally_configured": claude_diag.tally_configured,
+                        "has_serve_arg": claude_diag.has_serve_arg,
+                        "command_exists": claude_diag.command_exists,
+                        "message": claude_diag.message,
+                        "config_path": claude_diag.config_path.map(|p| p.to_string_lossy().to_string())
+                    },
                     "cli": {
                         "command": format!("tally-mcp serve{}", if host != "127.0.0.1" && host != "localhost" { format!(" --host {} --port {}", host, port) } else { String::new() })
                     }
@@ -804,6 +814,41 @@ impl CompanionUiServer {
                 let header =
                     Header::from_bytes(&b"Content-Type"[..], &b"application/json"[..]).unwrap();
                 let resp = Response::from_string(payload.to_string()).with_header(header);
+                let _ = request.respond(resp);
+                continue;
+            }
+
+            // 1-Click Auto-Configuration for Claude Desktop & other MCP clients
+            if url_path == "/api/mcp/auto-configure" && method == "POST" {
+                let mut body = String::new();
+                let _ = request.as_reader().read_to_string(&mut body);
+                let req_payload: serde_json::Value =
+                    serde_json::from_str(&body).unwrap_or_else(|_| json!({}));
+                let client = req_payload["client"].as_str().unwrap_or("claude");
+
+                let cfg = self.config.read().unwrap().clone();
+                let host = cfg.tally.host.clone();
+                let port = cfg.tally.port;
+
+                let outcome = match crate::config::auto_configure_client(client, &host, port) {
+                    Ok((path, exe)) => json!({
+                        "success": true,
+                        "client": client,
+                        "config_path": path.to_string_lossy().to_string(),
+                        "command": exe,
+                        "message": format!("Successfully configured {}! Please restart the client to apply changes.", client.to_uppercase())
+                    }),
+                    Err(e) => json!({
+                        "success": false,
+                        "client": client,
+                        "error": e.clone(),
+                        "message": format!("Failed to auto-configure {}: {}", client, e)
+                    }),
+                };
+
+                let header =
+                    Header::from_bytes(&b"Content-Type"[..], &b"application/json"[..]).unwrap();
+                let resp = Response::from_string(outcome.to_string()).with_header(header);
                 let _ = request.respond(resp);
                 continue;
             }

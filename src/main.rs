@@ -147,23 +147,24 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             );
             println!("AI Profile: {}", config.ai.profile);
 
-            let serve_args = if config.tally.host != "127.0.0.1" && config.tally.host != "localhost"
-            {
-                format!(
-                    r#"["serve", "--host", "{}", "--port", "{}"]"#,
-                    config.tally.host, config.tally.port
-                )
-            } else {
-                r#"["serve"]"#.to_string()
-            };
+            // Automatically configure Claude Desktop with exact executable path
+            match crate::config::auto_configure_client(
+                "claude",
+                &config.tally.host,
+                config.tally.port,
+            ) {
+                Ok((path, exe)) => {
+                    println!("\n[✓] Claude Desktop automatically configured!");
+                    println!("    Config file: {}", path.display());
+                    println!("    Executable:  {}", exe);
+                    println!("    Arguments:   [\"serve\"]");
+                    println!("    Action required: Fully restart Claude Desktop (Quit from system tray icon).");
+                }
+                Err(e) => {
+                    println!("\n[!] Claude Desktop auto-configuration skipped: {}", e);
+                }
+            }
 
-            println!(
-                "\nTo configure Claude Desktop, add the following to claude_desktop_config.json:"
-            );
-            println!(
-                r#"  "tally": {{ "command": "tally-mcp", "args": {} }}"#,
-                serve_args
-            );
             println!("\nLAN Support Tips:");
             println!(
                 "  • Connect to remote/LAN TallyPrime: tally-mcp serve --host <LAN_IP> --port 9000"

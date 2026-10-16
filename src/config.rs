@@ -219,3 +219,343 @@ pub fn save_config(config: &Config) -> Result<PathBuf, std::io::Error> {
 
     Ok(config_path)
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ClientDiagnostic {
+    pub client: String,
+    pub config_path: Option<PathBuf>,
+    pub file_exists: bool,
+    pub tally_configured: bool,
+    pub command: Option<String>,
+    pub command_exists: bool,
+    pub has_serve_arg: bool,
+    pub is_healthy: bool,
+    pub message: String,
+}
+
+pub fn get_client_config_path(client: &str) -> Option<PathBuf> {
+    match client.to_lowercase().as_str() {
+        "claude" => {
+            #[cfg(target_os = "windows")]
+            {
+                std::env::var("APPDATA").ok().map(|p| {
+                    PathBuf::from(p)
+                        .join("Claude")
+                        .join("claude_desktop_config.json")
+                })
+            }
+            #[cfg(target_os = "macos")]
+            {
+                std::env::var("HOME").ok().map(|p| {
+                    PathBuf::from(p)
+                        .join("Library")
+                        .join("Application Support")
+                        .join("Claude")
+                        .join("claude_desktop_config.json")
+                })
+            }
+            #[cfg(not(any(target_os = "windows", target_os = "macos")))]
+            {
+                std::env::var("HOME").ok().map(|p| {
+                    PathBuf::from(p)
+                        .join(".config")
+                        .join("Claude")
+                        .join("claude_desktop_config.json")
+                })
+            }
+        }
+        "cursor" => {
+            #[cfg(target_os = "windows")]
+            {
+                std::env::var("APPDATA").ok().map(|p| {
+                    PathBuf::from(p)
+                        .join("Cursor")
+                        .join("User")
+                        .join("globalStorage")
+                        .join("mcp.json")
+                })
+            }
+            #[cfg(target_os = "macos")]
+            {
+                std::env::var("HOME").ok().map(|p| {
+                    PathBuf::from(p)
+                        .join("Library")
+                        .join("Application Support")
+                        .join("Cursor")
+                        .join("User")
+                        .join("globalStorage")
+                        .join("mcp.json")
+                })
+            }
+            #[cfg(not(any(target_os = "windows", target_os = "macos")))]
+            {
+                std::env::var("HOME").ok().map(|p| {
+                    PathBuf::from(p)
+                        .join(".config")
+                        .join("Cursor")
+                        .join("User")
+                        .join("globalStorage")
+                        .join("mcp.json")
+                })
+            }
+        }
+        "windsurf" => {
+            let base = std::env::var("HOME")
+                .or_else(|_| std::env::var("USERPROFILE"))
+                .ok()?;
+            Some(
+                PathBuf::from(base)
+                    .join(".codeium")
+                    .join("windsurf")
+                    .join("mcp_config.json"),
+            )
+        }
+        _ => None,
+    }
+}
+
+pub fn resolve_executable_path() -> String {
+    if let Ok(exe) = std::env::current_exe() {
+        let s = exe.to_string_lossy().to_string();
+        if !s.contains("target") || (!s.contains("deps") && !s.contains("debug")) {
+            return s;
+        }
+    }
+    #[cfg(target_os = "windows")]
+    {
+        if let Ok(local_appdata) = std::env::var("LOCALAPPDATA") {
+            let msi_path = PathBuf::from(local_appdata)
+                .join("Programs")
+                .join("TallyMCP")
+                .join("tally-mcp.exe");
+            if msi_path.exists() {
+                return msi_path.to_string_lossy().to_string();
+            }
+        }
+    }
+    "tally-mcp".to_string()
+}
+
+pub fn auto_configure_client(
+    client: &str,
+    host: &str,
+    port: u16,
+) -> Result<(PathBuf, String), String> {
+    let path = get_client_config_path(client).ok_or_else(|| {
+        format!(
+            "Could not determine configuration directory for client '{}'",
+            client
+        )
+    })?;
+
+    let exe_path = resolve_executable_path();
+    let serve_args = if host != "127.0.0.1" && host != "localhost" {
+        vec![
+            "serve".to_string(),
+            "--host".to_string(),
+            host.to_string(),
+            "--port".to_string(),
+            port.to_string(),
+        ]
+    } else {
+        vec!["serve".to_string()]
+    };
+
+    let mut root: serde_json::Value = if path.exists() {
+        let content = std::fs::read_to_string(&path).map_err(|e| {
+            format!(
+                "Failed to read existing config at {}: {}",
+                path.display(),
+                e
+            )
+        })?;
+        serde_json::from_str(&content).unwrap_or_else(|_| serde_json::json!({}))
+    } else {
+        serde_json::json!({})
+    };
+
+    if !root.is_object() {
+        root = serde_json::json!({});
+    }
+
+    let servers = root
+        .as_object_mut()
+        .unwrap()
+        .entry("mcpServers")
+        .or_insert_with(|| serde_json::json!({}));
+
+    if !servers.is_object() {
+        *servers = serde_json::json!({});
+    }
+
+    servers.as_object_mut().unwrap().insert(
+        "tally".to_string(),
+        serde_json::json!({
+            "command": exe_path.clone(),
+            "args": serve_args
+        }),
+    );
+
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent)
+            .map_err(|e| format!("Failed to create directory {}: {}", parent.display(), e))?;
+    }
+
+    let formatted =
+        serde_json::to_string_pretty(&root).map_err(|e| format!("Serialization error: {}", e))?;
+    std::fs::write(&path, formatted)
+        .map_err(|e| format!("Failed to write configuration to {}: {}", path.display(), e))?;
+
+    Ok((path, exe_path))
+}
+
+pub fn diagnose_client_config(client: &str) -> ClientDiagnostic {
+    let path = match get_client_config_path(client) {
+        Some(p) => p,
+        None => {
+            return ClientDiagnostic {
+                client: client.to_string(),
+                config_path: None,
+                file_exists: false,
+                tally_configured: false,
+                command: None,
+                command_exists: false,
+                has_serve_arg: false,
+                is_healthy: false,
+                message: format!(
+                    "Unsupported client '{}' or unable to detect OS directory",
+                    client
+                ),
+            };
+        }
+    };
+
+    if !path.exists() {
+        return ClientDiagnostic {
+            client: client.to_string(),
+            config_path: Some(path),
+            file_exists: false,
+            tally_configured: false,
+            command: None,
+            command_exists: false,
+            has_serve_arg: false,
+            is_healthy: false,
+            message: "Config file not found on system. Use 1-Click Auto-Configure to create it."
+                .to_string(),
+        };
+    }
+
+    let content = match std::fs::read_to_string(&path) {
+        Ok(c) => c,
+        Err(e) => {
+            return ClientDiagnostic {
+                client: client.to_string(),
+                config_path: Some(path),
+                file_exists: true,
+                tally_configured: false,
+                command: None,
+                command_exists: false,
+                has_serve_arg: false,
+                is_healthy: false,
+                message: format!("Failed to read config file: {}", e),
+            };
+        }
+    };
+
+    let val: serde_json::Value = match serde_json::from_str(&content) {
+        Ok(v) => v,
+        Err(_) => {
+            return ClientDiagnostic {
+                client: client.to_string(),
+                config_path: Some(path),
+                file_exists: true,
+                tally_configured: false,
+                command: None,
+                command_exists: false,
+                has_serve_arg: false,
+                is_healthy: false,
+                message: "Config file contains invalid JSON syntax. Auto-Configure can repair it."
+                    .to_string(),
+            };
+        }
+    };
+
+    let tally_server = val.get("mcpServers").and_then(|s| s.get("tally"));
+    if tally_server.is_none() {
+        return ClientDiagnostic {
+            client: client.to_string(),
+            config_path: Some(path),
+            file_exists: true,
+            tally_configured: false,
+            command: None,
+            command_exists: false,
+            has_serve_arg: false,
+            is_healthy: false,
+            message: "Config file exists, but 'tally' MCP server is not registered.".to_string(),
+        };
+    }
+
+    let tally_obj = tally_server.unwrap();
+    let cmd = tally_obj
+        .get("command")
+        .and_then(|c| c.as_str())
+        .map(|s| s.to_string());
+    let args = tally_obj.get("args").and_then(|a| a.as_array());
+
+    let has_serve = args
+        .map(|arr| arr.iter().any(|v| v.as_str() == Some("serve")))
+        .unwrap_or(false);
+
+    let cmd_exists = if let Some(ref c) = cmd {
+        if c.contains('/') || c.contains('\\') {
+            std::path::Path::new(c).exists()
+        } else {
+            true
+        }
+    } else {
+        false
+    };
+
+    if !has_serve {
+        return ClientDiagnostic {
+            client: client.to_string(),
+            config_path: Some(path),
+            file_exists: true,
+            tally_configured: true,
+            command: cmd,
+            command_exists: cmd_exists,
+            has_serve_arg: false,
+            is_healthy: false,
+            message: "CRITICAL: 'args' is missing 'serve'. Claude Desktop will fail to connect via stdio!".to_string(),
+        };
+    }
+
+    if let Some(c) = cmd.as_deref() {
+        if (c.contains('/') || c.contains('\\')) && !cmd_exists {
+            let msg = format!("Configured executable path '{}' does not exist on disk.", c);
+            return ClientDiagnostic {
+                client: client.to_string(),
+                config_path: Some(path),
+                file_exists: true,
+                tally_configured: true,
+                command: cmd,
+                command_exists: false,
+                has_serve_arg: true,
+                is_healthy: false,
+                message: msg,
+            };
+        }
+    }
+
+    ClientDiagnostic {
+        client: client.to_string(),
+        config_path: Some(path),
+        file_exists: true,
+        tally_configured: true,
+        command: cmd,
+        command_exists: cmd_exists,
+        has_serve_arg: true,
+        is_healthy: true,
+        message: "Properly configured and verified.".to_string(),
+    }
+}

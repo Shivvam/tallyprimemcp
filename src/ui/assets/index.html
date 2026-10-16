@@ -441,14 +441,18 @@
 
         <pre id="config-code-preview"><code>Loading configuration...</code></pre>
 
-        <div style="display:flex; gap:8px; margin-top:12px; flex-wrap:wrap;">
-          <button class="btn btn-sm btn-primary" id="btn-copy-config" onclick="copyConfigCode()">
+        <div style="display:flex; gap:8px; margin-top:12px; flex-wrap:wrap; align-items:center;">
+          <button class="btn btn-sm btn-primary" id="btn-auto-configure" onclick="autoConfigureCurrentClient()" style="background:#16a34a; border-color:#15803d;">
+            ⚡ 1-Click Auto-Configure
+          </button>
+          <button class="btn btn-sm btn-outline" id="btn-copy-config" onclick="copyConfigCode()">
             📋 Copy Configuration
           </button>
-          <a href="/guide-claude.html" target="_blank" class="btn btn-sm btn-outline" style="text-decoration:none; display:inline-flex; align-items:center; gap:5px;">
-            📖 Full Claude Desktop Guide ↗
+          <a href="/guide-claude.html" target="_blank" class="btn btn-sm btn-outline" id="client-guide-btn" style="text-decoration:none; display:inline-flex; align-items:center; gap:5px;">
+            📖 Full Guide ↗
           </a>
         </div>
+        <div id="client-status-badge" style="margin-top:12px; font-size:13px; display:none; padding:8px 12px; border-radius:6px;"></div>
       </div>
 
       <!-- ONE-CLICK CLAUDE DESKTOP MCPB CARD -->
@@ -1242,6 +1246,69 @@
       const path = clientObj.paths[currentPlatform] || clientObj.paths.all || clientObj.paths.windows || clientObj.filename;
       filepathEl.textContent = path;
       preview.textContent = clientObj.json;
+
+      const autoBtn = document.getElementById("btn-auto-configure");
+      const badge = document.getElementById("client-status-badge");
+
+      if (autoBtn) {
+        if (["claude", "cursor", "windsurf"].includes(currentClient)) {
+          autoBtn.style.display = "inline-flex";
+          autoBtn.textContent = `⚡ 1-Click Auto-Configure ${currentClient.charAt(0).toUpperCase() + currentClient.slice(1)}`;
+        } else {
+          autoBtn.style.display = "none";
+        }
+      }
+
+      if (badge) {
+        if (currentClient === "claude" && cachedConfigs.claude_diagnostic) {
+          const diag = cachedConfigs.claude_diagnostic;
+          badge.style.display = "block";
+          if (diag.is_healthy) {
+            badge.style.background = "#dcfce7";
+            badge.style.color = "#15803d";
+            badge.style.border = "1px solid #86efac";
+            badge.innerHTML = `<strong>✓ Claude Desktop Status:</strong> Configured & verified with <code>serve</code> argument.`;
+          } else if (diag.tally_configured) {
+            badge.style.background = "#fef3c7";
+            badge.style.color = "#b45309";
+            badge.style.border = "1px solid #fde047";
+            badge.innerHTML = `<strong>⚠️ Diagnostic Warning:</strong> ${diag.message} Click <strong>1-Click Auto-Configure</strong> to repair automatically.`;
+          } else {
+            badge.style.background = "#f1f5f9";
+            badge.style.color = "#475569";
+            badge.style.border = "1px solid #cbd5e1";
+            badge.innerHTML = `<strong>ℹ️ Quick Setup:</strong> Click <strong>1-Click Auto-Configure</strong> to automatically inject the exact executable path into Claude Desktop.`;
+          }
+        } else {
+          badge.style.display = "none";
+        }
+      }
+    }
+
+    async function autoConfigureCurrentClient() {
+      const btn = document.getElementById("btn-auto-configure");
+      const origText = btn.textContent;
+      btn.textContent = "⏳ Configuring...";
+      btn.disabled = true;
+      try {
+        const res = await fetch("/api/mcp/auto-configure", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ client: currentClient })
+        });
+        const data = await res.json();
+        if (data.success) {
+          showBanner(data.message, "success");
+          await loadMcpConfigs();
+        } else {
+          showBanner("Auto-configuration error: " + (data.error || data.message), "error");
+        }
+      } catch (e) {
+        showBanner("Network error: " + e.message, "error");
+      } finally {
+        btn.textContent = origText;
+        btn.disabled = false;
+      }
     }
 
     function copyConfigCode() {

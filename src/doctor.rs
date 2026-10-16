@@ -57,6 +57,50 @@ pub async fn run_doctor(
     println!("AI Profile: {}", config.ai.profile);
     println!("AI Provider: {}", config.ai.provider);
     println!("Egress Allow-list: built-in cloud hosts, Tally host");
+
+    // MCP Client Integration Diagnostics
+    println!("\n=== MCP Client Integration Diagnostics ===");
+    for client_name in &["claude", "cursor", "windsurf"] {
+        let diag = crate::config::diagnose_client_config(client_name);
+        let status_label = if diag.is_healthy {
+            "[✓ OK]"
+        } else if diag.tally_configured {
+            "[! WARN]"
+        } else {
+            "[? NOT CONFIGURED]"
+        };
+
+        println!(
+            "{} {}: {}",
+            status_label,
+            client_name.to_uppercase(),
+            diag.message
+        );
+        if let Some(ref path) = diag.config_path {
+            println!("  • Config path: {}", path.display());
+        }
+        if let Some(ref cmd) = diag.command {
+            println!("  • Command:     {}", cmd);
+            println!(
+                "  • Exe on disk: {}",
+                if diag.command_exists {
+                    "Found"
+                } else {
+                    "NOT FOUND (Broken Path)"
+                }
+            );
+        }
+        if diag.tally_configured {
+            println!(
+                "  • 'serve' arg: {}",
+                if diag.has_serve_arg {
+                    "Present"
+                } else {
+                    "MISSING (Required for stdio MCP)"
+                }
+            );
+        }
+    }
     println!("=== end of diagnostics report ===");
 
     Ok(())

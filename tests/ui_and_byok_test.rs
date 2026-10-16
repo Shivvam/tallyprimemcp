@@ -341,4 +341,26 @@ mod ui_and_byok_tests {
         let eocd_start = zip.len() - eocd_len;
         assert_eq!(&zip[eocd_start..eocd_start + 4], b"PK\x05\x06");
     }
+
+    #[test]
+    fn test_client_auto_configure_and_diagnose() {
+        use tally_mcp::config::{
+            diagnose_client_config, get_client_config_path, resolve_executable_path,
+        };
+
+        let claude_path = get_client_config_path("claude");
+        assert!(
+            claude_path.is_some(),
+            "Claude path must resolve on current OS"
+        );
+
+        let diag = diagnose_client_config("claude");
+        assert_eq!(diag.client, "claude");
+
+        let exe = resolve_executable_path();
+        assert!(
+            !exe.is_empty(),
+            "Resolved executable path must not be empty"
+        );
+    }
 }

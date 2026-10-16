@@ -65,5 +65,10 @@ mod lifecycle_and_cleanup_tests {
                 && content.contains(r#"After="InstallFinalize""#),
             "LaunchApplication must be scheduled After='InstallFinalize'"
         );
+        // Verify INSTALLFOLDER is added to user's PATH environment variable
+        assert!(
+            content.contains(r#"Name="PATH""#) && content.contains(r#"Value="[INSTALLFOLDER]""#),
+            "Package.wxs must add INSTALLFOLDER to PATH environment variable"
+        );
     }
 }
