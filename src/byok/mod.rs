@@ -560,3 +560,199 @@ pub fn parse_invoice(doc: &Document) -> Result<DocumentExtraction, ExtractError>
 pub fn mock_or_parse_invoice(doc: &Document) -> Result<DocumentExtraction, ExtractError> {
     parse_invoice(doc)
 }
+
+/// Conversational chat with Tally context via configured AI provider (Anthropic, Gemini, OpenAI, Ollama)
+pub fn chat(
+    config: &crate::config::Config,
+    prompt: &str,
+    tally_context: &str,
+) -> Result<String, ExtractError> {
+    let provider = config.ai.provider.trim().to_lowercase();
+    let provider_str = if provider.is_empty() {
+        "anthropic"
+    } else {
+        provider.as_str()
+    };
+
+    let system_prompt = format!(
+        "You are TallyMCP AI Assistant, an expert accountant and financial analyst. \
+         You help users analyze, query, and understand their TallyPrime accounting data.\n\
+         TallyPrime Live Context:\n{}\n\
+         Instructions:\n\
+         - Answer clearly, accurately, and concisely.\n\
+         - Format financial figures, balances, and reports using Markdown tables or bulleted lists.\n\
+         - If relevant Tally data is missing or Tally is offline, guide the user on which report or Tally menu to check.",
+        tally_context
+    );
+
+    #[cfg(feature = "byok")]
+    {
+        if provider_str == "anthropic" {
+            let host = "api.anthropic.com";
+            if !is_host_allowed(host, &config.ai.extra_allowed_hosts) {
+                return Err(ExtractError::HostNotAllowed(host.to_string()));
+            }
+
+            let api_key = get_api_key("anthropic")
+                .ok_or_else(|| ExtractError::MissingApiKey("anthropic".to_string()))?;
+
+            let model_name = if config.ai.model.trim().is_empty() {
+                "claude-3-5-sonnet-20241022"
+            } else {
+                config.ai.model.trim()
+            };
+
+            let body = serde_json::json!({
+                "model": model_name,
+                "max_tokens": 2048,
+                "system": system_prompt,
+                "messages": [{
+                    "role": "user",
+                    "content": prompt
+                }]
+            });
+
+            let resp = ureq::post("https://api.anthropic.com/v1/messages")
+                .header("x-api-key", &api_key)
+                .header("anthropic-version", "2023-06-01")
+                .header("content-type", "application/json")
+                .send_json(body)
+                .map_err(|e| ExtractError::RequestFailed("anthropic".to_string(), e.to_string()))?;
+
+            let resp_json: serde_json::Value = resp
+                .into_body()
+                .read_json()
+                .map_err(|e| ExtractError::ParseError(e.to_string()))?;
+
+            let text = resp_json["content"][0]["text"]
+                .as_str()
+                .unwrap_or("No response text received from Claude.");
+            return Ok(text.to_string());
+        }
+
+        // OpenAI / Gemini / Ollama compatible
+        let (endpoint, model_name, api_key_provider, is_ollama) = match provider_str {
+            "gemini" => {
+                let base = if config.ai.base_url.trim().is_empty() {
+                    "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions"
+                        .to_string()
+                } else if config.ai.base_url.ends_with("/chat/completions") {
+                    config.ai.base_url.trim().to_string()
+                } else {
+                    format!(
+                        "{}/chat/completions",
+                        config.ai.base_url.trim().trim_end_matches('/')
+                    )
+                };
+                let m = if config.ai.model.trim().is_empty() {
+                    "gemini-3.8-flash".to_string()
+                } else {
+                    config.ai.model.trim().to_string()
+                };
+                (base, m, "gemini".to_string(), false)
+            }
+            "openai" => {
+                let base = if config.ai.base_url.trim().is_empty() {
+                    "https://api.openai.com/v1/chat/completions".to_string()
+                } else if config.ai.base_url.ends_with("/chat/completions") {
+                    config.ai.base_url.trim().to_string()
+                } else {
+                    format!(
+                        "{}/chat/completions",
+                        config.ai.base_url.trim().trim_end_matches('/')
+                    )
+                };
+                let m = if config.ai.model.trim().is_empty() {
+                    "gpt-4o".to_string()
+                } else {
+                    config.ai.model.trim().to_string()
+                };
+                (base, m, "openai".to_string(), false)
+            }
+            "ollama" => {
+                let base = if config.ai.base_url.trim().is_empty() {
+                    "http://127.0.0.1:11434/v1/chat/completions".to_string()
+                } else if config.ai.base_url.ends_with("/chat/completions") {
+                    config.ai.base_url.trim().to_string()
+                } else {
+                    format!(
+                        "{}/chat/completions",
+                        config.ai.base_url.trim().trim_end_matches('/')
+                    )
+                };
+                let m = if config.ai.model.trim().is_empty() {
+                    "llama3.2".to_string()
+                } else {
+                    config.ai.model.trim().to_string()
+                };
+                (base, m, "ollama".to_string(), true)
+            }
+            _ => {
+                let base = if config.ai.base_url.ends_with("/chat/completions") {
+                    config.ai.base_url.trim().to_string()
+                } else {
+                    format!(
+                        "{}/chat/completions",
+                        config.ai.base_url.trim().trim_end_matches('/')
+                    )
+                };
+                let m = if config.ai.model.trim().is_empty() {
+                    "gpt-4o".to_string()
+                } else {
+                    config.ai.model.trim().to_string()
+                };
+                (base, m, provider_str.to_string(), false)
+            }
+        };
+
+        let clean_url = endpoint
+            .trim_start_matches("http://")
+            .trim_start_matches("https://");
+        let host_name = clean_url.split('/').next().unwrap_or(clean_url);
+        if !is_host_allowed(host_name, &config.ai.extra_allowed_hosts) {
+            return Err(ExtractError::HostNotAllowed(host_name.to_string()));
+        }
+
+        let api_key = if is_ollama {
+            "ollama".to_string()
+        } else {
+            get_api_key(&api_key_provider)
+                .ok_or_else(|| ExtractError::MissingApiKey(api_key_provider.clone()))?
+        };
+
+        let body = serde_json::json!({
+            "model": model_name,
+            "messages": [
+                { "role": "system", "content": system_prompt },
+                { "role": "user", "content": prompt }
+            ]
+        });
+
+        let mut req = ureq::post(&endpoint).header("content-type", "application/json");
+        if !is_ollama && !api_key.is_empty() && api_key != "none" {
+            req = req.header("Authorization", &format!("Bearer {}", api_key));
+        }
+
+        let resp = req
+            .send_json(body)
+            .map_err(|e| ExtractError::RequestFailed(api_key_provider.clone(), e.to_string()))?;
+
+        let resp_json: serde_json::Value = resp
+            .into_body()
+            .read_json()
+            .map_err(|e| ExtractError::ParseError(e.to_string()))?;
+
+        let text = resp_json["choices"][0]["message"]["content"]
+            .as_str()
+            .unwrap_or("No response text received from model.");
+        Ok(text.to_string())
+    }
+
+    #[cfg(not(feature = "byok"))]
+    {
+        Ok(format!(
+            "BYOK feature is disabled. Received prompt: {}",
+            prompt
+        ))
+    }
+}

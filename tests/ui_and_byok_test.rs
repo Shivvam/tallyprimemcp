@@ -284,4 +284,33 @@ mod ui_and_byok_tests {
             "Hub guide must contain header"
         );
     }
+
+    #[test]
+    fn test_chat_ui_and_stepper_elements() {
+        let index_html = include_str!("../src/ui/assets/index.html");
+        assert!(
+            index_html.contains("setup-stepper"),
+            "Must contain progressive setup stepper"
+        );
+        assert!(
+            index_html.contains("chat-container"),
+            "Must contain chat container"
+        );
+        assert!(
+            index_html.contains("chat-templates"),
+            "Must contain clickable FAQ templates"
+        );
+        assert!(
+            index_html.contains("Show Trial Balance summary"),
+            "Must contain Trial Balance template"
+        );
+        assert!(
+            index_html.contains("chat-byok-warning"),
+            "Must check for BYOK configuration before enabling"
+        );
+        assert!(
+            index_html.contains("claude_desktop_config.json"),
+            "Must guide on Claude desktop config"
+        );
+    }
 }

@@ -1025,6 +1025,111 @@ impl CompanionUiServer {
                 continue;
             }
 
+            if url_path == "/api/chat" && method == "POST" {
+                let mut body = String::new();
+                let _ = request.as_reader().read_to_string(&mut body);
+
+                let parsed: Result<serde_json::Value, _> = serde_json::from_str(&body);
+                let mut outcome = json!({ "success": false, "error": "Invalid request payload" });
+                let mut status_code = 400;
+
+                if let Ok(val) = parsed {
+                    let message = val
+                        .get("message")
+                        .and_then(|m| m.as_str())
+                        .unwrap_or("")
+                        .trim()
+                        .to_string();
+                    if message.is_empty() {
+                        outcome = json!({ "success": false, "error": "Message cannot be empty" });
+                    } else {
+                        let cfg = self.config.read().unwrap().clone();
+                        let provider = if cfg.ai.provider.is_empty() {
+                            "anthropic".to_string()
+                        } else {
+                            cfg.ai.provider.clone()
+                        };
+
+                        // Check if BYOK is configured
+                        let has_key =
+                            provider == "ollama" || crate::byok::get_api_key(&provider).is_some();
+                        if !has_key {
+                            outcome = json!({
+                                "success": false,
+                                "error": "BYOK_REQUIRED",
+                                "message": format!("API Key for provider '{}' is not configured. Please enter your API key in BYOK Settings before chatting.", provider)
+                            });
+                        } else {
+                            // Gather Tally context
+                            let tally_arc = self.tally.read().unwrap().clone();
+                            let (reachable, latency) =
+                                check_tally_quick(&cfg.tally.host, cfg.tally.port);
+                            let loaded_companies = if reachable {
+                                query_companies(tally_arc.clone())
+                            } else {
+                                Vec::new()
+                            };
+                            let active_comp = loaded_companies
+                                .first()
+                                .cloned()
+                                .unwrap_or_else(|| "None".to_string());
+
+                            let tally_ctx = format!(
+                                "Tally Server: http://{}:{}\nReachable: {}\nLatency: {}ms\nActive Company: {}\nOpen Companies: {}",
+                                cfg.tally.host, cfg.tally.port, reachable, latency, active_comp,
+                                if loaded_companies.is_empty() { "None (no company open)".to_string() } else { loaded_companies.join(", ") }
+                            );
+
+                            let (tx, rx) = std::sync::mpsc::channel();
+                            let msg_clone = message.clone();
+                            let cfg_clone = cfg.clone();
+                            std::thread::spawn(move || {
+                                let res = crate::byok::chat(&cfg_clone, &msg_clone, &tally_ctx);
+                                let _ = tx.send(res);
+                            });
+
+                            match rx.recv_timeout(Duration::from_secs(60)) {
+                                Ok(Ok(reply)) => {
+                                    outcome = json!({
+                                        "success": true,
+                                        "response": reply,
+                                        "provider": provider,
+                                        "model": cfg.ai.model,
+                                        "active_company": active_comp,
+                                        "tally_reachable": reachable
+                                    });
+                                    status_code = 200;
+                                }
+                                Ok(Err(e)) => {
+                                    outcome = json!({
+                                        "success": false,
+                                        "error": e.to_string(),
+                                        "message": format!("AI Provider error: {}", e)
+                                    });
+                                    status_code = 502;
+                                }
+                                Err(_) => {
+                                    outcome = json!({
+                                        "success": false,
+                                        "error": "Timeout",
+                                        "message": "AI request timed out after 60 seconds."
+                                    });
+                                    status_code = 504;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                let header =
+                    Header::from_bytes(&b"Content-Type"[..], &b"application/json"[..]).unwrap();
+                let resp = Response::from_string(outcome.to_string())
+                    .with_header(header)
+                    .with_status_code(status_code);
+                let _ = request.respond(resp);
+                continue;
+            }
+
             if url_path == "/api/audit" && method == "GET" {
                 let entries = self.audit.read_recent_entries(50);
                 let header =

@@ -3,18 +3,21 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Claude Desktop Connector Setup Guide — TallyMCP</title>
+  <title>Claude Desktop Local MCP Setup Guide — TallyMCP</title>
   <style>
     :root {
-      --bg: #090d16;
-      --card-bg: #111827;
-      --border: #1f2937;
-      --accent: #d97706;
-      --accent-glow: rgba(217, 119, 6, 0.2);
-      --text: #f9fafb;
-      --text-muted: #9ca3af;
-      --code-bg: #030712;
-      --success: #10b981;
+      --bg: #ffffff;
+      --card: #ffffff;
+      --card-muted: #fffbe5;
+      --border: rgba(108, 108, 112, 0.2);
+      --border-focus: #006ea6;
+      --text: #111827;
+      --muted: #6c6c70;
+      --primary: #006ea6;
+      --primary-hover: #005a88;
+      --cream: #fffbe5;
+      --success: #059669;
+      --amber: #d97706;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -22,9 +25,9 @@
       color: var(--text);
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       line-height: 1.6;
-      padding: 24px;
+      padding: 24px 16px;
     }
-    .container { max-width: 860px; margin: 0 auto; }
+    .container { max-width: 900px; margin: 0 auto; }
     header {
       display: flex;
       justify-content: space-between;
@@ -36,131 +39,148 @@
       gap: 12px;
     }
     .back-btn {
-      color: #93c5fd;
+      color: var(--primary);
       text-decoration: none;
       font-size: 13.5px;
-      font-weight: 500;
+      font-weight: 600;
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      background: rgba(59, 130, 246, 0.1);
-      padding: 6px 14px;
+      background: var(--cream);
+      padding: 7px 16px;
       border-radius: 6px;
-      border: 1px solid rgba(59, 130, 246, 0.25);
-      transition: all 0.2s;
+      border: 1px solid rgba(0, 110, 166, 0.25);
+      transition: all 0.15s;
     }
-    .back-btn:hover { background: rgba(59, 130, 246, 0.2); }
-    h1 { font-size: 24px; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 10px; }
+    .back-btn:hover { background: #fff8cc; }
+    h1 { font-size: 24px; font-weight: 700; color: #111827; display: flex; align-items: center; gap: 10px; }
     .badge {
       display: inline-block;
       font-size: 11px;
       font-weight: 600;
-      padding: 3px 8px;
+      padding: 3px 10px;
       border-radius: 999px;
-      background: #78350f;
-      color: #fde68a;
+      background: var(--cream);
+      color: var(--primary);
+      border: 1px solid rgba(0, 110, 166, 0.3);
+    }
+    .badge-rec {
+      background: #ecfdf5;
+      color: var(--success);
+      border: 1px solid #10b981;
     }
     .card {
-      background: var(--card-bg);
+      background: var(--card);
       border: 1px solid var(--border);
       border-radius: 10px;
       padding: 22px;
       margin-bottom: 22px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+    }
+    .card-rec {
+      border: 2px solid var(--primary);
+      background: linear-gradient(180deg, rgba(255, 251, 229, 0.4) 0%, rgba(255, 255, 255, 1) 100%);
     }
     .card-header {
-      font-size: 17px;
+      font-size: 16px;
       font-weight: 600;
       margin-bottom: 12px;
-      color: #f3f4f6;
+      color: #111827;
       display: flex;
+      justify-content: space-between;
       align-items: center;
-      gap: 8px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 10px;
     }
     .step-list { margin-left: 20px; margin-bottom: 16px; }
-    .step-list li { margin-bottom: 10px; color: #d1d5db; }
-    .step-list strong { color: #fff; }
+    .step-list li { margin-bottom: 12px; color: #374151; font-size: 13.5px; }
+    .step-list strong { color: #111827; }
     pre {
-      background: var(--code-bg);
+      background: #f8fafc;
       border: 1px solid var(--border);
       padding: 14px;
       border-radius: 8px;
       font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
       font-size: 13px;
-      color: #e5e7eb;
+      color: #0f172a;
       overflow-x: auto;
       margin: 10px 0;
       position: relative;
+      line-height: 1.5;
     }
     code {
-      background: rgba(255,255,255,0.08);
+      background: var(--cream);
       padding: 2px 6px;
       border-radius: 4px;
       font-size: 12.5px;
       font-family: ui-monospace, monospace;
-      color: #93c5fd;
+      color: var(--primary);
+      border: 1px solid rgba(0, 110, 166, 0.15);
     }
     .copy-btn {
       float: right;
-      background: rgba(255,255,255,0.08);
-      border: 1px solid rgba(255,255,255,0.2);
-      color: #fff;
-      font-size: 11px;
+      background: var(--cream);
+      border: 1px solid rgba(0, 110, 166, 0.3);
+      color: var(--primary);
+      font-size: 11.5px;
+      font-weight: 600;
       padding: 4px 10px;
       border-radius: 4px;
       cursor: pointer;
+      transition: background 0.15s;
     }
-    .copy-btn:hover { background: rgba(255,255,255,0.18); }
-    .mock-box {
-      background: rgba(0,0,0,0.4);
-      border: 1px solid #374151;
-      border-radius: 8px;
-      padding: 16px;
-      margin: 14px 0;
-    }
-    .input-row {
-      margin-bottom: 12px;
-    }
-    .input-label {
-      font-size: 12.5px;
-      font-weight: 600;
-      color: #e5e7eb;
-      margin-bottom: 4px;
-      display: block;
-    }
-    .input-val-box {
-      display: flex;
-      gap: 8px;
-      align-items: center;
-    }
-    .input-field {
-      flex: 1;
-      background: #030712;
-      border: 1px solid #374151;
-      border-radius: 6px;
-      padding: 8px 12px;
-      color: #fff;
-      font-size: 13px;
-      font-family: ui-monospace, monospace;
-    }
-    .btn-action {
-      background: var(--accent);
-      color: #fff;
-      border: none;
-      padding: 8px 14px;
-      border-radius: 6px;
-      font-size: 12px;
-      font-weight: 600;
-      cursor: pointer;
-    }
-    .btn-action:hover { opacity: 0.9; }
+    .copy-btn:hover { background: #fff8cc; }
     .notice-box {
-      background: rgba(245, 158, 11, 0.08);
-      border-left: 4px solid var(--accent);
+      background: var(--cream);
+      border-left: 4px solid var(--primary);
       padding: 12px 16px;
       border-radius: 4px;
-      font-size: 12.5px;
-      color: #fde68a;
+      font-size: 13px;
+      color: #1e3a8a;
       margin: 14px 0;
+      line-height: 1.5;
+    }
+    .notice-warning {
+      background: #fef2f2;
+      border-left: 4px solid #ef4444;
+      color: #991b1b;
+    }
+    .notice-success {
+      background: #ecfdf5;
+      border-left: 4px solid #10b981;
+      color: #065f46;
+    }
+    .diff-box {
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      overflow: hidden;
+      margin: 14px 0;
+    }
+    .diff-header {
+      background: #f1f5f9;
+      padding: 8px 14px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #475569;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .diff-content {
+      padding: 14px;
+      background: #ffffff;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 12.5px;
+      line-height: 1.5;
+    }
+    .highlight-add {
+      background: #ecfdf5;
+      color: #065f46;
+      font-weight: 600;
+      display: block;
+      border-left: 3px solid #10b981;
+      padding-left: 8px;
+      margin: 4px 0;
     }
   </style>
 </head>
@@ -169,130 +189,184 @@
     <header>
       <div>
         <h1><span>🔌</span> Claude Desktop: Setup Guide</h1>
-        <p style="color:var(--text-muted); font-size:13px; margin-top:4px;">Complete step-by-step instructions to connect Claude to your TallyPrime data</p>
+        <p style="color:var(--muted); font-size:13px; margin-top:4px;">Official instructions to connect Claude Desktop to your local TallyPrime data</p>
       </div>
-      <a href="/" class="back-btn">← Back to Dashboard</a>
+      <a href="/" class="back-btn">← Back to Companion Dashboard</a>
     </header>
 
-    <!-- METHOD 1: CUSTOM CONNECTOR (RECOMMENDED) -->
-    <div class="card" style="border-color: #d97706; background: linear-gradient(135deg, rgba(217, 119, 6, 0.08), rgba(17, 24, 39, 0.7));">
+    <!-- METHOD 1: LOCAL CONFIG (RECOMMENDED) -->
+    <div class="card card-rec" id="method-local">
       <div class="card-header">
-        <span>⭐ Method 1: Add Custom Connector (In-App GUI)</span>
-        <span class="badge">Recommended</span>
-      </div>
-      <p style="color:#d1d5db; font-size:13.5px; margin-bottom:14px;">
-        Anthropic Claude Desktop and Claude.ai now allow registering Model Context Protocol servers directly through the user interface without touching any configuration files.
-      </p>
-
-      <ol class="step-list">
-        <li>Open <strong>Claude Desktop</strong> (or log in to <strong>Claude.ai</strong> in your browser).</li>
-        <li>Open <strong>Settings</strong> (click your profile photo or press <code>Ctrl + ,</code> / <code>Cmd + ,</code>).</li>
-        <li>Click <strong>Connectors</strong> (or <strong>Integrations</strong>) in the left sidebar.</li>
-        <li>Click <strong>Add custom connector</strong>. Claude will display <em>"Step 1 of 2 — Connect Claude to your data and tools"</em>.</li>
-        <li>Fill in the two required fields using the values below:</li>
-      </ol>
-
-      <div class="mock-box">
-        <div style="font-size:14px; font-weight:600; margin-bottom:12px; border-bottom:1px solid #374151; padding-bottom:8px;">
-          Add custom connector <span style="float:right; font-size:12px; color:#9ca3af;">Step 1 of 2</span>
-        </div>
-
-        <div class="input-row">
-          <label class="input-label">Name</label>
-          <div class="input-val-box">
-            <input type="text" class="input-field" id="field-name" value="TallyMCP" readonly>
-            <button class="btn-action" onclick="copyValue('field-name')">📋 Copy</button>
-          </div>
-          <span style="font-size:11px; color:#9ca3af;">Shown in your connectors list.</span>
-        </div>
-
-        <div class="input-row">
-          <label class="input-label">MCP server URL</label>
-          <div class="input-val-box">
-            <input type="text" class="input-field" id="field-url" value="http://127.0.0.1:9190/mcp" readonly>
-            <button class="btn-action" onclick="copyValue('field-url')">📋 Copy URL</button>
-          </div>
-          <span style="font-size:11px; color:#9ca3af;">The loopback address where TallyMCP accepts JSON-RPC requests.</span>
-        </div>
-
-        <div class="notice-box">
-          🛡️ <strong>Anthropic Security Notice:</strong> Only use connectors from developers you trust. Anthropic does not control which tools developers make available and cannot verify that they will work as intended or that they won’t change.
-        </div>
+        <span style="font-size:16.5px; font-weight:700; color:var(--primary);">
+          ⭐ Method 1: Local MCP stdio (Recommended & Most Secure)
+        </span>
+        <span class="badge badge-rec">Official & 100% Local</span>
       </div>
 
-      <ol class="step-list" start="6">
-        <li>Click <strong>Add</strong> or <strong>Connect</strong> to complete Step 2 of 2.</li>
-        <li>Start a new chat in Claude. You will see the <strong>TallyMCP</strong> connector active with all 128 tools ready!</li>
-      </ol>
-    </div>
+      <p style="color:#374151; font-size:13.5px; margin-bottom:14px;">
+        Because TallyPrime runs locally on your machine, connecting via Claude Desktop's native local configuration file (<code>claude_desktop_config.json</code>) is the <strong>fastest, safest, and officially recommended method</strong>. Claude launches <code>tally-mcp</code> locally via standard I/O (stdio). No internet tunnels, public ports, or external URLs required!
+      </p>
 
-    <!-- METHOD 2: ONE CLICK BUNDLE -->
-    <div class="card">
-      <div class="card-header">
-        <span>📦 Method 2: One-Click .mcpb Bundle</span>
+      <div class="notice-box notice-success">
+        <strong>🔒 Privacy Guarantee:</strong> In local stdio mode, your Tally accounting data never gets routed through any third-party tunnel or external server. Queries travel strictly within your own computer.
       </div>
-      <p style="color:#d1d5db; font-size:13.5px; margin-bottom:14px;">
-        If you prefer drag-and-drop installation, you can use the pre-packaged <code>tally-mcp.mcpb</code> extension bundle.
-      </p>
-      <ol class="step-list">
-        <li>From the TallyMCP Dashboard, click <strong>Download tally-mcp.mcpb Bundle</strong>.</li>
-        <li>Open <strong>Claude Desktop</strong>.</li>
-        <li>Drag and drop the downloaded <code>tally-mcp.mcpb</code> file directly onto the Claude Desktop window, or navigate to <strong>Settings ▸ Developer ▸ Add MCP Bundle</strong> and select the file.</li>
-        <li>Confirm the prompt. All tools will be enabled immediately.</li>
-      </ol>
-    </div>
 
-    <!-- METHOD 3: CONFIG JSON -->
-    <div class="card">
-      <div class="card-header">
-        <span>⚙️ Method 3: Manual claude_desktop_config.json</span>
+      <h3 style="font-size:14px; font-weight:600; margin:16px 0 8px;">Step 1: Open the Claude Desktop Configuration File</h3>
+      <p style="font-size:13px; color:var(--muted); margin-bottom:8px;">
+        There are two easy ways to open your configuration file:
+      </p>
+      <div style="background:#f8fafc; border:1px solid var(--border); border-radius:8px; padding:14px; margin-bottom:14px;">
+        <h4 style="font-size:13.5px; font-weight:700; color:var(--primary); margin-bottom:6px;">
+          Option A (Easiest — Directly inside Claude Desktop):
+        </h4>
+        <ol class="step-list" style="margin-bottom:0;">
+          <li>Open <strong>Claude Desktop</strong>.</li>
+          <li>In the top menu, click <strong>File ▸ Settings</strong> (or press <code>Ctrl + ,</code> on Windows / <code>Cmd + ,</code> on macOS).</li>
+          <li>In the Settings window, click the <strong>Developer</strong> tab in the left sidebar.</li>
+          <li>Click the <strong>Edit Config</strong> button.</li>
+          <li>Claude Desktop will automatically open <code>claude_desktop_config.json</code> in your default text editor (Notepad, VS Code, Cursor, etc.).</li>
+        </ol>
       </div>
-      <p style="color:#d1d5db; font-size:13.5px; margin-bottom:14px;">
-        For headless or stdio-based integration with Claude Desktop:
+
+      <div style="background:#f8fafc; border:1px solid var(--border); border-radius:8px; padding:14px; margin-bottom:14px;">
+        <h4 style="font-size:13.5px; font-weight:700; color:#374151; margin-bottom:6px;">
+          Option B (Direct File Path):
+        </h4>
+        <ul class="step-list" style="margin-bottom:0;">
+          <li><strong>Windows:</strong> Press <code>Win + R</code>, paste:
+            <pre style="margin:6px 0;"><button class="copy-btn" onclick="navigator.clipboard.writeText('%APPDATA%\\Claude\\claude_desktop_config.json')">Copy Path</button><code>%APPDATA%\Claude\claude_desktop_config.json</code></pre>
+            and press Enter. (Full path: <code>C:\Users\&lt;YourUsername&gt;\AppData\Roaming\Claude\claude_desktop_config.json</code>).
+          </li>
+          <li><strong>macOS:</strong> <code>~/Library/Application Support/Claude/claude_desktop_config.json</code></li>
+          <li><strong>Linux:</strong> <code>~/.config/Claude/claude_desktop_config.json</code></li>
+        </ul>
+      </div>
+
+      <!-- EXACT WHERE TO PASTE IN EXISTING CONFIG -->
+      <h3 style="font-size:14px; font-weight:600; margin:20px 0 6px; color:#0f172a;">
+        🎯 Step 2: Exactly Where to Paste (If your file already has settings)
+      </h3>
+      <p style="font-size:13px; color:#475569; margin-bottom:12px;">
+        Most Claude Desktop users already have an existing file with keys like <code>"preferences"</code> and <code>"coworkUserFilesPath"</code>. <strong>Do NOT overwrite or delete your existing file!</strong> You only need to insert the <code>"mcpServers"</code> block inside the top-level <code>{ ... }</code> braces:
       </p>
-      <p style="font-size:12.5px; color:#9ca3af; margin-bottom:6px;">
-        Config location: <code>%APPDATA%\Claude\claude_desktop_config.json</code> (Windows) or <code>~/Library/Application Support/Claude/claude_desktop_config.json</code> (macOS)
-      </p>
-      <pre><button class="copy-btn" onclick="copyCode('code-claude')">Copy JSON</button><code id="code-claude">{
-  "mcpServers": {
+
+      <!-- VISUAL DIFF / BEFORE & AFTER -->
+      <div class="diff-box">
+        <div class="diff-header">
+          <span>Your Existing File ➔ How it Should Look After Editing:</span>
+          <span style="font-size:11px; color:#059669; font-weight:700;">Valid JSON</span>
+        </div>
+        <div class="diff-content">
+<pre style="background:transparent; border:none; padding:0; margin:0;">{
+  "preferences": {
+    "remoteToolsDeviceName": "laptop-uekcgrsc",
+    "coworkWebSearchEnabled": true,
+    ...
+  },
+  "coworkUserFilesPath": "C:\\Users\\ASUS\\Claude"<span style="color:#dc2626; font-weight:700; font-size:14px;">,</span>
+<span class="highlight-add">  "mcpServers": {
     "tally": {
       "command": "tally-mcp",
       "args": ["serve"]
     }
-  }
-}</code></pre>
-      <p style="font-size:12px; color:#9ca3af; margin-top:8px;">
-        <em>Note for LAN users:</em> If connecting to a remote Tally machine, pass <code>["serve", "--host", "192.168.1.50", "--port", "9000"]</code>.
+  }</span>
+}</pre>
+        </div>
+      </div>
+
+      <div class="notice-box" style="margin-top:10px;">
+        <strong>💡 Key Checklist for JSON Editing:</strong>
+        <ol style="margin-left:20px; margin-top:6px;">
+          <li>Add a comma (<code>,</code>) after the line right before <code>"mcpServers"</code> (e.g., right after <code>"coworkUserFilesPath": "C:\\Users\\ASUS\\Claude"</code>).</li>
+          <li>Paste the <code>"mcpServers"</code> block right before the final closing brace (<code>}</code>).</li>
+          <li>Ensure there is <strong>no trailing comma</strong> after the <code>"mcpServers"</code> closing brace.</li>
+        </ol>
+      </div>
+
+      <h3 style="font-size:14px; font-weight:600; margin:16px 0 8px;">Snippet to Copy:</h3>
+      <pre><button class="copy-btn" onclick="copySnippet('code-mcp-servers')">📋 Copy mcpServers Block</button><code id="code-mcp-servers">  "mcpServers": {
+    "tally": {
+      "command": "tally-mcp",
+      "args": ["serve"]
+    }
+  }</code></pre>
+
+      <p style="font-size:12.5px; color:var(--muted); margin-top:8px;">
+        <em>Pro-Tip for Windows:</em> If <code>tally-mcp</code> is not in your system PATH, use the full absolute path with escaped double backslashes:
+        <code>"command": "C:\\Users\\&lt;YourUsername&gt;\\AppData\\Local\\Programs\\TallyMCP\\tally-mcp.exe"</code>.
+      </p>
+
+      <h3 style="font-size:14px; font-weight:600; margin:20px 0 8px;">Step 3: Save and Restart Claude Desktop</h3>
+      <p style="font-size:13px; color:#374151;">
+        Save the file, then completely restart Claude Desktop (Quit from taskbar tray or Task Manager, then relaunch). In your chat, Claude will now display the tools/hammer icon indicating TallyMCP is active!
       </p>
     </div>
 
-    <!-- TESTING AND VERIFICATION -->
+    <!-- METHOD 2: ONE CLICK BUNDLE -->
+    <div class="card" id="method-mcpb">
+      <div class="card-header">
+        <span>⚡ Method 2: One-Click .mcpb Extension Bundle</span>
+        <span class="badge">Drag & Drop</span>
+      </div>
+      <p style="color:#475569; font-size:13.5px; margin-bottom:14px;">
+        If you prefer not editing JSON files manually, you can export a pre-packaged <code>tally-mcp.mcpb</code> bundle directly from the Companion UI:
+      </p>
+      <ol class="step-list">
+        <li>From the TallyMCP Companion UI Dashboard, switch to <strong>MCP Clients</strong> and click <strong>Download tally-mcp.mcpb Bundle</strong>.</li>
+        <li>Open <strong>Claude Desktop</strong>.</li>
+        <li>Either <strong>drag and drop</strong> the downloaded <code>tally-mcp.mcpb</code> file onto Claude Desktop, or navigate to <strong>Settings ▸ Developer ▸ Add MCP Bundle</strong> and select the file.</li>
+        <li>Confirm installation. All 128 TallyPrime tools are connected!</li>
+      </ol>
+    </div>
+
+    <!-- ANTHROPIC CLOUD WARNING & WHY TUNNELS ARE NOT NEEDED -->
+    <div class="card" id="method-connector" style="border: 1px solid rgba(217, 119, 6, 0.3); background: #fffdf5;">
+      <div class="card-header" style="color: #92400e; border-bottom: 1px solid rgba(217, 119, 6, 0.2);">
+        <span style="font-size:15px; font-weight:700;">⚠️ Common Mistake: "Add custom connector" Error Explained</span>
+        <span class="badge" style="background:#fef3c7; color:#b45309; border-color:#d97706;">Cloud vs Local</span>
+      </div>
+
+      <div class="notice-box notice-warning" style="margin-top:10px;">
+        <strong>Did you see this error?</strong><br>
+        <em>"Claude connects from Anthropic’s servers, so it can’t reach a local address like this one. Enter a public https:// URL."</em>
+      </div>
+
+      <p style="color:#475569; font-size:13.5px; margin-bottom:12px;">
+        When you open Claude Desktop and navigate to <strong>Settings ▸ Connectors ▸ Add custom connector</strong> (titled <em>"Step 1 of 2 — Connect Claude to your data and tools"</em>), Claude is trying to connect via <strong>Anthropic's remote cloud infrastructure</strong>.
+      </p>
+
+      <ul class="step-list">
+        <li><strong>Why it rejects 127.0.0.1:</strong> Anthropic's cloud servers are located on the internet and cannot access <code>127.0.0.1</code> or <code>localhost</code> on your private machine.</li>
+        <li><strong>Why you do NOT need public tunnels:</strong> Your TallyPrime data contains sensitive accounting records and financial balances. Exposing ports over third-party public tunnels (like ngrok) is unnecessary and poses security risks.</li>
+        <li><strong>The Recommended Solution:</strong> Use <strong>Method 1 (Local MCP stdio)</strong> above! Open Claude Desktop ▸ <strong>File ▸ Settings ▸ Developer ▸ Edit Config</strong>, paste the configuration snippet, and restart. Claude connects directly to your local computer process via standard I/O (stdio). Zero tunnels, zero cloud exposure, 100% private, and works offline!</li>
+      </ul>
+    </div>
+
+    <!-- HOW TO VERIFY -->
     <div class="card">
       <div class="card-header">
-        <span>✅ How to Verify in Claude</span>
+        <span>✅ How to Test and Verify in Claude</span>
       </div>
-      <p style="color:#d1d5db; font-size:13.5px; margin-bottom:10px;">
-        Once connected, test the connection by asking Claude:
+      <p style="color:#475569; font-size:13.5px; margin-bottom:10px;">
+        Once Claude Desktop is restarted, start a new chat and ask:
       </p>
-      <div class="mock-box" style="font-style:italic; color:#93c5fd;">
-        "List all loaded companies in Tally and show me the closing balance of Cash and Bank accounts."
+      <div style="background:#f8fafc; border:1px solid var(--border); border-radius:6px; padding:12px; margin-bottom:14px; font-size:13.5px; color:#1e293b;">
+        💬 <em>"Check TallyPrime status and list the currently active company."</em><br>
+        💬 <em>"Show me the summary of our Trial Balance for the current financial year."</em><br>
+        💬 <em>"What is the current balance of our Cash and Bank accounts?"</em>
       </div>
-      <p style="color:#d1d5db; font-size:13px;">
-        Claude will call <code>tally_list_companies</code> and <code>tally_get_ledger_balance</code> and return real-time financial figures straight from your TallyPrime!
+      <p style="font-size:12.5px; color:var(--muted);">
+        Claude will call <code>tally_status</code>, <code>tally_list_companies</code>, or <code>tally_trial_balance</code> and reply with live numbers from your TallyPrime company!
       </p>
     </div>
   </div>
 
   <script>
-    function copyValue(id) {
-      const el = document.getElementById(id);
-      navigator.clipboard.writeText(el.value);
-      alert('Copied ' + el.value + ' to clipboard!');
-    }
-    function copyCode(id) {
-      const code = document.getElementById(id).textContent;
-      navigator.clipboard.writeText(code);
-      alert('Copied configuration JSON to clipboard!');
+    function copySnippet(id) {
+      const code = document.getElementById(id).innerText;
+      navigator.clipboard.writeText(code).then(() => {
+        alert("Copied to clipboard!");
+      });
     }
   </script>
 </body>
