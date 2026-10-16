@@ -1,0 +1,73 @@
+name: CI
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+    branches: [master, main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Test Suite (Linux)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Cache Cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-
+
+      - name: Check formatting
+        run: cargo fmt --check
+
+      - name: Clippy
+        run: cargo clippy --all-targets -- -D warnings
+
+      - name: Run all tests
+        run: cargo test
+
+      - name: Verify test count ≥ 19
+        run: |
+          COUNT=$(cargo test 2>&1 | grep -oP '\d+ passed' | awk '{sum += $1} END {print sum}')
+          echo "Total tests passed: $COUNT"
+          if [ "$COUNT" -lt 19 ]; then
+            echo "ERROR: Expected at least 19 tests, got $COUNT"
+            exit 1
+          fi
+
+  size-gate:
+    name: Binary Size Gate (Linux)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build release binary
+        run: cargo build --release --locked
+
+      - name: Check binary size ≤ 5.5 MB
+        run: |
+          SIZE=$(stat --format='%s' target/release/tally-mcp)
+          echo "Binary size: $SIZE bytes"
+          if [ "$SIZE" -gt 5767168 ]; then
+            echo "ERROR: Binary size $SIZE exceeds 5.5 MB gate"
+            exit 1
+          fi
