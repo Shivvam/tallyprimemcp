@@ -670,10 +670,22 @@ impl CompanionUiServer {
                     vec!["serve".to_string()]
                 };
 
+                let current_exe_cmd = std::env::current_exe()
+                    .ok()
+                    .and_then(|p| {
+                        let s = p.to_string_lossy().to_string();
+                        if s.contains("target") && (s.contains("deps") || s.contains("debug")) {
+                            None
+                        } else {
+                            Some(s)
+                        }
+                    })
+                    .unwrap_or_else(|| "tally-mcp".to_string());
+
                 let claude_config = json!({
                     "mcpServers": {
                         "tally": {
-                            "command": "tally-mcp",
+                            "command": current_exe_cmd,
                             "args": serve_args
                         }
                     }
@@ -815,20 +827,26 @@ impl CompanionUiServer {
                 };
 
                 let mcpb_manifest = json!({
-                    "$schema": "https://modelcontextprotocol.io/schema/bundle/v1.json",
-                    "name": "TallyMCP",
+                    "dxt_version": "0.1",
+                    "name": "tally-mcp",
+                    "display_name": "TallyMCP",
                     "version": "1.0.0",
                     "description": "Open Source Model Context Protocol server connecting TallyPrime accounting software to AI assistants.",
-                    "author": "Shivvam",
+                    "author": {
+                        "name": "Shivvam",
+                        "url": "https://github.com/Shivvam/tallyprimemcp"
+                    },
                     "homepage": "https://tallymcp.vercel.app/",
                     "repository": "https://github.com/Shivvam/tallyprimemcp",
                     "server": {
-                        "type": "stdio",
-                        "command": "tally-mcp",
-                        "args": serve_args,
-                        "env": {
-                            "TALLY_HOST": host,
-                            "TALLY_PORT": port.to_string()
+                        "type": "binary",
+                        "mcp_config": {
+                            "command": "tally-mcp",
+                            "args": serve_args,
+                            "env": {
+                                "TALLY_HOST": host,
+                                "TALLY_PORT": port.to_string()
+                            }
                         }
                     },
                     "tools": [
@@ -843,18 +861,22 @@ impl CompanionUiServer {
                     ]
                 });
 
-                let content_type =
-                    Header::from_bytes(&b"Content-Type"[..], &b"application/json"[..]).unwrap();
+                let manifest_bytes = serde_json::to_vec_pretty(&mcpb_manifest).unwrap_or_default();
+                let zip_bytes = create_stored_zip("manifest.json", &manifest_bytes);
+
+                let content_type = Header::from_bytes(
+                    &b"Content-Type"[..],
+                    &b"application/vnd.claude.extension"[..],
+                )
+                .unwrap();
                 let content_disp = Header::from_bytes(
                     &b"Content-Disposition"[..],
                     &b"attachment; filename=\"tally-mcp.mcpb\""[..],
                 )
                 .unwrap();
-                let resp = Response::from_string(
-                    serde_json::to_string_pretty(&mcpb_manifest).unwrap_or_default(),
-                )
-                .with_header(content_type)
-                .with_header(content_disp);
+                let resp = Response::from_data(zip_bytes)
+                    .with_header(content_type)
+                    .with_header(content_disp);
                 let _ = request.respond(resp);
                 continue;
             }
@@ -1148,4 +1170,79 @@ impl CompanionUiServer {
 
         Ok(())
     }
+}
+
+/// Creates an uncompressed ZIP archive containing a single file in memory.
+/// This complies with standard PKZip specification without requiring extra crate dependencies.
+pub fn create_stored_zip(filename: &str, data: &[u8]) -> Vec<u8> {
+    let name_bytes = filename.as_bytes();
+    let name_len = name_bytes.len() as u16;
+    let size = data.len() as u32;
+
+    // Standard IEEE 802.3 CRC-32
+    let mut crc = 0xFFFF_FFFFu32;
+    for &byte in data {
+        crc ^= byte as u32;
+        for _ in 0..8 {
+            crc = if (crc & 1) != 0 {
+                (crc >> 1) ^ 0xEDB8_8320
+            } else {
+                crc >> 1
+            };
+        }
+    }
+    let crc = !crc;
+
+    let mut zip = Vec::with_capacity(data.len() + 256);
+
+    // 1. Local File Header (30 bytes + name_len + data.len())
+    zip.extend_from_slice(b"PK\x03\x04");
+    zip.extend_from_slice(&20u16.to_le_bytes()); // version needed: 2.0
+    zip.extend_from_slice(&0u16.to_le_bytes()); // flags
+    zip.extend_from_slice(&0u16.to_le_bytes()); // method: 0 = stored
+    zip.extend_from_slice(&0u16.to_le_bytes()); // mod time
+    zip.extend_from_slice(&0x5821u16.to_le_bytes()); // mod date: 2024-01-01
+    zip.extend_from_slice(&crc.to_le_bytes());
+    zip.extend_from_slice(&size.to_le_bytes()); // compressed size
+    zip.extend_from_slice(&size.to_le_bytes()); // uncompressed size
+    zip.extend_from_slice(&name_len.to_le_bytes());
+    zip.extend_from_slice(&0u16.to_le_bytes()); // extra field len
+    zip.extend_from_slice(name_bytes);
+    zip.extend_from_slice(data);
+
+    let cd_offset = zip.len() as u32;
+
+    // 2. Central Directory File Header (46 bytes + name_len)
+    zip.extend_from_slice(b"PK\x01\x02");
+    zip.extend_from_slice(&20u16.to_le_bytes()); // version made by: 2.0
+    zip.extend_from_slice(&20u16.to_le_bytes()); // version needed: 2.0
+    zip.extend_from_slice(&0u16.to_le_bytes()); // flags
+    zip.extend_from_slice(&0u16.to_le_bytes()); // method: 0 = stored
+    zip.extend_from_slice(&0u16.to_le_bytes()); // mod time
+    zip.extend_from_slice(&0x5821u16.to_le_bytes()); // mod date: 2024-01-01
+    zip.extend_from_slice(&crc.to_le_bytes());
+    zip.extend_from_slice(&size.to_le_bytes()); // compressed size
+    zip.extend_from_slice(&size.to_le_bytes()); // uncompressed size
+    zip.extend_from_slice(&name_len.to_le_bytes());
+    zip.extend_from_slice(&0u16.to_le_bytes()); // extra field len
+    zip.extend_from_slice(&0u16.to_le_bytes()); // comment len
+    zip.extend_from_slice(&0u16.to_le_bytes()); // disk number start
+    zip.extend_from_slice(&0u16.to_le_bytes()); // internal attributes
+    zip.extend_from_slice(&0u32.to_le_bytes()); // external attributes
+    zip.extend_from_slice(&0u32.to_le_bytes()); // local header relative offset
+    zip.extend_from_slice(name_bytes);
+
+    let cd_len = (zip.len() as u32) - cd_offset;
+
+    // 3. End of Central Directory Record (22 bytes)
+    zip.extend_from_slice(b"PK\x05\x06");
+    zip.extend_from_slice(&0u16.to_le_bytes()); // disk number
+    zip.extend_from_slice(&0u16.to_le_bytes()); // start disk
+    zip.extend_from_slice(&1u16.to_le_bytes()); // entries on this disk
+    zip.extend_from_slice(&1u16.to_le_bytes()); // total entries
+    zip.extend_from_slice(&cd_len.to_le_bytes());
+    zip.extend_from_slice(&cd_offset.to_le_bytes());
+    zip.extend_from_slice(&0u16.to_le_bytes()); // comment len
+
+    zip
 }

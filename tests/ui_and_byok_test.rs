@@ -313,4 +313,32 @@ mod ui_and_byok_tests {
             "Must guide on Claude desktop config"
         );
     }
+
+    #[test]
+    fn test_stored_zip_generation_for_mcpb() {
+        use tally_mcp::ui::create_stored_zip;
+
+        let manifest = br#"{"dxt_version":"0.1","name":"tally-mcp"}"#;
+        let zip = create_stored_zip("manifest.json", manifest);
+
+        // Check local file header signature PK\x03\x04
+        assert_eq!(&zip[0..4], b"PK\x03\x04");
+
+        // Check file name in local header
+        assert_eq!(&zip[30..43], b"manifest.json");
+
+        // Check manifest content is included
+        let content_start = 43;
+        let content_end = content_start + manifest.len();
+        assert_eq!(&zip[content_start..content_end], manifest);
+
+        // Check Central Directory header PK\x01\x02
+        let cd_start = content_end;
+        assert_eq!(&zip[cd_start..cd_start + 4], b"PK\x01\x02");
+
+        // Check End of Central Directory record signature PK\x05\x06 at the end
+        let eocd_len = 22;
+        let eocd_start = zip.len() - eocd_len;
+        assert_eq!(&zip[eocd_start..eocd_start + 4], b"PK\x05\x06");
+    }
 }
