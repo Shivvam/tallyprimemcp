@@ -295,12 +295,18 @@ impl Extractor for OpenAiCompatExtractor {
                 "ollama".to_string()
             } else {
                 get_api_key(&self.api_key_provider)
-                    .unwrap_or_else(|| get_api_key("openai").unwrap_or_else(|| "none".to_string()))
+                    .ok_or_else(|| ExtractError::MissingApiKey(self.api_key_provider.clone()))?
             };
+
+            if !is_ollama && (api_key.trim().is_empty() || api_key == "none") {
+                return Err(ExtractError::MissingApiKey(self.api_key_provider.clone()));
+            }
 
             let model_name = if self.model.trim().is_empty() {
                 if is_ollama {
                     "llama3.2-vision"
+                } else if self.api_key_provider == "gemini" {
+                    "gemini-3.8-flash"
                 } else {
                     "gpt-4o"
                 }
@@ -343,15 +349,54 @@ impl Extractor for OpenAiCompatExtractor {
                 "response_format": { "type": "json_object" }
             });
 
-            let mut req = ureq::post(&endpoint).header("content-type", "application/json");
+            let mut last_error = String::new();
+            let mut resp_opt = None;
 
-            if !is_ollama && api_key != "none" && !api_key.is_empty() {
-                req = req.header("Authorization", &format!("Bearer {}", api_key));
+            // Retry up to 3 attempts with backoff for transient 503 / 429 from provider
+            for attempt in 0..3 {
+                let mut req = ureq::post(&endpoint).header("content-type", "application/json");
+
+                if !is_ollama && api_key != "none" && !api_key.is_empty() {
+                    req = req.header("Authorization", &format!("Bearer {}", api_key));
+                }
+
+                match req.send_json(body.clone()) {
+                    Ok(resp) => {
+                        resp_opt = Some(resp);
+                        break;
+                    }
+                    Err(e) => {
+                        last_error = e.to_string();
+                        if (last_error.contains("503") || last_error.contains("429")) && attempt < 2
+                        {
+                            std::thread::sleep(std::time::Duration::from_millis(
+                                1000 * (attempt + 1),
+                            ));
+                            continue;
+                        }
+                        break;
+                    }
+                }
             }
 
-            let resp = req.send_json(body).map_err(|e| {
-                ExtractError::RequestFailed(self.api_key_provider.clone(), e.to_string())
-            })?;
+            let resp = match resp_opt {
+                Some(r) => r,
+                None => {
+                    if last_error.contains("503") {
+                        return Err(ExtractError::RequestFailed(
+                            self.api_key_provider.clone(),
+                            format!(
+                                "Google Gemini service is temporarily overloaded / experiencing high demand (HTTP 503) for model '{}'. Spikes in demand are usually temporary. Please retry in a few moments, or check your API key / model in AI settings.",
+                                model_name
+                            ),
+                        ));
+                    }
+                    return Err(ExtractError::RequestFailed(
+                        self.api_key_provider.clone(),
+                        last_error,
+                    ));
+                }
+            };
 
             let resp_json: serde_json::Value = resp
                 .into_body()
@@ -444,7 +489,7 @@ pub fn extract_document(
             let extractor = OpenAiCompatExtractor {
                 base_url,
                 model: if config.ai.model.trim().is_empty() {
-                    "gemini-1.5-flash".to_string()
+                    "gemini-3.8-flash".to_string()
                 } else {
                     config.ai.model.trim().to_string()
                 },

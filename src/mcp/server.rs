@@ -14,6 +14,7 @@ use std::sync::Arc;
 use std::time::Duration;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 
+#[derive(Clone)]
 pub struct McpServer {
     config: Config,
     tally: Arc<TallyClient>,
@@ -96,7 +97,7 @@ impl McpServer {
         Ok(())
     }
 
-    async fn handle_request(&self, method: &str, params: Value, id: Value) -> Value {
+    pub async fn handle_request(&self, method: &str, params: Value, id: Value) -> Value {
         match method {
             "initialize" => json!({
                 "jsonrpc": "2.0",

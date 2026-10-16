@@ -112,6 +112,9 @@
         <button class="btn btn-sm btn-outline" onclick="switchTab('connection')">
           <span>⚙️</span> Change Target URL
         </button>
+        <a href="/guides.html" target="_blank" class="btn btn-sm btn-outline" style="text-decoration:none; display:inline-flex; align-items:center; gap:4px;">
+          <span>📚</span> Guides Hub
+        </a>
       </div>
     </header>
 
@@ -122,6 +125,9 @@
       <button class="tab-btn" id="tabbtn-connection" onclick="switchTab('connection')">Tally Target & Status</button>
       <button class="tab-btn" id="tabbtn-clients" onclick="switchTab('clients')">MCP Client Configs (Claude, Cursor, etc.)</button>
       <button class="tab-btn" id="tabbtn-audit" onclick="switchTab('audit')">Audit Log</button>
+      <a href="/guides.html" target="_blank" class="tab-btn" style="text-decoration:none; display:inline-flex; align-items:center; gap:6px; color:var(--primary); font-weight:600;">
+        <span>📖</span> Setup Guides ↗
+      </a>
     </div>
 
     <!-- TAB 1: DRAFTS & APPROVALS -->
@@ -150,6 +156,25 @@
           Configure your preferred multimodal extraction engine. You can use your own cloud API key (Claude, OpenAI, Gemini) or run <strong>100% offline</strong> with local Ollama.
         </p>
 
+        <!-- LIVE AI CONFIG STATUS CALLOUT -->
+        <div id="ai-config-status-card" style="margin-bottom: 16px; padding: 12px 16px; border-radius: 8px; border: 1px solid #334155; background: rgba(15, 23, 42, 0.6); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <div id="ai-status-icon" style="font-size: 26px;">🤖</div>
+            <div>
+              <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                <span style="font-weight: 600; font-size: 14px;" id="ai-active-provider-label">Google Gemini (Cloud)</span>
+                <span id="ai-ready-badge" class="badge badge-success">Checking...</span>
+              </div>
+              <div style="font-size: 12px; color: #94a3b8; margin-top: 3px;" id="ai-status-detail">
+                Loading AI configuration...
+              </div>
+            </div>
+          </div>
+          <div id="ai-status-action">
+            <button class="btn btn-sm btn-outline" onclick="testByokConnection()">⚡ Test Connection</button>
+          </div>
+        </div>
+
         <!-- Provider Selector -->
         <label class="form-label">Select AI Provider</label>
         <div class="radio-pill-group" id="provider-selector">
@@ -168,7 +193,7 @@
               <span id="key-configured-badge" class="tag" style="background:#064e3b;color:#6ee7b7;display:none;">Saved in Credential Manager</span>
             </label>
             <div style="display:flex; gap:6px;">
-              <input type="password" id="byok-api-key" class="form-control" placeholder="Enter API key (e.g. sk-ant-...)">
+              <input type="password" id="byok-api-key" class="form-control" placeholder="Enter API key">
               <button type="button" class="btn btn-outline btn-sm" onclick="togglePasswordVisibility('byok-api-key')">👁️</button>
             </div>
             <div class="form-hint" id="key-hint">Never sent to TallyMCP servers. Encrypted in OS Credential Manager.</div>
@@ -184,8 +209,8 @@
           <!-- Model Name -->
           <div class="form-group">
             <label class="form-label">Model Name</label>
-            <input type="text" id="byok-model" class="form-control" placeholder="claude-3-5-sonnet-20241022">
-            <div class="form-hint" id="model-hint">Default: <code>claude-3-5-sonnet-20241022</code></div>
+            <input type="text" id="byok-model" class="form-control" placeholder="gemini-3.8-flash">
+            <div class="form-hint" id="model-hint">Default: <code>gemini-3.8-flash</code></div>
           </div>
         </div>
 
@@ -203,6 +228,9 @@
         <div class="dropzone" id="drop-area" onclick="document.getElementById('file-input').click()">
           <p style="font-size: 15px; font-weight: 500; margin-bottom: 6px;">Drag & drop invoice (PDF, PNG, JPEG, JSON) or click to browse</p>
           <p style="color:var(--muted); font-size: 12px;">Automatic field extraction with GSTIN, ledger matching, and tax breakdown</p>
+          <div id="dropzone-engine-badge" style="margin-top: 10px; font-size: 12px; display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 999px; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); color: #93c5fd;">
+            <span>🤖 Active Engine:</span> <strong id="dropzone-engine-text">Checking AI provider...</strong>
+          </div>
           <input type="file" id="file-input" style="display:none;" accept=".pdf,.png,.jpg,.jpeg,.json" onchange="handleFile(this.files[0])">
         </div>
         <div id="extract-result" style="margin-top: 16px;"></div>
@@ -265,11 +293,65 @@
 
     <!-- TAB 4: MCP CLIENT CONFIGS -->
     <div id="tab-clients" style="display: none;">
+      <!-- CLAUDE DESKTOP CUSTOM CONNECTOR CARD -->
+      <div class="card" style="background: linear-gradient(135deg, rgba(217, 119, 6, 0.12), rgba(15, 23, 42, 0.6)); border: 1px solid #d97706; margin-bottom: 20px;">
+        <div class="card-header" style="border-bottom: 1px solid rgba(217, 119, 6, 0.3);">
+          <h2><span>🔌</span> Claude Desktop / Claude.ai: Add Custom Connector</h2>
+          <span class="badge" style="background: #78350f; color: #fde68a;">Step 1 of 2</span>
+        </div>
+        <p class="desc" style="color: #cbd5e1; margin-bottom: 14px;">
+          Connect Claude directly to your TallyPrime tools. In <strong>Claude Desktop</strong> or <strong>Claude.ai</strong>, navigate to <strong>Settings ▸ Connectors ▸ Add custom connector</strong>.
+        </p>
+
+        <!-- Visual Claude Custom Connector Form Box -->
+        <div style="background: rgba(0, 0, 0, 0.45); border: 1px solid #334155; border-radius: 8px; padding: 18px; margin-bottom: 14px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 8px;">
+            <div style="font-size: 15px; font-weight: 600; color: #f8fafc;">Add custom connector</div>
+            <div style="font-size: 12px; color: #94a3b8; background: #1e293b; padding: 2px 8px; border-radius: 4px;">Step 1 of 2</div>
+          </div>
+          <p style="font-size: 12.5px; color: #94a3b8; margin-bottom: 14px; line-height: 1.4;">
+            Connect Claude to your data and tools. Learn more about connectors or get started with pre-built ones.
+          </p>
+
+          <div style="display: grid; gap: 14px;">
+            <div>
+              <label style="display: block; font-size: 13px; font-weight: 500; color: #e2e8f0; margin-bottom: 4px;">Name</label>
+              <div style="display: flex; gap: 8px;">
+                <input type="text" id="claude-connector-name" readonly value="TallyMCP" class="form-control" style="background: #0f172a; border-color: #334155; font-weight: 600;">
+                <button class="btn btn-sm btn-secondary" onclick="copyConnectorField('claude-connector-name', 'Name')">📋 Copy</button>
+              </div>
+              <div style="font-size: 11.5px; color: #64748b; margin-top: 3px;">Shown in the connectors list.</div>
+            </div>
+
+            <div>
+              <label style="display: block; font-size: 13px; font-weight: 500; color: #e2e8f0; margin-bottom: 4px;">MCP server URL</label>
+              <div style="display: flex; gap: 8px;">
+                <input type="text" id="claude-connector-url" readonly value="http://127.0.0.1:9190/mcp" class="form-control" style="background: #0f172a; border-color: #334155; font-family: monospace;">
+                <button class="btn btn-sm btn-primary" onclick="copyConnectorField('claude-connector-url', 'MCP Server URL')">📋 Copy URL</button>
+              </div>
+              <div style="font-size: 11.5px; color: #64748b; margin-top: 3px;">The HTTPS address where the server accepts MCP requests, for example https://mcp.example.com/mcp.</div>
+            </div>
+          </div>
+
+          <div style="margin-top: 14px; padding: 12px 14px; background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.25); border-radius: 6px; font-size: 12px; color: #fde68a; line-height: 1.4;">
+            🛡️ <strong>Only use connectors from developers you trust.</strong> Anthropic does not control which tools developers make available and cannot verify that they will work as intended or that they won’t change.
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+          <button class="btn btn-sm btn-outline" onclick="copyConnectorSnippet()">📋 Copy Name & URL</button>
+          <button class="btn btn-sm btn-outline" onclick="testMcpEndpoint()">⚡ Test /mcp Endpoint</button>
+          <a href="/guide-claude.html" target="_blank" class="btn btn-sm btn-primary" style="text-decoration:none; display:inline-flex; align-items:center; gap:5px; background:#d97706; border-color:#d97706; color:#ffffff;">
+            📖 Step-by-Step Claude Setup Guide ↗
+          </a>
+        </div>
+      </div>
+
       <!-- ONE-CLICK CLAUDE DESKTOP MCPB CARD -->
       <div class="card" style="background: linear-gradient(135deg, rgba(0, 110, 166, 0.15), rgba(255, 251, 229, 0.05)); border: 1px solid #006ea6; margin-bottom: 20px;">
         <div class="card-header" style="border-bottom: 1px solid rgba(0, 110, 166, 0.3);">
-          <h2><span>⚡</span> One-Click Installation for Claude Desktop (MCP Bundle)</h2>
-          <span class="badge badge-success">Recommended</span>
+          <h2><span>⚡</span> Alternative: One-Click Installation for Claude Desktop (MCP Bundle)</h2>
+          <span class="badge badge-success">.mcpb Bundle</span>
         </div>
         <p class="desc" style="color: #cbd5e1; margin-bottom: 12px;">
           No manual JSON editing required. Export our pre-configured <strong>.mcpb</strong> bundle and drop it directly into Claude Desktop for instant registration.
@@ -281,6 +363,9 @@
           <button class="btn btn-outline" onclick="toggleMcpbGuide()">
             📖 How to install .mcpb in Claude Desktop
           </button>
+          <a href="/guide-claude.html#method-mcpb" target="_blank" class="btn btn-outline" style="text-decoration:none; display:inline-flex; align-items:center; gap:5px;">
+            📑 Full .mcpb Guide ↗
+          </a>
         </div>
 
         <div id="mcpb-guide" style="display:none; margin-top:14px; background: rgba(0,0,0,0.35); border-radius:8px; padding:14px; border:1px solid #334155; font-size:13px; line-height:1.6;">
@@ -323,9 +408,14 @@
             <button class="btn btn-sm btn-outline platform-btn" id="plat-mac" onclick="selectPlatform('macos')">macOS</button>
             <button class="btn btn-sm btn-outline platform-btn" id="plat-lin" onclick="selectPlatform('linux')">Linux</button>
           </div>
-          <button class="btn btn-sm btn-primary" id="btn-copy-config" onclick="copyConfigCode()">
-            📋 Copy Configuration
-          </button>
+          <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+            <a id="client-guide-btn" href="/guide-claude.html" target="_blank" class="btn btn-sm btn-outline" style="text-decoration:none; display:inline-flex; align-items:center; gap:5px;">
+              📖 <span id="client-guide-title">Claude Desktop Guide</span> ↗
+            </a>
+            <button class="btn btn-sm btn-primary" id="btn-copy-config" onclick="copyConfigCode()">
+              📋 Copy Configuration
+            </button>
+          </div>
         </div>
 
         <div style="margin-bottom: 10px;">
@@ -343,6 +433,66 @@
           <p style="font-size: 12px; color:#cbd5e1; line-height: 1.4;">
             If <code>tally-mcp</code> is installed via MSI installer, it is in your PATH. If Claude Desktop cannot find it, replace <code>"tally-mcp"</code> with the absolute path: <code>C:\\Users\\&lt;User&gt;\\AppData\\Local\\Programs\\TallyMCP\\tally-mcp.exe</code>.
           </p>
+        </div>
+      </div>
+
+      <!-- CONNECTOR STEP-BY-STEP GUIDES CARD -->
+      <div class="card" style="margin-top: 20px;">
+        <div class="card-header">
+          <h2><span>📚</span> Step-by-Step Connector Guides</h2>
+          <a href="/guides.html" target="_blank" class="btn btn-sm btn-primary" style="text-decoration:none;">Open Guides Hub ↗</a>
+        </div>
+        <p class="desc">
+          Detailed documentation and step-by-step walkthroughs with copy-paste configs, troubleshooting, and security notes for each supported AI client.
+        </p>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; margin-top: 14px;">
+          <a href="/guide-claude.html" target="_blank" style="text-decoration:none; display:block; padding:14px; border-radius:8px; border:1px solid var(--border); background:#ffffff; transition:border-color 0.15s;">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+              <strong style="color:var(--text); font-size:14px;">Claude Desktop & Connector</strong>
+              <span class="badge" style="background:#fef3c7; color:#92400e;">Step 1 of 2</span>
+            </div>
+            <div style="font-size:12px; color:var(--muted); line-height:1.4;">Custom connector setup (Name & URL), stdio config, and .mcpb bundle installation.</div>
+          </a>
+
+          <a href="/guide-chatgpt.html" target="_blank" style="text-decoration:none; display:block; padding:14px; border-radius:8px; border:1px solid var(--border); background:#ffffff; transition:border-color 0.15s;">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+              <strong style="color:var(--text); font-size:14px;">ChatGPT Desktop</strong>
+              <span class="badge badge-outline">macOS & Win</span>
+            </div>
+            <div style="font-size:12px; color:var(--muted); line-height:1.4;">Developer Mode setup, MCP server registration, and real-time ledger auditing.</div>
+          </a>
+
+          <a href="/guide-gemini.html" target="_blank" style="text-decoration:none; display:block; padding:14px; border-radius:8px; border:1px solid var(--border); background:#ffffff; transition:border-color 0.15s;">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+              <strong style="color:var(--text); font-size:14px;">Google Gemini (BYOK & CLI)</strong>
+              <span class="badge badge-success">Recommended</span>
+            </div>
+            <div style="font-size:12px; color:var(--muted); line-height:1.4;">gemini-3.8-flash BYOK vision, Gemini CLI client config, and automated retries.</div>
+          </a>
+
+          <a href="/guide-cursor.html" target="_blank" style="text-decoration:none; display:block; padding:14px; border-radius:8px; border:1px solid var(--border); background:#ffffff; transition:border-color 0.15s;">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+              <strong style="color:var(--text); font-size:14px;">Cursor IDE</strong>
+              <span class="badge badge-outline">.cursor/mcp.json</span>
+            </div>
+            <div style="font-size:12px; color:var(--muted); line-height:1.4;">Cursor Settings ▸ Features ▸ MCP, project workspace config, and Agent mode tools.</div>
+          </a>
+
+          <a href="/guide-windsurf.html" target="_blank" style="text-decoration:none; display:block; padding:14px; border-radius:8px; border:1px solid var(--border); background:#ffffff; transition:border-color 0.15s;">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+              <strong style="color:var(--text); font-size:14px;">Windsurf (Codeium Cascade)</strong>
+              <span class="badge badge-outline">mcp_config.json</span>
+            </div>
+            <div style="font-size:12px; color:var(--muted); line-height:1.4;">Cascade autonomous agent configuration, mcp_config.json paths, and troubleshooting.</div>
+          </a>
+
+          <a href="/guide-cline.html" target="_blank" style="text-decoration:none; display:block; padding:14px; border-radius:8px; border:1px solid var(--border); background:#ffffff; transition:border-color 0.15s;">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+              <strong style="color:var(--text); font-size:14px;">Cline & Roo Code</strong>
+              <span class="badge badge-outline">VS Code Extension</span>
+            </div>
+            <div style="font-size:12px; color:var(--muted); line-height:1.4;">cline_mcp_settings.json, human-in-the-loop approvals, and multi-line item bills.</div>
+          </a>
         </div>
       </div>
     </div>
@@ -529,10 +679,12 @@
       const modelInput = document.getElementById('byok-model');
       const modelHint = document.getElementById('model-hint');
       const baseInput = document.getElementById('byok-base-url');
+      const keyInput = document.getElementById('byok-api-key');
 
       if (p === 'anthropic') {
         modelInput.placeholder = 'claude-3-5-sonnet-20241022';
         modelHint.innerHTML = 'Default: <code>claude-3-5-sonnet-20241022</code>';
+        if (keyInput) keyInput.placeholder = 'Enter Anthropic API key (sk-ant-...)';
       } else if (p === 'ollama') {
         modelInput.placeholder = 'llama3.2-vision';
         modelHint.innerHTML = 'Recommended: <code>llama3.2-vision</code>, <code>moondream</code>, or <code>llava</code>';
@@ -540,9 +692,99 @@
       } else if (p === 'openai') {
         modelInput.placeholder = 'gpt-4o';
         modelHint.innerHTML = 'Default: <code>gpt-4o</code>';
+        if (keyInput) keyInput.placeholder = 'Enter OpenAI API key (sk-proj-...)';
       } else if (p === 'gemini') {
-        modelInput.placeholder = 'gemini-1.5-flash';
-        modelHint.innerHTML = 'Default: <code>gemini-1.5-flash</code>';
+        modelInput.placeholder = 'gemini-3.8-flash';
+        modelHint.innerHTML = 'Default: <code>gemini-3.8-flash</code> • <a href="https://aistudio.google.com/apikey" target="_blank" style="color:#93c5fd; text-decoration:underline;">Get Gemini API key from Google AI Studio ↗</a>';
+        if (keyInput) keyInput.placeholder = 'Enter Google Gemini API key (AIzaSy...)';
+        if (!modelInput.value || modelInput.value === 'gemini-1.5-flash') {
+          modelInput.value = 'gemini-3.8-flash';
+        }
+      } else if (p === 'openai_compat') {
+        modelInput.placeholder = 'custom-model';
+        modelHint.innerHTML = 'Specify any OpenAI-compatible vision model name';
+      }
+
+      if (window.cachedByokData) {
+        updateAiStatusCard({
+          ...window.cachedByokData,
+          provider: p,
+          model: modelInput.value || modelInput.placeholder
+        });
+      }
+    }
+
+    function updateAiStatusCard(data) {
+      const providerNames = {
+        'anthropic': 'Anthropic Claude (Cloud)',
+        'gemini': 'Google Gemini (Cloud)',
+        'openai': 'OpenAI GPT-4o (Cloud)',
+        'ollama': 'Local Ollama (100% Offline)',
+        'openai_compat': 'Custom / OpenAI-Compatible'
+      };
+      const p = data.provider || currentProvider;
+      const pLabel = providerNames[p] || p;
+      const model = data.model || (p === 'gemini' ? 'gemini-3.8-flash' : p === 'anthropic' ? 'claude-3-5-sonnet-20241022' : p === 'ollama' ? 'llama3.2-vision' : 'gpt-4o');
+
+      const card = document.getElementById('ai-config-status-card');
+      const label = document.getElementById('ai-active-provider-label');
+      const badge = document.getElementById('ai-ready-badge');
+      const detail = document.getElementById('ai-status-detail');
+      const dropzoneText = document.getElementById('dropzone-engine-text');
+      const dropzoneBadge = document.getElementById('dropzone-engine-badge');
+
+      if (label) label.textContent = pLabel;
+      if (dropzoneText) dropzoneText.textContent = `${pLabel} (${model})`;
+
+      if (p === 'ollama') {
+        if (card) {
+          card.style.borderColor = '#10b981';
+          card.style.background = 'rgba(6, 78, 59, 0.25)';
+        }
+        if (badge) {
+          badge.className = 'badge badge-success';
+          badge.textContent = 'Offline Engine Ready';
+        }
+        if (detail) {
+          detail.innerHTML = `Model: <code>${escapeHtml(model)}</code> • Endpoint: <code>${escapeHtml(data.base_url || 'http://127.0.0.1:11434')}</code> (No API Key Required)`;
+        }
+        if (dropzoneBadge) {
+          dropzoneBadge.style.borderColor = 'rgba(16, 185, 129, 0.4)';
+          dropzoneBadge.style.color = '#6ee7b7';
+        }
+      } else if (data.has_api_key) {
+        if (card) {
+          card.style.borderColor = '#10b981';
+          card.style.background = 'rgba(6, 78, 59, 0.25)';
+        }
+        if (badge) {
+          badge.className = 'badge badge-success';
+          badge.textContent = 'Configured & Ready';
+        }
+        if (detail) {
+          detail.innerHTML = `Model: <code>${escapeHtml(model)}</code> • API Key: <span style="color:#6ee7b7;">Saved in OS Credential Manager (${escapeHtml(data.masked_api_key)})</span>`;
+        }
+        if (dropzoneBadge) {
+          dropzoneBadge.style.borderColor = 'rgba(16, 185, 129, 0.4)';
+          dropzoneBadge.style.color = '#6ee7b7';
+        }
+      } else {
+        if (card) {
+          card.style.borderColor = '#f59e0b';
+          card.style.background = 'rgba(120, 53, 15, 0.25)';
+        }
+        if (badge) {
+          badge.className = 'badge badge-warning';
+          badge.textContent = 'API Key Missing — Action Required';
+        }
+        if (detail) {
+          detail.innerHTML = `<span style="color:#fcd34d;">⚠️ No API key saved for ${pLabel}. Please enter your API key below and click "Save AI Settings" before extracting documents.</span>`;
+        }
+        if (dropzoneBadge) {
+          dropzoneBadge.style.borderColor = 'rgba(245, 158, 11, 0.4)';
+          dropzoneBadge.style.color = '#fcd34d';
+          if (dropzoneText) dropzoneText.textContent = `${pLabel} (API Key Missing)`;
+        }
       }
     }
 
@@ -550,6 +792,7 @@
       try {
         const res = await fetch('/api/byok/config');
         const data = await res.json();
+        window.cachedByokData = data;
         selectAiProvider(data.provider || 'anthropic');
 
         if (data.model) document.getElementById('byok-model').value = data.model;
@@ -572,6 +815,8 @@
           pill.textContent = 'No API Key Configured';
           pill.className = 'badge badge-warning';
         }
+
+        updateAiStatusCard(data);
       } catch (e) {
         console.error('Failed to load BYOK config:', e);
       }
@@ -624,11 +869,58 @@
     }
 
     // --- MCP CLIENT CONFIGURATIONS ---
+    function copyConnectorField(id, label) {
+      const el = document.getElementById(id);
+      if (el) {
+        navigator.clipboard.writeText(el.value);
+        showBanner(`Copied ${label} (${el.value}) to clipboard!`, 'success');
+      }
+    }
+
+    function copyConnectorSnippet() {
+      const name = document.getElementById('claude-connector-name')?.value || 'TallyMCP';
+      const url = document.getElementById('claude-connector-url')?.value || 'http://127.0.0.1:9190/mcp';
+      const text = `Name: ${name}\nMCP server URL: ${url}`;
+      navigator.clipboard.writeText(text);
+      showBanner('Copied Connector Name & URL to clipboard! Paste into Claude Settings ▸ Connectors.', 'success');
+    }
+
+    async function testMcpEndpoint() {
+      const url = document.getElementById('claude-connector-url')?.value || 'http://127.0.0.1:9190/mcp';
+      try {
+        const res = await fetch('/mcp');
+        const data = await res.json();
+        if (data.status === 'online') {
+          showBanner(`MCP endpoint is ONLINE: ${data.server} v${data.version} at ${url} ready for Claude custom connectors!`, 'success');
+        } else {
+          showBanner('MCP endpoint responded: ' + JSON.stringify(data), 'info');
+        }
+      } catch (e) {
+        showBanner('Error contacting /mcp endpoint: ' + e.message, 'error');
+      }
+    }
+
+    const clientGuideMap = {
+      claude: { name: 'Claude Desktop Guide', url: '/guide-claude.html' },
+      chatgpt: { name: 'ChatGPT Desktop Guide', url: '/guide-chatgpt.html' },
+      gemini: { name: 'Google Gemini Guide', url: '/guide-gemini.html' },
+      cursor: { name: 'Cursor IDE Guide', url: '/guide-cursor.html' },
+      windsurf: { name: 'Windsurf Guide', url: '/guide-windsurf.html' },
+      cline: { name: 'Cline / Roo Code Guide', url: '/guide-cline.html' },
+      cli: { name: 'All Guides Hub', url: '/guides.html' }
+    };
+
     function selectClientView(c) {
       currentClient = c;
       document.querySelectorAll('#client-selector .radio-pill').forEach(el => {
         el.classList.toggle('selected', el.textContent.toLowerCase().includes(c));
       });
+      const guideBtn = document.getElementById('client-guide-btn');
+      const guideTitle = document.getElementById('client-guide-title');
+      if (guideBtn && guideTitle && clientGuideMap[c]) {
+        guideBtn.href = clientGuideMap[c].url;
+        guideTitle.textContent = clientGuideMap[c].name;
+      }
       renderConfigPreview();
     }
 
@@ -643,6 +935,12 @@
       try {
         const res = await fetch('/api/mcp/configs');
         cachedConfigs = await res.json();
+        if (cachedConfigs && cachedConfigs.claude_custom_connector) {
+          const urlInput = document.getElementById('claude-connector-url');
+          const nameInput = document.getElementById('claude-connector-name');
+          if (urlInput) urlInput.value = cachedConfigs.claude_custom_connector.url;
+          if (nameInput) nameInput.value = cachedConfigs.claude_custom_connector.name;
+        }
         renderConfigPreview();
       } catch (e) {
         document.getElementById('config-code-preview').textContent = 'Failed to load MCP configurations.';

@@ -141,4 +141,147 @@ mod ui_and_byok_tests {
         let path = save_config(&config).expect("save_config should succeed");
         assert!(path.exists());
     }
+
+    #[test]
+    fn test_gemini_missing_api_key_error_handling() {
+        use tally_mcp::byok::{extract_document, Document, ExtractError};
+
+        let mut config = Config::default();
+        config.ai.provider = "gemini".to_string();
+        config.ai.model = String::new(); // should default to gemini-3.8-flash
+
+        let doc = Document {
+            mime: "image/png".to_string(),
+            bytes: vec![0x89, 0x50, 0x4E, 0x47],
+            name: "invoice.png".to_string(),
+        };
+
+        // When Gemini API key is missing or not configured, it should return MissingApiKey cleanly
+        let res = extract_document(&config, &doc);
+        match res {
+            Err(ExtractError::MissingApiKey(p)) => {
+                assert_eq!(p, "gemini");
+            }
+            Err(e) => {
+                let err_str = e.to_string();
+                assert!(
+                    err_str.contains("gemini") || err_str.contains("API Key"),
+                    "Expected clean error regarding API key for gemini, got: {}",
+                    err_str
+                );
+            }
+            Ok(_) => panic!("Extraction should not succeed with missing key"),
+        }
+    }
+
+    #[tokio::test]
+    async fn test_mcp_server_jsonrpc_handling() {
+        use serde_json::json;
+        use tally_mcp::mcp::McpServer;
+
+        let config = Config::default();
+        let mcp = McpServer::new(config);
+
+        // Test initialize
+        let init_resp = mcp
+            .handle_request(
+                "initialize",
+                json!({ "protocolVersion": "2024-11-05" }),
+                json!(1),
+            )
+            .await;
+        assert_eq!(init_resp["id"], 1);
+        assert_eq!(init_resp["result"]["serverInfo"]["name"], "tally-mcp");
+
+        // Test tools/list
+        let tools_resp = mcp.handle_request("tools/list", json!({}), json!(2)).await;
+        assert_eq!(tools_resp["id"], 2);
+        let tools = tools_resp["result"]["tools"]
+            .as_array()
+            .expect("Tools must be an array");
+        assert!(!tools.is_empty(), "Tools list should not be empty");
+    }
+
+    #[test]
+    fn test_guide_html_endpoints_and_links() {
+        let index_html = include_str!("../src/ui/assets/index.html");
+        assert!(
+            index_html.contains("guides.html"),
+            "index.html must link to guides.html"
+        );
+        assert!(
+            index_html.contains("guide-claude.html"),
+            "index.html must link to guide-claude.html"
+        );
+        assert!(
+            index_html.contains("guide-chatgpt.html"),
+            "index.html must link to guide-chatgpt.html"
+        );
+        assert!(
+            index_html.contains("guide-gemini.html"),
+            "index.html must link to guide-gemini.html"
+        );
+        assert!(
+            index_html.contains("guide-cursor.html"),
+            "index.html must link to guide-cursor.html"
+        );
+        assert!(
+            index_html.contains("guide-windsurf.html"),
+            "index.html must link to guide-windsurf.html"
+        );
+        assert!(
+            index_html.contains("guide-cline.html"),
+            "index.html must link to guide-cline.html"
+        );
+
+        let claude_guide = include_str!("../src/ui/assets/guide-claude.html");
+        assert!(
+            claude_guide.contains("Claude Desktop"),
+            "Claude guide should mention Claude Desktop"
+        );
+        assert!(
+            claude_guide.contains("Add custom connector"),
+            "Claude guide should detail custom connectors"
+        );
+        assert!(
+            claude_guide.contains("Step 1 of 2"),
+            "Claude guide should mention Step 1 of 2"
+        );
+
+        let chatgpt_guide = include_str!("../src/ui/assets/guide-chatgpt.html");
+        assert!(
+            chatgpt_guide.contains("ChatGPT Desktop"),
+            "ChatGPT guide must mention ChatGPT Desktop"
+        );
+
+        let gemini_guide = include_str!("../src/ui/assets/guide-gemini.html");
+        assert!(
+            gemini_guide.contains("gemini-3.8-flash"),
+            "Gemini guide must mention default model gemini-3.8-flash"
+        );
+
+        let cursor_guide = include_str!("../src/ui/assets/guide-cursor.html");
+        assert!(
+            cursor_guide.contains(".cursor/mcp.json"),
+            "Cursor guide must detail .cursor/mcp.json"
+        );
+
+        let windsurf_guide = include_str!("../src/ui/assets/guide-windsurf.html");
+        assert!(
+            windsurf_guide.contains("mcp_config.json"),
+            "Windsurf guide must detail mcp_config.json"
+        );
+
+        let cline_guide = include_str!("../src/ui/assets/guide-cline.html");
+        assert!(
+            cline_guide.contains("cline_mcp_settings.json"),
+            "Cline guide must detail cline_mcp_settings.json"
+        );
+
+        let hub_guide = include_str!("../src/ui/assets/guides.html");
+        assert!(
+            hub_guide.contains("TallyMCP Connectors Guide Hub"),
+            "Hub guide must contain header"
+        );
+    }
 }

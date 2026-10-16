@@ -19,11 +19,24 @@ use std::env;
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<String> = env::args().collect();
-    let subcommand = args.get(1).map(|s| s.as_str()).unwrap_or("help");
+    // Default to launching Companion UI if no subcommand is passed or if options are passed directly
+    let subcommand = match args.get(1).map(|s| s.as_str()) {
+        None => "ui",
+        Some(s)
+            if s.starts_with("--host")
+                || s.starts_with("--port")
+                || s.starts_with("--tally-")
+                || s.starts_with("--ui-port") =>
+        {
+            "ui"
+        }
+        Some(s) => s,
+    };
 
-    // Extract CLI overrides: --host <IP/HOSTNAME> and --port <PORT>
+    // Extract CLI overrides: --host <IP/HOSTNAME>, --port <PORT>, and --ui-port <PORT>
     let mut cli_host: Option<String> = None;
     let mut cli_port: Option<u16> = None;
+    let mut cli_ui_port: Option<u16> = None;
 
     let mut i = 1;
     while i < args.len() {
@@ -50,6 +63,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         } else if args[i].starts_with("--tally-port=") {
             if let Ok(p) = args[i].trim_start_matches("--tally-port=").parse::<u16>() {
                 cli_port = Some(p);
+            }
+        } else if args[i] == "--ui-port" {
+            if let Some(val) = args.get(i + 1) {
+                if let Ok(p) = val.parse::<u16>() {
+                    cli_ui_port = Some(p);
+                }
+                i += 1;
+            }
+        } else if args[i].starts_with("--ui-port=") {
+            if let Ok(p) = args[i].trim_start_matches("--ui-port=").parse::<u16>() {
+                cli_ui_port = Some(p);
             }
         }
         i += 1;
@@ -82,7 +106,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             doctor::run_doctor(&config, show_names).await?;
         }
 
-        "version" => {
+        "version" | "--version" | "-v" => {
             println!("tally-mcp {}", env!("CARGO_PKG_VERSION"));
             println!(
                 "Build Hash: {}",
@@ -187,7 +211,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 config.tally.port = port;
             }
             let ui_server = ui::CompanionUiServer::new(config);
-            let port = 9190;
+            let port = cli_ui_port.unwrap_or(9190);
             ui_server.run(port)?;
         }
 
@@ -207,15 +231,17 @@ fn print_usage() {
         "tally-mcp v{} — Safe, extensible Model Context Protocol server for TallyPrime",
         env!("CARGO_PKG_VERSION")
     );
-    println!("\nUsage: tally-mcp <COMMAND> [OPTIONS]");
+    println!("\nUsage: tally-mcp [COMMAND] [OPTIONS]");
     println!("\nCommands:");
+    println!("  ui        Launch loopback companion web interface in browser (default)");
     println!("  serve     Start headless stdio MCP server for AI clients (Claude Desktop, etc.)");
     println!("  doctor    Run connectivity and configuration diagnostics");
     println!("  setup     Interactive CLI wizard for client integration");
-    println!("  ui        Launch loopback companion web interface in browser");
     println!("  cleanup   Manage and clean local application state");
     println!("  version   Print version, build target, and schema information");
+    println!("  help      Print this usage information");
     println!("\nConnection Options (Local or LAN):");
     println!("  --host <IP/HOST>   TallyPrime target host (default: 127.0.0.1; e.g. 192.168.1.50)");
     println!("  --port <PORT>      TallyPrime XML port (default: 9000)");
+    println!("  --ui-port <PORT>   Companion UI server port (default: 9190)");
 }

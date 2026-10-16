@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cline / Roo Code Connector Setup Guide — TallyMCP</title>
+  <style>
+    :root {
+      --bg: #090d16;
+      --card-bg: #111827;
+      --border: #1f2937;
+      --accent: #f97316;
+      --text: #f9fafb;
+      --text-muted: #9ca3af;
+      --code-bg: #030712;
+      --success: #10b981;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.6;
+      padding: 24px;
+    }
+    .container { max-width: 860px; margin: 0 auto; }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .back-btn {
+      color: #93c5fd;
+      text-decoration: none;
+      font-size: 13.5px;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(59, 130, 246, 0.1);
+      padding: 6px 14px;
+      border-radius: 6px;
+      border: 1px solid rgba(59, 130, 246, 0.25);
+      transition: all 0.2s;
+    }
+    .back-btn:hover { background: rgba(59, 130, 246, 0.2); }
+    h1 { font-size: 24px; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 10px; }
+    .badge {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 999px;
+      background: #7c2d12;
+      color: #fed7aa;
+    }
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 22px;
+      margin-bottom: 22px;
+    }
+    .card-header {
+      font-size: 17px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      color: #f3f4f6;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .step-list { margin-left: 20px; margin-bottom: 16px; }
+    .step-list li { margin-bottom: 10px; color: #d1d5db; }
+    pre {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      padding: 14px;
+      border-radius: 8px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 13px;
+      color: #e5e7eb;
+      overflow-x: auto;
+      margin: 10px 0;
+      position: relative;
+    }
+    code {
+      background: rgba(255,255,255,0.08);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 12.5px;
+      font-family: ui-monospace, monospace;
+      color: #93c5fd;
+    }
+    .copy-btn {
+      float: right;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.2);
+      color: #fff;
+      font-size: 11px;
+      padding: 4px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .copy-btn:hover { background: rgba(255,255,255,0.18); }
+    .mock-box {
+      background: rgba(0,0,0,0.4);
+      border: 1px solid #374151;
+      border-radius: 8px;
+      padding: 16px;
+      margin: 14px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div>
+        <h1><span>🤖</span> Cline / Roo Code: Setup Guide</h1>
+        <p style="color:var(--text-muted); font-size:13px; margin-top:4px;">Connect VS Code's Cline autonomous agent to TallyPrime</p>
+      </div>
+      <a href="/" class="back-btn">← Back to Dashboard</a>
+    </header>
+
+    <div class="card" style="border-color: #f97316; background: linear-gradient(135deg, rgba(249, 115, 22, 0.08), rgba(17, 24, 39, 0.7));">
+      <div class="card-header">
+        <span>⚙️ Cline MCP Server Configuration</span>
+        <span class="badge">VS Code Extension</span>
+      </div>
+      <p style="color:#d1d5db; font-size:13.5px; margin-bottom:14px;">
+        Cline (and Roo Code) runs as an autonomous agent in VS Code capable of executing accounting operations with your approval.
+      </p>
+
+      <ol class="step-list">
+        <li>In <strong>VS Code</strong>, click the <strong>Cline</strong> icon in the Activity Bar.</li>
+        <li>Click the <strong>MCP Servers</strong> icon (server icon at the top of the Cline view).</li>
+        <li>Click <strong>Configure MCP Servers</strong> to open <code>cline_mcp_settings.json</code>.</li>
+        <li>Add the <code>tally</code> server configuration:</li>
+      </ol>
+
+      <pre><button class="copy-btn" onclick="copyCode('code-cline')">Copy JSON</button><code id="code-cline">{
+  "mcpServers": {
+    "tally": {
+      "command": "tally-mcp",
+      "args": ["serve"],
+      "disabled": false,
+      "autoApprove": []
+    }
+  }
+}</code></pre>
+
+      <ol class="step-list" start="5">
+        <li>Save the file. Cline will immediately connect to <code>tally-mcp</code> and index all 128 tools.</li>
+      </ol>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span>🛡️ Safety & Approval Notes</span>
+      </div>
+      <p style="color:#d1d5db; font-size:13px; line-height:1.5;">
+        By default, all write operations (like creating voucher drafts) in TallyMCP require manual confirmation. Leaving <code>"autoApprove": []</code> empty ensures that Cline always asks your explicit consent before modifying any ledger or voucher.
+      </p>
+    </div>
+  </div>
+
+  <script>
+    function copyCode(id) {
+      const code = document.getElementById(id).textContent;
+      navigator.clipboard.writeText(code);
+      alert('Copied configuration to clipboard!');
+    }
+  </script>
+</body>
+</html>

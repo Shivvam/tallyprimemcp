@@ -39,4 +39,31 @@ mod lifecycle_and_cleanup_tests {
         let res = execute_cleanup(&opts);
         assert!(res.is_ok());
     }
+
+    #[test]
+    fn test_wix_installer_auto_launch_on_install() {
+        let wxs_path = std::path::Path::new("installer/Package.wxs");
+        assert!(wxs_path.exists(), "installer/Package.wxs must exist");
+
+        let content = std::fs::read_to_string(wxs_path).expect("Failed to read Package.wxs");
+        // Verify launch custom action is configured
+        assert!(
+            content.contains(r#"Id="LaunchApplication""#),
+            "Package.wxs must contain LaunchApplication CustomAction"
+        );
+        assert!(
+            content.contains(r#"FileRef="TallyMcpExe""#),
+            "LaunchApplication must reference TallyMcpExe"
+        );
+        assert!(
+            content.contains(r#"Return="asyncNoWait""#),
+            "LaunchApplication must be asynchronous (asyncNoWait) to not block installer completion"
+        );
+        // Verify scheduled at InstallFinalize
+        assert!(
+            content.contains(r#"Action="LaunchApplication""#)
+                && content.contains(r#"After="InstallFinalize""#),
+            "LaunchApplication must be scheduled After='InstallFinalize'"
+        );
+    }
 }

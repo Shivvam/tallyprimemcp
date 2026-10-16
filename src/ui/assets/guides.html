@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TallyMCP Connectors Guide Hub — Connect AI to TallyPrime</title>
+  <style>
+    :root {
+      --bg: #090d16;
+      --card-bg: #111827;
+      --border: #1f2937;
+      --accent: #3b82f6;
+      --text: #f9fafb;
+      --text-muted: #9ca3af;
+      --code-bg: #030712;
+      --success: #10b981;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.6;
+      padding: 24px;
+    }
+    .container { max-width: 960px; margin: 0 auto; }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 24px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 28px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .back-btn {
+      color: #93c5fd;
+      text-decoration: none;
+      font-size: 13.5px;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(59, 130, 246, 0.1);
+      padding: 8px 16px;
+      border-radius: 6px;
+      border: 1px solid rgba(59, 130, 246, 0.25);
+      transition: all 0.2s;
+    }
+    .back-btn:hover { background: rgba(59, 130, 246, 0.2); }
+    h1 { font-size: 26px; font-weight: 700; color: #fff; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 18px;
+      margin-bottom: 30px;
+    }
+    .connector-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: transform 0.2s, border-color 0.2s;
+      text-decoration: none;
+      color: inherit;
+    }
+    .connector-card:hover {
+      transform: translateY(-2px);
+      border-color: var(--accent);
+    }
+    .card-top { margin-bottom: 14px; }
+    .icon-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 17px;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 6px;
+    }
+    .desc { font-size: 13px; color: var(--text-muted); line-height: 1.5; }
+    .badge {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.08);
+      color: #93c5fd;
+      margin-top: 8px;
+    }
+    .card-footer {
+      border-top: 1px solid rgba(255,255,255,0.06);
+      padding-top: 12px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #93c5fd;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div>
+        <h1>📚 TallyMCP Connectors Guide Hub</h1>
+        <p style="color:var(--text-muted); font-size:14px; margin-top:4px;">Step-by-step setup guides for connecting your favorite AI clients to TallyPrime</p>
+      </div>
+      <a href="/" class="back-btn">← Back to Dashboard</a>
+    </header>
+
+    <div class="grid">
+      <!-- CLAUDE -->
+      <a href="/guide-claude.html" class="connector-card" style="border-top: 3px solid #d97706;">
+        <div class="card-top">
+          <div class="icon-title"><span>🔌</span> Claude Desktop & Claude.ai</div>
+          <p class="desc">Add via Claude's native Custom Connector UI (Step 1 of 2), one-click <code>.mcpb</code> bundle, or stdio config.</p>
+          <span class="badge" style="background:#78350f; color:#fde68a;">GUI & Custom Connector</span>
+        </div>
+        <div class="card-footer">
+          <span>Read Claude Guide</span> <span>→</span>
+        </div>
+      </a>
+
+      <!-- CHATGPT -->
+      <a href="/guide-chatgpt.html" class="connector-card" style="border-top: 3px solid #10a37f;">
+        <div class="card-top">
+          <div class="icon-title"><span>💬</span> ChatGPT Desktop</div>
+          <p class="desc">Connect ChatGPT Desktop (macOS & Windows) via developer MCP tools and loopback socket.</p>
+          <span class="badge" style="background:#064e3b; color:#6ee7b7;">Desktop MCP</span>
+        </div>
+        <div class="card-footer">
+          <span>Read ChatGPT Guide</span> <span>→</span>
+        </div>
+      </a>
+
+      <!-- GEMINI -->
+      <a href="/guide-gemini.html" class="connector-card" style="border-top: 3px solid #3b82f6;">
+        <div class="card-top">
+          <div class="icon-title"><span>✨</span> Google Gemini</div>
+          <p class="desc">Integrate with Google Gemini CLI, Antigravity, and Gemini MCP workspace configs.</p>
+          <span class="badge" style="background:#1e3a8a; color:#93c5fd;">gemini-3.8-flash</span>
+        </div>
+        <div class="card-footer">
+          <span>Read Gemini Guide</span> <span>→</span>
+        </div>
+      </a>
+
+      <!-- CURSOR -->
+      <a href="/guide-cursor.html" class="connector-card" style="border-top: 3px solid #8b5cf6;">
+        <div class="card-top">
+          <div class="icon-title"><span>⚡</span> Cursor IDE</div>
+          <p class="desc">Enable <code>@tally</code> in Cursor Composer, Chat, and terminal agents across your workspaces.</p>
+          <span class="badge" style="background:#4c1d95; color:#ddd6fe;">.cursor/mcp.json</span>
+        </div>
+        <div class="card-footer">
+          <span>Read Cursor Guide</span> <span>→</span>
+        </div>
+      </a>
+
+      <!-- WINDSURF -->
+      <a href="/guide-windsurf.html" class="connector-card" style="border-top: 3px solid #06b6d4;">
+        <div class="card-top">
+          <div class="icon-title"><span>🏄</span> Windsurf (Codeium)</div>
+          <p class="desc">Connect Cascade AI assistant directly to TallyPrime ledgers and vouchers.</p>
+          <span class="badge" style="background:#155e75; color:#a5f3fc;">Cascade MCP</span>
+        </div>
+        <div class="card-footer">
+          <span>Read Windsurf Guide</span> <span>→</span>
+        </div>
+      </a>
+
+      <!-- CLINE -->
+      <a href="/guide-cline.html" class="connector-card" style="border-top: 3px solid #f97316;">
+        <div class="card-top">
+          <div class="icon-title"><span>🤖</span> Cline / Roo Code</div>
+          <p class="desc">Autonomous VS Code extension agent for audited TallyPrime accounting automation.</p>
+          <span class="badge" style="background:#7c2d12; color:#fed7aa;">VS Code Extension</span>
+        </div>
+        <div class="card-footer">
+          <span>Read Cline Guide</span> <span>→</span>
+        </div>
+      </a>
+    </div>
+  </div>
+</body>
+</html>

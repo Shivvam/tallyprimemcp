@@ -10,6 +10,13 @@ use std::time::Duration;
 use tiny_http::{Header, Response, Server};
 
 const UI_HTML: &str = include_str!("assets/index.html");
+const GUIDE_CLAUDE_HTML: &str = include_str!("assets/guide-claude.html");
+const GUIDE_CHATGPT_HTML: &str = include_str!("assets/guide-chatgpt.html");
+const GUIDE_GEMINI_HTML: &str = include_str!("assets/guide-gemini.html");
+const GUIDE_CURSOR_HTML: &str = include_str!("assets/guide-cursor.html");
+const GUIDE_WINDSURF_HTML: &str = include_str!("assets/guide-windsurf.html");
+const GUIDE_CLINE_HTML: &str = include_str!("assets/guide-cline.html");
+const GUIDES_HUB_HTML: &str = include_str!("assets/guides.html");
 
 pub struct CompanionUiServer {
     config: Arc<std::sync::RwLock<Config>>,
@@ -17,6 +24,7 @@ pub struct CompanionUiServer {
     journal: Arc<JournalManager>,
     audit: Arc<AuditLogger>,
     launch_token: String,
+    mcp_server: Arc<std::sync::RwLock<crate::mcp::McpServer>>,
 }
 
 impl CompanionUiServer {
@@ -24,6 +32,9 @@ impl CompanionUiServer {
         let tally = Arc::new(std::sync::RwLock::new(Arc::new(TallyClient::new(
             config.tally.clone(),
         ))));
+        let mcp_server = Arc::new(std::sync::RwLock::new(crate::mcp::McpServer::new(
+            config.clone(),
+        )));
         let config = Arc::new(std::sync::RwLock::new(config));
         let journal =
             Arc::new(JournalManager::new().expect("Failed to initialize journal manager"));
@@ -36,6 +47,7 @@ impl CompanionUiServer {
             journal,
             audit,
             launch_token,
+            mcp_server,
         }
     }
 
@@ -45,16 +57,42 @@ impl CompanionUiServer {
     }
 
     pub fn run(&self, port: u16) -> Result<(), Box<dyn std::error::Error>> {
-        let addr = format!("127.0.0.1:{}", port);
-        let server =
-            Server::http(&addr).map_err(|e| format!("Failed to bind to {}: {}", addr, e))?;
+        let mut server = None;
+        let mut bound_port = port;
 
-        println!("=== TallyMCP Companion UI Running ===");
-        println!(
-            "URL: http://127.0.0.1:{}/?token={}",
-            port, self.launch_token
+        // Try binding to the preferred port, or fall back to the next available port in range
+        for p in port..=(port + 20) {
+            let addr = format!("127.0.0.1:{}", p);
+            match Server::http(&addr) {
+                Ok(srv) => {
+                    server = Some(srv);
+                    bound_port = p;
+                    break;
+                }
+                Err(e) => {
+                    tracing::debug!("Port {} unavailable: {}", p, e);
+                }
+            }
+        }
+
+        let server = server
+            .ok_or_else(|| format!("Failed to bind to any port in range {}-{}", port, port + 20))?;
+
+        let url = format!(
+            "http://127.0.0.1:{}/?token={}",
+            bound_port, self.launch_token
         );
+        println!("=== TallyMCP Companion UI Running ===");
+        println!("URL: {}", url);
         println!("Press Ctrl+C to terminate the companion UI.");
+
+        // Automatically open the Companion UI URL in the default browser unless disabled
+        if std::env::var("TALLY_NO_OPEN").unwrap_or_default() != "1" {
+            if let Err(e) = open::that_detached(&url) {
+                eprintln!("Note: Could not automatically open browser: {}", e);
+                eprintln!("Please open the URL manually in your browser: {}", url);
+            }
+        }
 
         // Fast sync reachability check helper supporting both localhost and LAN IPs
         let check_tally_quick = |host: &str, port: u16| -> (bool, u128) {
@@ -130,7 +168,19 @@ impl CompanionUiServer {
                 }
             }
 
-            if url_path == "/" {
+            let guide_content = match url_path.as_str() {
+                "/" | "/index.html" => Some(UI_HTML),
+                "/guide-claude.html" | "/guide/claude" => Some(GUIDE_CLAUDE_HTML),
+                "/guide-chatgpt.html" | "/guide/chatgpt" => Some(GUIDE_CHATGPT_HTML),
+                "/guide-gemini.html" | "/guide/gemini" => Some(GUIDE_GEMINI_HTML),
+                "/guide-cursor.html" | "/guide/cursor" => Some(GUIDE_CURSOR_HTML),
+                "/guide-windsurf.html" | "/guide/windsurf" => Some(GUIDE_WINDSURF_HTML),
+                "/guide-cline.html" | "/guide/cline" => Some(GUIDE_CLINE_HTML),
+                "/guides.html" | "/guides" | "/guide.html" | "/guide" => Some(GUIDES_HUB_HTML),
+                _ => None,
+            };
+
+            if let Some(content) = guide_content {
                 let header =
                     Header::from_bytes(&b"Content-Type"[..], &b"text/html; charset=utf-8"[..])
                         .unwrap();
@@ -139,7 +189,7 @@ impl CompanionUiServer {
                     &b"default-src 'self' 'unsafe-inline' data:"[..],
                 )
                 .unwrap();
-                let resp = Response::from_string(UI_HTML)
+                let resp = Response::from_string(content)
                     .with_header(header)
                     .with_header(csp);
                 let _ = request.respond(resp);
@@ -218,15 +268,16 @@ impl CompanionUiServer {
                             let _ = crate::config::save_config(&cfg);
                         }
 
-                        // Reconfigure TallyClient
-                        let new_tally = {
+                        // Reconfigure TallyClient and McpServer
+                        let (new_tally, cfg_clone) = {
                             let cfg = self.config.read().unwrap();
-                            Arc::new(TallyClient::new(cfg.tally.clone()))
+                            (Arc::new(TallyClient::new(cfg.tally.clone())), cfg.clone())
                         };
                         {
                             let mut t_lock = self.tally.write().unwrap();
                             *t_lock = new_tally.clone();
                         }
+                        *self.mcp_server.write().unwrap() = crate::mcp::McpServer::new(cfg_clone);
 
                         self.audit.log(
                             "companion_ui_change_target",
@@ -425,6 +476,8 @@ impl CompanionUiServer {
                         cfg.ai.model = model.to_string();
                         cfg.ai.base_url = base_url.to_string();
                         let _ = crate::config::save_config(&cfg);
+                        let cfg_clone = cfg.clone();
+                        *self.mcp_server.write().unwrap() = crate::mcp::McpServer::new(cfg_clone);
                     }
 
                     self.audit.log(
@@ -503,6 +556,102 @@ impl CompanionUiServer {
                 continue;
             }
 
+            // Direct MCP Protocol Endpoint (for Claude Custom Connectors & HTTP MCP clients)
+            if url_path == "/mcp" {
+                let cors_origin =
+                    Header::from_bytes(&b"Access-Control-Allow-Origin"[..], &b"*"[..]).unwrap();
+                let cors_methods = Header::from_bytes(
+                    &b"Access-Control-Allow-Methods"[..],
+                    &b"POST, GET, OPTIONS"[..],
+                )
+                .unwrap();
+                let cors_headers = Header::from_bytes(
+                    &b"Access-Control-Allow-Headers"[..],
+                    &b"Content-Type, Authorization, x-api-key"[..],
+                )
+                .unwrap();
+
+                if method == "OPTIONS" {
+                    let resp = Response::empty(200)
+                        .with_header(cors_origin)
+                        .with_header(cors_methods)
+                        .with_header(cors_headers);
+                    let _ = request.respond(resp);
+                    continue;
+                }
+
+                if method == "GET" {
+                    let info = json!({
+                        "status": "online",
+                        "server": "tally-mcp",
+                        "version": env!("CARGO_PKG_VERSION"),
+                        "protocol": "mcp",
+                        "endpoint": "/mcp",
+                        "capabilities": { "tools": { "listChanged": false } }
+                    });
+                    let header =
+                        Header::from_bytes(&b"Content-Type"[..], &b"application/json"[..]).unwrap();
+                    let resp = Response::from_string(info.to_string())
+                        .with_header(header)
+                        .with_header(cors_origin);
+                    let _ = request.respond(resp);
+                    continue;
+                }
+
+                if method == "POST" {
+                    let mut body = String::new();
+                    let _ = request.as_reader().read_to_string(&mut body);
+
+                    let mcp = self.mcp_server.read().unwrap().clone();
+                    let (tx, rx) = std::sync::mpsc::channel();
+                    std::thread::spawn(move || {
+                        if let Ok(rt) = tokio::runtime::Builder::new_current_thread()
+                            .enable_all()
+                            .build()
+                        {
+                            let res: serde_json::Value = rt.block_on(async move {
+                                if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&body) {
+                                    if let Some(id) = parsed.get("id").cloned() {
+                                        let m = parsed.get("method").and_then(|m| m.as_str()).unwrap_or("");
+                                        let p = parsed.get("params").cloned().unwrap_or(serde_json::Value::Null);
+                                        return mcp.handle_request(m, p, id).await;
+                                    } else {
+                                        let m = parsed.get("method").and_then(|m| m.as_str()).unwrap_or("");
+                                        if m == "notifications/initialized" {
+                                            return json!({ "status": "initialized" });
+                                        }
+                                    }
+                                }
+                                json!({
+                                    "jsonrpc": "2.0",
+                                    "id": serde_json::Value::Null,
+                                    "error": { "code": -32700, "message": "Parse error / Invalid JSON-RPC request" }
+                                })
+                            });
+                            let _ = tx.send(res);
+                        }
+                    });
+
+                    let outcome = rx
+                        .recv_timeout(Duration::from_secs(30))
+                        .unwrap_or_else(|_| {
+                            json!({
+                                "jsonrpc": "2.0",
+                                "id": serde_json::Value::Null,
+                                "error": { "code": -32603, "message": "MCP request timed out" }
+                            })
+                        });
+
+                    let header =
+                        Header::from_bytes(&b"Content-Type"[..], &b"application/json"[..]).unwrap();
+                    let resp = Response::from_string(outcome.to_string())
+                        .with_header(header)
+                        .with_header(cors_origin);
+                    let _ = request.respond(resp);
+                    continue;
+                }
+            }
+
             // Ready-to-copy MCP Client Configs
             if url_path == "/api/mcp/configs" && method == "GET" {
                 let cfg = self.config.read().unwrap().clone();
@@ -562,6 +711,18 @@ impl CompanionUiServer {
                 let payload = json!({
                     "current_host": host,
                     "current_port": port,
+                    "claude_custom_connector": {
+                        "name": "TallyMCP",
+                        "url": format!("http://127.0.0.1:{}/mcp", bound_port),
+                        "step": "Step 1 of 2",
+                        "heading": "Add custom connector",
+                        "subheading": "Connect Claude to your data and tools. Learn more about connectors or get started with pre-built ones.",
+                        "name_label": "Name",
+                        "name_hint": "Shown in the connectors list.",
+                        "url_label": "MCP server URL",
+                        "url_hint": format!("The address where the server accepts MCP requests (http://127.0.0.1:{}/mcp)", bound_port),
+                        "trust_notice": "Only use connectors from developers you trust. Anthropic does not control which tools developers make available and cannot verify that they will work as intended or that they won't change."
+                    },
                     "claude": {
                         "filename": "claude_desktop_config.json",
                         "paths": {

@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ChatGPT Desktop Connector Setup Guide — TallyMCP</title>
+  <style>
+    :root {
+      --bg: #090d16;
+      --card-bg: #111827;
+      --border: #1f2937;
+      --accent: #10a37f;
+      --accent-glow: rgba(16, 163, 127, 0.2);
+      --text: #f9fafb;
+      --text-muted: #9ca3af;
+      --code-bg: #030712;
+      --success: #10b981;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.6;
+      padding: 24px;
+    }
+    .container { max-width: 860px; margin: 0 auto; }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .back-btn {
+      color: #93c5fd;
+      text-decoration: none;
+      font-size: 13.5px;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(59, 130, 246, 0.1);
+      padding: 6px 14px;
+      border-radius: 6px;
+      border: 1px solid rgba(59, 130, 246, 0.25);
+      transition: all 0.2s;
+    }
+    .back-btn:hover { background: rgba(59, 130, 246, 0.2); }
+    h1 { font-size: 24px; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 10px; }
+    .badge {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 999px;
+      background: #064e3b;
+      color: #6ee7b7;
+    }
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 22px;
+      margin-bottom: 22px;
+    }
+    .card-header {
+      font-size: 17px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      color: #f3f4f6;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .step-list { margin-left: 20px; margin-bottom: 16px; }
+    .step-list li { margin-bottom: 10px; color: #d1d5db; }
+    .step-list strong { color: #fff; }
+    pre {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      padding: 14px;
+      border-radius: 8px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 13px;
+      color: #e5e7eb;
+      overflow-x: auto;
+      margin: 10px 0;
+      position: relative;
+    }
+    code {
+      background: rgba(255,255,255,0.08);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 12.5px;
+      font-family: ui-monospace, monospace;
+      color: #93c5fd;
+    }
+    .copy-btn {
+      float: right;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.2);
+      color: #fff;
+      font-size: 11px;
+      padding: 4px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .copy-btn:hover { background: rgba(255,255,255,0.18); }
+    .mock-box {
+      background: rgba(0,0,0,0.4);
+      border: 1px solid #374151;
+      border-radius: 8px;
+      padding: 16px;
+      margin: 14px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div>
+        <h1><span>💬</span> ChatGPT Desktop: Setup Guide</h1>
+        <p style="color:var(--text-muted); font-size:13px; margin-top:4px;">Connect ChatGPT Desktop to TallyPrime via Model Context Protocol</p>
+      </div>
+      <a href="/" class="back-btn">← Back to Dashboard</a>
+    </header>
+
+    <div class="card" style="border-color: #10a37f; background: linear-gradient(135deg, rgba(16, 163, 127, 0.08), rgba(17, 24, 39, 0.7));">
+      <div class="card-header">
+        <span>🤖 Connecting ChatGPT Desktop to TallyMCP</span>
+        <span class="badge">Official Integration</span>
+      </div>
+      <p style="color:#d1d5db; font-size:13.5px; margin-bottom:14px;">
+        ChatGPT Desktop (macOS and Windows) includes native Model Context Protocol support. You can link TallyMCP as a local MCP server to enable live financial queries.
+      </p>
+
+      <ol class="step-list">
+        <li>Open the <strong>ChatGPT Desktop app</strong>.</li>
+        <li>Open <strong>Settings</strong> (Click your profile picture ▸ Settings, or press <code>Ctrl + ,</code> / <code>Cmd + ,</code>).</li>
+        <li>Select <strong>Integration</strong> or <strong>Developer</strong> settings.</li>
+        <li>Click <strong>Add MCP Server</strong>.</li>
+        <li>Fill in the server details:
+          <ul style="margin: 8px 0 8px 20px; list-style-type: circle;">
+            <li><strong>Server Name:</strong> <code>tally</code></li>
+            <li><strong>Type:</strong> <code>command</code> or <code>http/url</code></li>
+            <li><strong>Command:</strong> <code>tally-mcp</code> with argument <code>serve</code></li>
+            <li><strong>Or HTTP URL:</strong> <code>http://127.0.0.1:9190/mcp</code></li>
+          </ul>
+        </li>
+        <li>Click <strong>Save</strong> and toggle the integration ON.</li>
+      </ol>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span>⚙️ Configuration JSON</span>
+      </div>
+      <p style="color:#d1d5db; font-size:13px; margin-bottom:10px;">
+        If using file-based configuration or ChatGPT Developer tools, use this configuration:
+      </p>
+      <pre><button class="copy-btn" onclick="copyCode('code-chatgpt')">Copy JSON</button><code id="code-chatgpt">{
+  "name": "tally",
+  "command": "tally-mcp",
+  "args": ["serve"]
+}</code></pre>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span>✅ Testing the ChatGPT Integration</span>
+      </div>
+      <p style="color:#d1d5db; font-size:13.5px; margin-bottom:10px;">
+        In a new chat, prompt ChatGPT:
+      </p>
+      <div class="mock-box" style="font-style:italic; color:#93c5fd;">
+        "Ask Tally what companies are currently open, and summarize our cash position."
+      </div>
+      <p style="color:#d1d5db; font-size:13px;">
+        ChatGPT will query your local TallyMCP server over loopback and display your accounting balances instantly.
+      </p>
+    </div>
+  </div>
+
+  <script>
+    function copyCode(id) {
+      const code = document.getElementById(id).textContent;
+      navigator.clipboard.writeText(code);
+      alert('Copied configuration to clipboard!');
+    }
+  </script>
+</body>
+</html>
