@@ -767,7 +767,10 @@ pub fn chat(
                         ),
                     ));
                 }
-                return Err(ExtractError::RequestFailed(api_key_provider.clone(), last_error));
+                return Err(ExtractError::RequestFailed(
+                    api_key_provider.clone(),
+                    last_error,
+                ));
             }
         };
 
