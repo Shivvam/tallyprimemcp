@@ -134,7 +134,10 @@ impl PackManager {
 pub fn verify_export_envelope(xml: &str) -> Result<(), PackError> {
     // 1. Strict rejection of mutating actions
     let upper = xml.to_uppercase();
-    if upper.contains("IMPORT DATA") || upper.contains("<IMPORTDATA>") || upper.contains("ACTION=\"CREATE\"") {
+    if upper.contains("IMPORT DATA")
+        || upper.contains("<IMPORTDATA>")
+        || upper.contains("ACTION=\"CREATE\"")
+    {
         return Err(PackError::MutatingActionRejected);
     }
 

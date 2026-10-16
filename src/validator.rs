@@ -17,7 +17,9 @@ pub enum ValidationError {
     InvalidDateFormat(String),
     #[error("Voucher amount {0} exceeds safety limit of {1}")]
     ExceedsMaxVoucherAmount(Decimal, Decimal),
-    #[error("Unsupported voucher type '{0}'. Allowed: Purchase, Sales, Journal, Payment, Receipt.")]
+    #[error(
+        "Unsupported voucher type '{0}'. Allowed: Purchase, Sales, Journal, Payment, Receipt."
+    )]
     UnsupportedVoucherType(String),
 }
 
@@ -34,7 +36,9 @@ pub fn validate_draft(draft: &VoucherDraft, safety: &SafetyConfig) -> Result<(),
         .iter()
         .any(|t| t.eq_ignore_ascii_case(&draft.voucher_type));
     if !type_matched {
-        return Err(ValidationError::UnsupportedVoucherType(draft.voucher_type.clone()));
+        return Err(ValidationError::UnsupportedVoucherType(
+            draft.voucher_type.clone(),
+        ));
     }
 
     // 3. Entries non-empty
@@ -68,9 +72,13 @@ pub fn validate_draft(draft: &VoucherDraft, safety: &SafetyConfig) -> Result<(),
     }
 
     // 7. Safety limits
-    let max_allowed = Decimal::from_f64_retain(safety.max_voucher_amount).unwrap_or(Decimal::from(100000));
+    let max_allowed =
+        Decimal::from_f64_retain(safety.max_voucher_amount).unwrap_or(Decimal::from(100000));
     if max_entry_abs > max_allowed {
-        return Err(ValidationError::ExceedsMaxVoucherAmount(max_entry_abs, max_allowed));
+        return Err(ValidationError::ExceedsMaxVoucherAmount(
+            max_entry_abs,
+            max_allowed,
+        ));
     }
 
     Ok(())

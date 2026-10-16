@@ -25,7 +25,8 @@ pub struct McpServer {
 impl McpServer {
     pub fn new(config: Config) -> Self {
         let tally = Arc::new(TallyClient::new(config.tally.clone()));
-        let journal = Arc::new(JournalManager::new().expect("Failed to initialize journal manager"));
+        let journal =
+            Arc::new(JournalManager::new().expect("Failed to initialize journal manager"));
         let audit = Arc::new(AuditLogger::new());
         let packs = Arc::new(PackManager::new(
             config.packs.enable_unsigned,
@@ -35,7 +36,10 @@ impl McpServer {
         // Perform startup crash reconciliation
         if let Ok(reconciled) = journal.reconcile_startup() {
             if !reconciled.is_empty() {
-                eprintln!("[tally-mcp] Startup reconciliation completed. Reconciled drafts: {:?}", reconciled);
+                eprintln!(
+                    "[tally-mcp] Startup reconciliation completed. Reconciled drafts: {:?}",
+                    reconciled
+                );
             }
         }
 
@@ -348,7 +352,8 @@ impl McpServer {
             }
 
             "tally_list_companies" => {
-                self.audit.log("tally_list_companies", None, None, "queried");
+                self.audit
+                    .log("tally_list_companies", None, None, "queried");
                 match self.tally.list_companies().await {
                     Ok(companies) => json!({
                         "jsonrpc": "2.0",
@@ -364,7 +369,10 @@ impl McpServer {
             }
 
             "tally_set_active_company" => {
-                let company = arguments.get("company").and_then(|c| c.as_str()).unwrap_or("");
+                let company = arguments
+                    .get("company")
+                    .and_then(|c| c.as_str())
+                    .unwrap_or("");
                 if company.is_empty() {
                     json!({
                         "jsonrpc": "2.0",
@@ -373,7 +381,8 @@ impl McpServer {
                     })
                 } else {
                     self.tally.set_active_company(company.to_string()).await;
-                    self.audit.log("tally_set_active_company", None, Some(company), "set");
+                    self.audit
+                        .log("tally_set_active_company", None, Some(company), "set");
                     json!({
                         "jsonrpc": "2.0",
                         "id": id,
@@ -438,12 +447,27 @@ impl McpServer {
             }
 
             "tally_draft_voucher" => {
-                let company = arguments.get("company").and_then(|c| c.as_str()).unwrap_or("");
-                let voucher_type = arguments.get("voucher_type").and_then(|v| v.as_str()).unwrap_or("");
+                let company = arguments
+                    .get("company")
+                    .and_then(|c| c.as_str())
+                    .unwrap_or("");
+                let voucher_type = arguments
+                    .get("voucher_type")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("");
                 let date = arguments.get("date").and_then(|d| d.as_str()).unwrap_or("");
-                let number = arguments.get("number").and_then(|n| n.as_str()).unwrap_or("");
-                let party_ledger = arguments.get("party_ledger").and_then(|p| p.as_str()).unwrap_or("");
-                let narration = arguments.get("narration").and_then(|n| n.as_str()).unwrap_or("");
+                let number = arguments
+                    .get("number")
+                    .and_then(|n| n.as_str())
+                    .unwrap_or("");
+                let party_ledger = arguments
+                    .get("party_ledger")
+                    .and_then(|p| p.as_str())
+                    .unwrap_or("");
+                let narration = arguments
+                    .get("narration")
+                    .and_then(|n| n.as_str())
+                    .unwrap_or("");
 
                 let mut entries = Vec::new();
                 if let Some(arr) = arguments.get("entries").and_then(|e| e.as_array()) {
@@ -460,8 +484,19 @@ impl McpServer {
                 }
 
                 let draft_id = format!("d_{}", uuid::Uuid::new_v4().simple());
-                let total = entries.iter().filter(|e| e.amount > Decimal::ZERO).map(|e| e.amount).sum();
-                let idempotency_key = compute_idempotency_key(company, voucher_type, party_ledger, number, date, total);
+                let total = entries
+                    .iter()
+                    .filter(|e| e.amount > Decimal::ZERO)
+                    .map(|e| e.amount)
+                    .sum();
+                let idempotency_key = compute_idempotency_key(
+                    company,
+                    voucher_type,
+                    party_ledger,
+                    number,
+                    date,
+                    total,
+                );
 
                 let mut draft = VoucherDraft {
                     draft_id: draft_id.clone(),
@@ -509,9 +544,17 @@ impl McpServer {
                     });
                 }
 
-                self.audit.log("tally_draft_voucher", Some(&draft_id), Some(company), "staged");
+                self.audit.log(
+                    "tally_draft_voucher",
+                    Some(&draft_id),
+                    Some(company),
+                    "staged",
+                );
 
-                let approval_url = format!("http://127.0.0.1/approve?draft_id={}&hash={}", draft_id, draft.content_hash);
+                let approval_url = format!(
+                    "http://127.0.0.1/approve?draft_id={}&hash={}",
+                    draft_id, draft.content_hash
+                );
 
                 json!({
                     "jsonrpc": "2.0",
@@ -529,7 +572,10 @@ impl McpServer {
             }
 
             "tally_preview_draft" => {
-                let draft_id = arguments.get("draft_id").and_then(|d| d.as_str()).unwrap_or("");
+                let draft_id = arguments
+                    .get("draft_id")
+                    .and_then(|d| d.as_str())
+                    .unwrap_or("");
                 match self.journal.get_draft(draft_id) {
                     Ok(draft) => {
                         let xml = build_voucher_import_xml(&draft);
@@ -564,7 +610,10 @@ impl McpServer {
             }
 
             "tally_commit_draft" => {
-                let draft_id = arguments.get("draft_id").and_then(|d| d.as_str()).unwrap_or("");
+                let draft_id = arguments
+                    .get("draft_id")
+                    .and_then(|d| d.as_str())
+                    .unwrap_or("");
                 let draft = match self.journal.get_draft(draft_id) {
                     Ok(d) => d,
                     Err(e) => {
@@ -616,8 +665,17 @@ impl McpServer {
                 let import_resp = match self.tally.post_voucher_xml(&xml).await {
                     Ok(resp) => resp,
                     Err(err) => {
-                        let _ = self.journal.record_commit_result(&draft, DraftStatus::Approved, &format!("Failed to post to Tally: {}", err));
-                        self.audit.log("tally_commit_draft", Some(draft_id), Some(&draft.company), "failed_post");
+                        let _ = self.journal.record_commit_result(
+                            &draft,
+                            DraftStatus::Approved,
+                            &format!("Failed to post to Tally: {}", err),
+                        );
+                        self.audit.log(
+                            "tally_commit_draft",
+                            Some(draft_id),
+                            Some(&draft.company),
+                            "failed_post",
+                        );
                         return json!({
                             "jsonrpc": "2.0",
                             "id": id,
@@ -627,9 +685,18 @@ impl McpServer {
                 };
 
                 if import_resp.errors > 0 || import_resp.created == 0 {
-                    let err_msg = import_resp.error_message.unwrap_or_else(|| "Tally rejected voucher creation".to_string());
-                    let _ = self.journal.record_commit_result(&draft, DraftStatus::Failed, &err_msg);
-                    self.audit.log("tally_commit_draft", Some(draft_id), Some(&draft.company), "rejected_by_tally");
+                    let err_msg = import_resp
+                        .error_message
+                        .unwrap_or_else(|| "Tally rejected voucher creation".to_string());
+                    let _ =
+                        self.journal
+                            .record_commit_result(&draft, DraftStatus::Failed, &err_msg);
+                    self.audit.log(
+                        "tally_commit_draft",
+                        Some(draft_id),
+                        Some(&draft.company),
+                        "rejected_by_tally",
+                    );
                     return json!({
                         "jsonrpc": "2.0",
                         "id": id,
@@ -637,7 +704,11 @@ impl McpServer {
                     });
                 }
 
-                let verified = self.tally.verify_voucher_exists(&draft.company, &draft.number).await.unwrap_or(false);
+                let verified = self
+                    .tally
+                    .verify_voucher_exists(&draft.company, &draft.number)
+                    .await
+                    .unwrap_or(false);
 
                 let final_status = if verified {
                     DraftStatus::Committed
@@ -651,8 +722,15 @@ impl McpServer {
                     "Voucher created, but read-back verification could not immediately confirm. Flagged as committed_unverified."
                 };
 
-                let _ = self.journal.record_commit_result(&draft, final_status.clone(), outcome_text);
-                self.audit.log("tally_commit_draft", Some(draft_id), Some(&draft.company), outcome_text);
+                let _ =
+                    self.journal
+                        .record_commit_result(&draft, final_status.clone(), outcome_text);
+                self.audit.log(
+                    "tally_commit_draft",
+                    Some(draft_id),
+                    Some(&draft.company),
+                    outcome_text,
+                );
 
                 json!({
                     "jsonrpc": "2.0",
@@ -670,9 +748,16 @@ impl McpServer {
             }
 
             "tally_extract_document" => {
-                let path_str = arguments.get("file_path").and_then(|p| p.as_str()).unwrap_or("");
+                let path_str = arguments
+                    .get("file_path")
+                    .and_then(|p| p.as_str())
+                    .unwrap_or("");
                 let path = std::path::Path::new(path_str);
-                let name = path.file_name().and_then(|n| n.to_str()).unwrap_or("document.pdf").to_string();
+                let name = path
+                    .file_name()
+                    .and_then(|n| n.to_str())
+                    .unwrap_or("document.pdf")
+                    .to_string();
 
                 let bytes = match std::fs::read(path) {
                     Ok(b) => b,
@@ -712,12 +797,20 @@ impl McpServer {
             }
 
             "tally_discard_draft" => {
-                let draft_id = arguments.get("draft_id").and_then(|d| d.as_str()).unwrap_or("");
+                let draft_id = arguments
+                    .get("draft_id")
+                    .and_then(|d| d.as_str())
+                    .unwrap_or("");
                 match self.journal.get_draft(draft_id) {
                     Ok(mut draft) => {
                         draft.status = DraftStatus::Discarded;
                         let _ = self.journal.save_draft(&draft);
-                        self.audit.log("tally_discard_draft", Some(draft_id), Some(&draft.company), "discarded");
+                        self.audit.log(
+                            "tally_discard_draft",
+                            Some(draft_id),
+                            Some(&draft.company),
+                            "discarded",
+                        );
                         json!({
                             "jsonrpc": "2.0",
                             "id": id,
@@ -733,16 +826,25 @@ impl McpServer {
             }
 
             "tally_run_report" => {
-                let report_name = arguments.get("report_name").and_then(|r| r.as_str()).unwrap_or("");
+                let report_name = arguments
+                    .get("report_name")
+                    .and_then(|r| r.as_str())
+                    .unwrap_or("");
                 let params = arguments.get("parameters").cloned().unwrap_or(json!({}));
 
                 if let Some(tool) = self.packs.find_tool(report_name) {
                     match self.packs.execute_template(tool, &params) {
                         Ok(xml) => {
-                            let deadline = Duration::from_secs(self.config.tally.report_deadline_secs);
+                            let deadline =
+                                Duration::from_secs(self.config.tally.report_deadline_secs);
                             match self.tally.execute_raw_xml(&xml, deadline).await {
                                 Ok(resp) => {
-                                    self.audit.log("tally_run_report", None, None, &format!("executed: {}", report_name));
+                                    self.audit.log(
+                                        "tally_run_report",
+                                        None,
+                                        None,
+                                        &format!("executed: {}", report_name),
+                                    );
                                     json!({
                                         "jsonrpc": "2.0",
                                         "id": id,

@@ -137,7 +137,12 @@ impl JournalManager {
         Ok(())
     }
 
-    pub fn record_commit_result(&self, draft: &VoucherDraft, status: DraftStatus, outcome: &str) -> Result<(), JournalError> {
+    pub fn record_commit_result(
+        &self,
+        draft: &VoucherDraft,
+        status: DraftStatus,
+        outcome: &str,
+    ) -> Result<(), JournalError> {
         let now = chrono::Utc::now().to_rfc3339();
         let record = JournalRecord {
             timestamp: now,

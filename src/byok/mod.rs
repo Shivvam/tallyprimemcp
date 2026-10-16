@@ -1,6 +1,6 @@
 #![allow(dead_code)]
-use base64::Engine;
 use crate::models::{DocumentExtraction, DocumentSource};
+use base64::Engine;
 use std::collections::HashMap;
 use std::sync::{OnceLock, RwLock};
 use thiserror::Error;
@@ -45,7 +45,9 @@ pub fn is_host_allowed(host: &str, extra_hosts: &[String]) -> bool {
     if BUILTIN_ALLOWED_HOSTS.contains(&host_clean) {
         return true;
     }
-    extra_hosts.iter().any(|h| h.split(':').next().unwrap_or(h) == host_clean)
+    extra_hosts
+        .iter()
+        .any(|h| h.split(':').next().unwrap_or(h) == host_clean)
 }
 
 static MEMORY_KEYS: OnceLock<RwLock<HashMap<String, String>>> = OnceLock::new();
@@ -183,8 +185,16 @@ impl Extractor for AnthropicExtractor {
 
             let user_content = if doc.mime.starts_with("image/") || doc.mime == "application/pdf" {
                 let b64 = base64::engine::general_purpose::STANDARD.encode(&doc.bytes);
-                let media_type = if doc.mime == "application/pdf" { "application/pdf" } else { &doc.mime };
-                let type_field = if doc.mime == "application/pdf" { "document" } else { "image" };
+                let media_type = if doc.mime == "application/pdf" {
+                    "application/pdf"
+                } else {
+                    &doc.mime
+                };
+                let type_field = if doc.mime == "application/pdf" {
+                    "document"
+                } else {
+                    "image"
+                };
                 serde_json::json!([
                     {
                         "type": type_field,
@@ -259,7 +269,10 @@ impl Extractor for OpenAiCompatExtractor {
     }
 
     fn extract(&self, doc: &Document) -> Result<DocumentExtraction, ExtractError> {
-        let clean_url = self.base_url.trim_start_matches("http://").trim_start_matches("https://");
+        let clean_url = self
+            .base_url
+            .trim_start_matches("http://")
+            .trim_start_matches("https://");
         let host_name = clean_url.split('/').next().unwrap_or(clean_url);
         if !is_host_allowed(host_name, &self.extra_hosts) {
             return Err(ExtractError::HostNotAllowed(host_name.to_string()));
@@ -286,7 +299,11 @@ impl Extractor for OpenAiCompatExtractor {
             };
 
             let model_name = if self.model.trim().is_empty() {
-                if is_ollama { "llama3.2-vision" } else { "gpt-4o" }
+                if is_ollama {
+                    "llama3.2-vision"
+                } else {
+                    "gpt-4o"
+                }
             } else {
                 self.model.trim()
             };
@@ -326,22 +343,24 @@ impl Extractor for OpenAiCompatExtractor {
                 "response_format": { "type": "json_object" }
             });
 
-            let mut req = ureq::post(&endpoint)
-                .header("content-type", "application/json");
+            let mut req = ureq::post(&endpoint).header("content-type", "application/json");
 
             if !is_ollama && api_key != "none" && !api_key.is_empty() {
                 req = req.header("Authorization", &format!("Bearer {}", api_key));
             }
 
-            let resp = req.send_json(body)
-                .map_err(|e| ExtractError::RequestFailed(self.api_key_provider.clone(), e.to_string()))?;
+            let resp = req.send_json(body).map_err(|e| {
+                ExtractError::RequestFailed(self.api_key_provider.clone(), e.to_string())
+            })?;
 
             let resp_json: serde_json::Value = resp
                 .into_body()
                 .read_json()
                 .map_err(|e| ExtractError::ParseError(e.to_string()))?;
 
-            let text = resp_json["choices"][0]["message"]["content"].as_str().unwrap_or("");
+            let text = resp_json["choices"][0]["message"]["content"]
+                .as_str()
+                .unwrap_or("");
             let sub_doc = Document {
                 mime: "application/json".to_string(),
                 bytes: text.as_bytes().to_vec(),
@@ -357,13 +376,20 @@ impl Extractor for OpenAiCompatExtractor {
     }
 }
 
-pub fn extract_document(config: &crate::config::Config, doc: &Document) -> Result<DocumentExtraction, ExtractError> {
+pub fn extract_document(
+    config: &crate::config::Config,
+    doc: &Document,
+) -> Result<DocumentExtraction, ExtractError> {
     if let Ok(ext) = parse_invoice(doc) {
         return Ok(ext);
     }
 
     let provider = config.ai.provider.trim().to_lowercase();
-    let provider_str = if provider.is_empty() { "anthropic" } else { provider.as_str() };
+    let provider_str = if provider.is_empty() {
+        "anthropic"
+    } else {
+        provider.as_str()
+    };
 
     match provider_str {
         "anthropic" => {
@@ -381,7 +407,11 @@ pub fn extract_document(config: &crate::config::Config, doc: &Document) -> Resul
             };
             let extractor = OpenAiCompatExtractor {
                 base_url,
-                model: if config.ai.model.trim().is_empty() { "gpt-4o".to_string() } else { config.ai.model.trim().to_string() },
+                model: if config.ai.model.trim().is_empty() {
+                    "gpt-4o".to_string()
+                } else {
+                    config.ai.model.trim().to_string()
+                },
                 api_key_provider: "openai".to_string(),
                 extra_hosts: config.ai.extra_allowed_hosts.clone(),
             };
@@ -395,7 +425,11 @@ pub fn extract_document(config: &crate::config::Config, doc: &Document) -> Resul
             };
             let extractor = OpenAiCompatExtractor {
                 base_url,
-                model: if config.ai.model.trim().is_empty() { "llama3.2-vision".to_string() } else { config.ai.model.trim().to_string() },
+                model: if config.ai.model.trim().is_empty() {
+                    "llama3.2-vision".to_string()
+                } else {
+                    config.ai.model.trim().to_string()
+                },
                 api_key_provider: "ollama".to_string(),
                 extra_hosts: config.ai.extra_allowed_hosts.clone(),
             };
@@ -409,7 +443,11 @@ pub fn extract_document(config: &crate::config::Config, doc: &Document) -> Resul
             };
             let extractor = OpenAiCompatExtractor {
                 base_url,
-                model: if config.ai.model.trim().is_empty() { "gemini-1.5-flash".to_string() } else { config.ai.model.trim().to_string() },
+                model: if config.ai.model.trim().is_empty() {
+                    "gemini-1.5-flash".to_string()
+                } else {
+                    config.ai.model.trim().to_string()
+                },
                 api_key_provider: "gemini".to_string(),
                 extra_hosts: config.ai.extra_allowed_hosts.clone(),
             };
@@ -433,7 +471,11 @@ pub fn parse_invoice(doc: &Document) -> Result<DocumentExtraction, ExtractError>
     let mut context = Context::new(&SHA256);
     context.update(&doc.bytes);
     let digest = context.finish();
-    let sha256 = digest.as_ref().iter().map(|b| format!("{:02x}", b)).collect();
+    let sha256 = digest
+        .as_ref()
+        .iter()
+        .map(|b| format!("{:02x}", b))
+        .collect();
 
     // 1. Direct JSON extraction deserialization
     if let Ok(mut ext) = serde_json::from_slice::<DocumentExtraction>(&doc.bytes) {
@@ -449,7 +491,9 @@ pub fn parse_invoice(doc: &Document) -> Result<DocumentExtraction, ExtractError>
         if let Some(start) = text.find('{') {
             if let Some(end) = text.rfind('}') {
                 if start < end {
-                    if let Ok(mut ext) = serde_json::from_str::<DocumentExtraction>(&text[start..=end]) {
+                    if let Ok(mut ext) =
+                        serde_json::from_str::<DocumentExtraction>(&text[start..=end])
+                    {
                         ext.source = DocumentSource {
                             file: doc.name.clone(),
                             sha256,
@@ -471,4 +515,3 @@ pub fn parse_invoice(doc: &Document) -> Result<DocumentExtraction, ExtractError>
 pub fn mock_or_parse_invoice(doc: &Document) -> Result<DocumentExtraction, ExtractError> {
     parse_invoice(doc)
 }
-

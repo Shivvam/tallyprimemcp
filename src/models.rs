@@ -84,10 +84,20 @@ pub struct DocumentSource {
     pub sha256: String,
 }
 
-pub fn compute_idempotency_key(company: &str, vch_type: &str, party: &str, number: &str, date: &str, total: Decimal) -> String {
+pub fn compute_idempotency_key(
+    company: &str,
+    vch_type: &str,
+    party: &str,
+    number: &str,
+    date: &str,
+    total: Decimal,
+) -> String {
     use ring::digest::{Context, SHA256};
     let mut context = Context::new(&SHA256);
-    let payload = format!("{}|{}|{}|{}|{}|{}", company, vch_type, party, number, date, total);
+    let payload = format!(
+        "{}|{}|{}|{}|{}|{}",
+        company, vch_type, party, number, date, total
+    );
     context.update(payload.as_bytes());
     hex::encode(context.finish().as_ref())
 }

@@ -1,17 +1,29 @@
 use crate::config::Config;
 use crate::tally::TallyClient;
 
-pub async fn run_doctor(config: &Config, show_names: bool) -> Result<(), Box<dyn std::error::Error>> {
+pub async fn run_doctor(
+    config: &Config,
+    show_names: bool,
+) -> Result<(), Box<dyn std::error::Error>> {
     println!("=== tally-mcp doctor diagnostics ===");
     println!("App Version: {}", env!("CARGO_PKG_VERSION"));
-    println!("Build Hash: {}", option_env!("GIT_HASH").unwrap_or("release-build"));
+    println!(
+        "Build Hash: {}",
+        option_env!("GIT_HASH").unwrap_or("release-build")
+    );
     println!("OS: {}", std::env::consts::OS);
     println!("Architecture: {}", std::env::consts::ARCH);
     println!("Configuration Source: loaded");
-    println!("Tally Target: http://{}:{}", config.tally.host, config.tally.port);
+    println!(
+        "Tally Target: http://{}:{}",
+        config.tally.host, config.tally.port
+    );
     println!("Write Mode: {}", config.safety.write_mode);
     println!("Queue Depth: {}", config.tally.queue_depth);
-    println!("Breaker Threshold: {} failures", config.tally.breaker_failures);
+    println!(
+        "Breaker Threshold: {} failures",
+        config.tally.breaker_failures
+    );
 
     // Test Tally gateway reachability
     let client = TallyClient::new(config.tally.clone());
@@ -35,7 +47,10 @@ pub async fn run_doctor(config: &Config, show_names: bool) -> Result<(), Box<dyn
         }
         Err(e) => {
             println!("Tally Reachability: FAILED ({})", e);
-            println!("Guidance: Ensure TallyPrime is running and HTTP Server is enabled on port {}.", config.tally.port);
+            println!(
+                "Guidance: Ensure TallyPrime is running and HTTP Server is enabled on port {}.",
+                config.tally.port
+            );
         }
     }
 

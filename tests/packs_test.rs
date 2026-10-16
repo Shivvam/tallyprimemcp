@@ -26,7 +26,9 @@ mod packs_tests {
             "as_on": "20261015"
         });
 
-        let expanded = manager.execute_template(tool, &args).expect("Expansion should succeed");
+        let expanded = manager
+            .execute_template(tool, &args)
+            .expect("Expansion should succeed");
         assert!(expanded.contains("&lt;Pvt&gt;"));
         assert!(expanded.contains("<SVTODATE>20261015</SVTODATE>"));
         assert!(expanded.contains("<TALLYREQUEST>Export</TALLYREQUEST>"));

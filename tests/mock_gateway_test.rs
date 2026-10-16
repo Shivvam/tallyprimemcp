@@ -1,6 +1,8 @@
 #[cfg(test)]
 mod tests {
-    use tally_mcp::tally::client::{decode_tally_response, parse_company_names, parse_ledger_names};
+    use tally_mcp::tally::client::{
+        decode_tally_response, parse_company_names, parse_ledger_names,
+    };
 
     #[test]
     fn test_parse_company_names() {

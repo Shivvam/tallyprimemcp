@@ -64,7 +64,11 @@ impl TallyClient {
         format!("http://{}:{}", self.config.host, self.config.port)
     }
 
-    pub async fn execute_raw_xml(&self, xml_payload: &str, deadline: Duration) -> Result<String, TallyError> {
+    pub async fn execute_raw_xml(
+        &self,
+        xml_payload: &str,
+        deadline: Duration,
+    ) -> Result<String, TallyError> {
         if !self.breaker.can_execute().await {
             return Err(TallyError::CircuitBreakerOpen);
         }
@@ -124,7 +128,9 @@ impl TallyClient {
             } else {
                 None
             })
-            .ok_or_else(|| TallyError::TallyResponseError("No company specified or active".to_string()))?;
+            .ok_or_else(|| {
+                TallyError::TallyResponseError("No company specified or active".to_string())
+            })?;
 
         let xml = build_list_ledgers_xml(comp);
         let deadline = Duration::from_secs(self.config.call_deadline_secs);
@@ -132,29 +138,42 @@ impl TallyClient {
         Ok(parse_ledger_names(&resp))
     }
 
-    pub async fn trial_balance(&self, company: Option<&str>, from_date: Option<&str>, to_date: Option<&str>) -> Result<String, TallyError> {
+    pub async fn trial_balance(
+        &self,
+        company: Option<&str>,
+        from_date: Option<&str>,
+        to_date: Option<&str>,
+    ) -> Result<String, TallyError> {
         let active = self.get_active_company().await;
-        let comp = company
-            .or(active.as_deref())
-            .ok_or_else(|| TallyError::TallyResponseError("No company specified or active".to_string()))?;
+        let comp = company.or(active.as_deref()).ok_or_else(|| {
+            TallyError::TallyResponseError("No company specified or active".to_string())
+        })?;
 
         let xml = build_trial_balance_xml(comp, from_date, to_date);
         let deadline = Duration::from_secs(self.config.report_deadline_secs);
         self.execute_raw_xml(&xml, deadline).await
     }
 
-    pub async fn day_book(&self, company: Option<&str>, from_date: Option<&str>, to_date: Option<&str>) -> Result<String, TallyError> {
+    pub async fn day_book(
+        &self,
+        company: Option<&str>,
+        from_date: Option<&str>,
+        to_date: Option<&str>,
+    ) -> Result<String, TallyError> {
         let active = self.get_active_company().await;
-        let comp = company
-            .or(active.as_deref())
-            .ok_or_else(|| TallyError::TallyResponseError("No company specified or active".to_string()))?;
+        let comp = company.or(active.as_deref()).ok_or_else(|| {
+            TallyError::TallyResponseError("No company specified or active".to_string())
+        })?;
 
         let xml = build_day_book_xml(comp, from_date, to_date);
         let deadline = Duration::from_secs(self.config.report_deadline_secs);
         self.execute_raw_xml(&xml, deadline).await
     }
 
-    pub async fn post_voucher_xml(&self, xml_payload: &str) -> Result<crate::tally::builder::ImportResponse, TallyError> {
+    pub async fn post_voucher_xml(
+        &self,
+        xml_payload: &str,
+    ) -> Result<crate::tally::builder::ImportResponse, TallyError> {
         let deadline = Duration::from_secs(self.config.call_deadline_secs);
         let response_xml = self.execute_raw_xml(xml_payload, deadline).await?;
         let parsed = crate::tally::builder::parse_import_response(&response_xml);
@@ -170,10 +189,17 @@ impl TallyClient {
         } else {
             target
         };
-        matches!(tokio::time::timeout(timeout, TcpStream::connect(host_port)).await, Ok(Ok(_)))
+        matches!(
+            tokio::time::timeout(timeout, TcpStream::connect(host_port)).await,
+            Ok(Ok(_))
+        )
     }
 
-    pub async fn verify_voucher_exists(&self, company: &str, voucher_number: &str) -> Result<bool, TallyError> {
+    pub async fn verify_voucher_exists(
+        &self,
+        company: &str,
+        voucher_number: &str,
+    ) -> Result<bool, TallyError> {
         // Query Day Book for the current company and check if voucher number is present
         let xml = build_day_book_xml(company, None, None);
         let deadline = Duration::from_secs(self.config.report_deadline_secs);
@@ -192,8 +218,17 @@ pub struct TallyStatus {
 }
 
 pub fn validate_tally_target_host(target: &str) -> Result<(), TallyError> {
-    let clean = target.trim().trim_start_matches("http://").trim_start_matches("https://");
-    let host_only = clean.split(':').next().unwrap_or(clean).split('/').next().unwrap_or(clean);
+    let clean = target
+        .trim()
+        .trim_start_matches("http://")
+        .trim_start_matches("https://");
+    let host_only = clean
+        .split(':')
+        .next()
+        .unwrap_or(clean)
+        .split('/')
+        .next()
+        .unwrap_or(clean);
 
     // Block cloud instance metadata and broadcast addresses (SSRF prevention)
     if host_only == "169.254.169.254"
@@ -204,7 +239,8 @@ pub fn validate_tally_target_host(target: &str) -> Result<(), TallyError> {
     {
         return Err(TallyError::ConnectionError(
             target.to_string(),
-            "Connection to cloud metadata or broadcast addresses is prohibited for security".to_string(),
+            "Connection to cloud metadata or broadcast addresses is prohibited for security"
+                .to_string(),
         ));
     }
 
@@ -212,7 +248,11 @@ pub fn validate_tally_target_host(target: &str) -> Result<(), TallyError> {
 }
 
 // Low-overhead TCP HTTP sender using tokio::net::TcpStream for zero heavyweight dependencies
-async fn reqwest_like_send(url: &str, body: Vec<u8>, timeout: Duration) -> Result<Vec<u8>, TallyError> {
+async fn reqwest_like_send(
+    url: &str,
+    body: Vec<u8>,
+    timeout: Duration,
+) -> Result<Vec<u8>, TallyError> {
     use tokio::io::{AsyncReadExt, AsyncWriteExt};
     use tokio::net::TcpStream;
 

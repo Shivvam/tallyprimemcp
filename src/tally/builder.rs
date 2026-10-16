@@ -7,7 +7,10 @@ pub fn build_voucher_import_xml(draft: &VoucherDraft) -> String {
     let number_escaped = quick_xml::escape::escape(&draft.number);
     let party_escaped = quick_xml::escape::escape(&draft.party_ledger);
     let narration_escaped = quick_xml::escape::escape(&draft.narration);
-    let guid = draft.tally_guid.as_deref().unwrap_or(&draft.idempotency_key);
+    let guid = draft
+        .tally_guid
+        .as_deref()
+        .unwrap_or(&draft.idempotency_key);
 
     let mut ledger_entries_xml = String::new();
     for entry in &draft.entries {
@@ -15,7 +18,11 @@ pub fn build_voucher_import_xml(draft: &VoucherDraft) -> String {
         // In Tally:
         // Negative amount is typically Debit (ISDEEMEDPOSITIVE = Yes)
         // Positive amount is typically Credit (ISDEEMEDPOSITIVE = No)
-        let is_deemed_positive = if entry.amount < Decimal::ZERO { "Yes" } else { "No" };
+        let is_deemed_positive = if entry.amount < Decimal::ZERO {
+            "Yes"
+        } else {
+            "No"
+        };
         let formatted_amount = entry.amount.abs().to_string();
 
         ledger_entries_xml.push_str(&format!(

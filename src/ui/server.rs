@@ -21,9 +21,12 @@ pub struct CompanionUiServer {
 
 impl CompanionUiServer {
     pub fn new(config: Config) -> Self {
-        let tally = Arc::new(std::sync::RwLock::new(Arc::new(TallyClient::new(config.tally.clone()))));
+        let tally = Arc::new(std::sync::RwLock::new(Arc::new(TallyClient::new(
+            config.tally.clone(),
+        ))));
         let config = Arc::new(std::sync::RwLock::new(config));
-        let journal = Arc::new(JournalManager::new().expect("Failed to initialize journal manager"));
+        let journal =
+            Arc::new(JournalManager::new().expect("Failed to initialize journal manager"));
         let audit = Arc::new(AuditLogger::new());
         let launch_token = format!("tok_{}", uuid::Uuid::new_v4().simple());
 
@@ -43,10 +46,14 @@ impl CompanionUiServer {
 
     pub fn run(&self, port: u16) -> Result<(), Box<dyn std::error::Error>> {
         let addr = format!("127.0.0.1:{}", port);
-        let server = Server::http(&addr).map_err(|e| format!("Failed to bind to {}: {}", addr, e))?;
+        let server =
+            Server::http(&addr).map_err(|e| format!("Failed to bind to {}: {}", addr, e))?;
 
         println!("=== TallyMCP Companion UI Running ===");
-        println!("URL: http://127.0.0.1:{}/?token={}", port, self.launch_token);
+        println!(
+            "URL: http://127.0.0.1:{}/?token={}",
+            port, self.launch_token
+        );
         println!("Press Ctrl+C to terminate the companion UI.");
 
         // Fast sync reachability check helper supporting both localhost and LAN IPs
@@ -56,7 +63,8 @@ impl CompanionUiServer {
             let addr = format!("{}:{}", host, port);
             if let Ok(mut addrs) = addr.to_socket_addrs() {
                 if let Some(sock_addr) = addrs.next() {
-                    let reachable = TcpStream::connect_timeout(&sock_addr, Duration::from_millis(800)).is_ok();
+                    let reachable =
+                        TcpStream::connect_timeout(&sock_addr, Duration::from_millis(800)).is_ok();
                     let elapsed = start.elapsed().as_millis();
                     return (reachable, elapsed);
                 }
@@ -68,12 +76,18 @@ impl CompanionUiServer {
         let query_companies = |tally_client: Arc<TallyClient>| -> Vec<String> {
             let (tx, rx) = std::sync::mpsc::channel();
             std::thread::spawn(move || {
-                if let Ok(rt) = tokio::runtime::Builder::new_current_thread().enable_all().build() {
+                if let Ok(rt) = tokio::runtime::Builder::new_current_thread()
+                    .enable_all()
+                    .build()
+                {
                     let res = rt.block_on(async move { tally_client.list_companies().await });
                     let _ = tx.send(res);
                 }
             });
-            rx.recv_timeout(Duration::from_millis(1500)).ok().and_then(|r| r.ok()).unwrap_or_default()
+            rx.recv_timeout(Duration::from_millis(1500))
+                .ok()
+                .and_then(|r| r.ok())
+                .unwrap_or_default()
         };
 
         for mut request in server.incoming_requests() {
@@ -82,11 +96,15 @@ impl CompanionUiServer {
             let method = request.method().as_str().to_string();
 
             // Strict Host header verification against DNS rebinding
-            let host_header = request.headers().iter().find(|h| h.field.as_str().as_str().eq_ignore_ascii_case("host"));
+            let host_header = request
+                .headers()
+                .iter()
+                .find(|h| h.field.as_str().as_str().eq_ignore_ascii_case("host"));
             if let Some(h) = host_header {
                 let h_val = h.value.as_str();
                 if !h_val.starts_with("127.0.0.1") && !h_val.starts_with("localhost") {
-                    let resp = Response::from_string("Forbidden: Host header not loopback").with_status_code(403);
+                    let resp = Response::from_string("Forbidden: Host header not loopback")
+                        .with_status_code(403);
                     let _ = request.respond(resp);
                     continue;
                 }
@@ -94,11 +112,18 @@ impl CompanionUiServer {
 
             // Strict Cross-Origin Request Forgery (CSRF) protection on state-modifying requests
             if method == "POST" {
-                let origin_header = request.headers().iter().find(|h| h.field.as_str().as_str().eq_ignore_ascii_case("origin"));
+                let origin_header = request
+                    .headers()
+                    .iter()
+                    .find(|h| h.field.as_str().as_str().eq_ignore_ascii_case("origin"));
                 if let Some(orig) = origin_header {
                     let o_val = orig.value.as_str();
-                    if !o_val.starts_with("http://127.0.0.1") && !o_val.starts_with("http://localhost") {
-                        let resp = Response::from_string("Forbidden: Cross-origin request rejected").with_status_code(403);
+                    if !o_val.starts_with("http://127.0.0.1")
+                        && !o_val.starts_with("http://localhost")
+                    {
+                        let resp =
+                            Response::from_string("Forbidden: Cross-origin request rejected")
+                                .with_status_code(403);
                         let _ = request.respond(resp);
                         continue;
                     }
@@ -106,9 +131,17 @@ impl CompanionUiServer {
             }
 
             if url_path == "/" {
-                let header = Header::from_bytes(&b"Content-Type"[..], &b"text/html; charset=utf-8"[..]).unwrap();
-                let csp = Header::from_bytes(&b"Content-Security-Policy"[..], &b"default-src 'self' 'unsafe-inline' data:"[..]).unwrap();
-                let resp = Response::from_string(UI_HTML).with_header(header).with_header(csp);
+                let header =
+                    Header::from_bytes(&b"Content-Type"[..], &b"text/html; charset=utf-8"[..])
+                        .unwrap();
+                let csp = Header::from_bytes(
+                    &b"Content-Security-Policy"[..],
+                    &b"default-src 'self' 'unsafe-inline' data:"[..],
+                )
+                .unwrap();
+                let resp = Response::from_string(UI_HTML)
+                    .with_header(header)
+                    .with_header(csp);
                 let _ = request.respond(resp);
                 continue;
             }
@@ -137,7 +170,8 @@ impl CompanionUiServer {
                     "last_sync": chrono::Utc::now().to_rfc3339()
                 });
 
-                let header = Header::from_bytes(&b"Content-Type"[..], &b"application/json"[..]).unwrap();
+                let header =
+                    Header::from_bytes(&b"Content-Type"[..], &b"application/json"[..]).unwrap();
                 let resp = Response::from_string(payload.to_string()).with_header(header);
                 let _ = request.respond(resp);
                 continue;
@@ -153,14 +187,25 @@ impl CompanionUiServer {
                 let mut status_code = 400;
 
                 if let Ok(val) = parsed {
-                    let new_host = val.get("host").and_then(|h| h.as_str()).unwrap_or("").trim().to_string();
-                    let new_port = val.get("port").and_then(|p| p.as_u64()).map(|p| p as u16).unwrap_or(0);
+                    let new_host = val
+                        .get("host")
+                        .and_then(|h| h.as_str())
+                        .unwrap_or("")
+                        .trim()
+                        .to_string();
+                    let new_port = val
+                        .get("port")
+                        .and_then(|p| p.as_u64())
+                        .map(|p| p as u16)
+                        .unwrap_or(0);
 
                     if new_host.is_empty() {
                         outcome = json!({ "success": false, "error": "Host / IP address cannot be empty." });
                     } else if new_port == 0 {
                         outcome = json!({ "success": false, "error": "Port number must be between 1 and 65535." });
-                    } else if let Err(e) = crate::tally::client::validate_tally_target_host(&new_host) {
+                    } else if let Err(e) =
+                        crate::tally::client::validate_tally_target_host(&new_host)
+                    {
                         outcome = json!({ "success": false, "error": e.to_string() });
                     } else {
                         // Validated! Update config in memory and save to disk
@@ -168,7 +213,8 @@ impl CompanionUiServer {
                             let mut cfg = self.config.write().unwrap();
                             cfg.tally.host = new_host.clone();
                             cfg.tally.port = new_port;
-                            cfg.tally.allow_remote_tally = new_host != "127.0.0.1" && new_host != "localhost";
+                            cfg.tally.allow_remote_tally =
+                                new_host != "127.0.0.1" && new_host != "localhost";
                             let _ = crate::config::save_config(&cfg);
                         }
 
@@ -182,7 +228,12 @@ impl CompanionUiServer {
                             *t_lock = new_tally.clone();
                         }
 
-                        self.audit.log("companion_ui_change_target", None, None, &format!("Target changed to {}:{}", new_host, new_port));
+                        self.audit.log(
+                            "companion_ui_change_target",
+                            None,
+                            None,
+                            &format!("Target changed to {}:{}", new_host, new_port),
+                        );
 
                         // Test reachability immediately
                         let (reachable, latency_ms) = check_tally_quick(&new_host, new_port);
@@ -206,8 +257,11 @@ impl CompanionUiServer {
                     }
                 }
 
-                let header = Header::from_bytes(&b"Content-Type"[..], &b"application/json"[..]).unwrap();
-                let resp = Response::from_string(outcome.to_string()).with_header(header).with_status_code(status_code);
+                let header =
+                    Header::from_bytes(&b"Content-Type"[..], &b"application/json"[..]).unwrap();
+                let resp = Response::from_string(outcome.to_string())
+                    .with_header(header)
+                    .with_status_code(status_code);
                 let _ = request.respond(resp);
                 continue;
             }
@@ -225,9 +279,16 @@ impl CompanionUiServer {
                 };
 
                 let message = if reachable {
-                    format!("Successfully connected to TallyPrime at {}:{} ({}ms). Open companies: {}",
-                        cfg.tally.host, cfg.tally.port, latency_ms,
-                        if loaded_companies.is_empty() { "None (Open a company in Tally)".to_string() } else { loaded_companies.join(", ") }
+                    format!(
+                        "Successfully connected to TallyPrime at {}:{} ({}ms). Open companies: {}",
+                        cfg.tally.host,
+                        cfg.tally.port,
+                        latency_ms,
+                        if loaded_companies.is_empty() {
+                            "None (Open a company in Tally)".to_string()
+                        } else {
+                            loaded_companies.join(", ")
+                        }
                     )
                 } else {
                     format!("Cannot reach TallyPrime at {}:{}. Ensure Tally is open and ODBC/XML port {} is enabled in F1 ▸ Settings ▸ Connectivity.",
@@ -247,7 +308,8 @@ impl CompanionUiServer {
                     "message": message
                 });
 
-                let header = Header::from_bytes(&b"Content-Type"[..], &b"application/json"[..]).unwrap();
+                let header =
+                    Header::from_bytes(&b"Content-Type"[..], &b"application/json"[..]).unwrap();
                 let resp = Response::from_string(outcome.to_string()).with_header(header);
                 let _ = request.respond(resp);
                 continue;
@@ -279,7 +341,8 @@ impl CompanionUiServer {
                     "synced_at": chrono::Utc::now().to_rfc3339()
                 });
 
-                let header = Header::from_bytes(&b"Content-Type"[..], &b"application/json"[..]).unwrap();
+                let header =
+                    Header::from_bytes(&b"Content-Type"[..], &b"application/json"[..]).unwrap();
                 let resp = Response::from_string(outcome.to_string()).with_header(header);
                 let _ = request.respond(resp);
                 continue;
@@ -288,7 +351,11 @@ impl CompanionUiServer {
             // Get BYOK AI Configuration
             if url_path == "/api/byok/config" && method == "GET" {
                 let cfg = self.config.read().unwrap().clone();
-                let provider = if cfg.ai.provider.is_empty() { "anthropic".to_string() } else { cfg.ai.provider.clone() };
+                let provider = if cfg.ai.provider.is_empty() {
+                    "anthropic".to_string()
+                } else {
+                    cfg.ai.provider.clone()
+                };
                 let masked_key = crate::byok::get_masked_api_key(&provider).unwrap_or_default();
                 let has_api_key = crate::byok::get_api_key(&provider).is_some();
 
@@ -303,7 +370,8 @@ impl CompanionUiServer {
                     "extra_allowed_hosts": cfg.ai.extra_allowed_hosts
                 });
 
-                let header = Header::from_bytes(&b"Content-Type"[..], &b"application/json"[..]).unwrap();
+                let header =
+                    Header::from_bytes(&b"Content-Type"[..], &b"application/json"[..]).unwrap();
                 let resp = Response::from_string(outcome.to_string()).with_header(header);
                 let _ = request.respond(resp);
                 continue;
@@ -319,11 +387,32 @@ impl CompanionUiServer {
                 let mut status_code = 400;
 
                 if let Ok(val) = parsed {
-                    let provider = val.get("provider").and_then(|p| p.as_str()).unwrap_or("anthropic").trim().to_lowercase();
-                    let api_key = val.get("api_key").and_then(|k| k.as_str()).unwrap_or("").trim();
-                    let model = val.get("model").and_then(|m| m.as_str()).unwrap_or("").trim();
-                    let base_url = val.get("base_url").and_then(|b| b.as_str()).unwrap_or("").trim();
-                    let profile = val.get("profile").and_then(|p| p.as_str()).unwrap_or("cloud").trim();
+                    let provider = val
+                        .get("provider")
+                        .and_then(|p| p.as_str())
+                        .unwrap_or("anthropic")
+                        .trim()
+                        .to_lowercase();
+                    let api_key = val
+                        .get("api_key")
+                        .and_then(|k| k.as_str())
+                        .unwrap_or("")
+                        .trim();
+                    let model = val
+                        .get("model")
+                        .and_then(|m| m.as_str())
+                        .unwrap_or("")
+                        .trim();
+                    let base_url = val
+                        .get("base_url")
+                        .and_then(|b| b.as_str())
+                        .unwrap_or("")
+                        .trim();
+                    let profile = val
+                        .get("profile")
+                        .and_then(|p| p.as_str())
+                        .unwrap_or("cloud")
+                        .trim();
 
                     if !api_key.is_empty() {
                         let _ = crate::byok::set_api_key(&provider, api_key);
@@ -338,7 +427,15 @@ impl CompanionUiServer {
                         let _ = crate::config::save_config(&cfg);
                     }
 
-                    self.audit.log("companion_ui_change_ai", None, None, &format!("AI settings saved: provider={}, profile={}", provider, profile));
+                    self.audit.log(
+                        "companion_ui_change_ai",
+                        None,
+                        None,
+                        &format!(
+                            "AI settings saved: provider={}, profile={}",
+                            provider, profile
+                        ),
+                    );
 
                     let masked_key = crate::byok::get_masked_api_key(&provider).unwrap_or_default();
                     outcome = json!({
@@ -353,8 +450,11 @@ impl CompanionUiServer {
                     status_code = 200;
                 }
 
-                let header = Header::from_bytes(&b"Content-Type"[..], &b"application/json"[..]).unwrap();
-                let resp = Response::from_string(outcome.to_string()).with_header(header).with_status_code(status_code);
+                let header =
+                    Header::from_bytes(&b"Content-Type"[..], &b"application/json"[..]).unwrap();
+                let resp = Response::from_string(outcome.to_string())
+                    .with_header(header)
+                    .with_status_code(status_code);
                 let _ = request.respond(resp);
                 continue;
             }
@@ -365,12 +465,21 @@ impl CompanionUiServer {
                 let provider = cfg.ai.provider.trim().to_lowercase();
 
                 let outcome = if provider == "ollama" {
-                    let base_url = if cfg.ai.base_url.trim().is_empty() { "http://127.0.0.1:11434" } else { cfg.ai.base_url.trim() };
-                    let clean = base_url.trim_start_matches("http://").trim_start_matches("https://");
+                    let base_url = if cfg.ai.base_url.trim().is_empty() {
+                        "http://127.0.0.1:11434"
+                    } else {
+                        cfg.ai.base_url.trim()
+                    };
+                    let clean = base_url
+                        .trim_start_matches("http://")
+                        .trim_start_matches("https://");
                     let host_port = clean.split('/').next().unwrap_or(clean);
                     let hp_parts: Vec<&str> = host_port.split(':').collect();
                     let host = hp_parts.first().unwrap_or(&"127.0.0.1");
-                    let port = hp_parts.get(1).and_then(|p| p.parse::<u16>().ok()).unwrap_or(11434);
+                    let port = hp_parts
+                        .get(1)
+                        .and_then(|p| p.parse::<u16>().ok())
+                        .unwrap_or(11434);
 
                     let (reachable, ms) = check_tally_quick(host, port);
                     if reachable {
@@ -387,7 +496,8 @@ impl CompanionUiServer {
                     }
                 };
 
-                let header = Header::from_bytes(&b"Content-Type"[..], &b"application/json"[..]).unwrap();
+                let header =
+                    Header::from_bytes(&b"Content-Type"[..], &b"application/json"[..]).unwrap();
                 let resp = Response::from_string(outcome.to_string()).with_header(header);
                 let _ = request.respond(resp);
                 continue;
@@ -400,7 +510,13 @@ impl CompanionUiServer {
                 let port = cfg.tally.port;
 
                 let serve_args = if host != "127.0.0.1" && host != "localhost" {
-                    vec!["serve".to_string(), "--host".to_string(), host.clone(), "--port".to_string(), port.to_string()]
+                    vec![
+                        "serve".to_string(),
+                        "--host".to_string(),
+                        host.clone(),
+                        "--port".to_string(),
+                        port.to_string(),
+                    ]
                 } else {
                     vec!["serve".to_string()]
                 };
@@ -512,7 +628,8 @@ impl CompanionUiServer {
                     }
                 });
 
-                let header = Header::from_bytes(&b"Content-Type"[..], &b"application/json"[..]).unwrap();
+                let header =
+                    Header::from_bytes(&b"Content-Type"[..], &b"application/json"[..]).unwrap();
                 let resp = Response::from_string(payload.to_string()).with_header(header);
                 let _ = request.respond(resp);
                 continue;
@@ -525,7 +642,13 @@ impl CompanionUiServer {
                 let port = cfg.tally.port;
 
                 let serve_args = if host != "127.0.0.1" && host != "localhost" {
-                    vec!["serve".to_string(), "--host".to_string(), host.clone(), "--port".to_string(), port.to_string()]
+                    vec![
+                        "serve".to_string(),
+                        "--host".to_string(),
+                        host.clone(),
+                        "--port".to_string(),
+                        port.to_string(),
+                    ]
                 } else {
                     vec!["serve".to_string()]
                 };
@@ -559,19 +682,29 @@ impl CompanionUiServer {
                     ]
                 });
 
-                let content_type = Header::from_bytes(&b"Content-Type"[..], &b"application/json"[..]).unwrap();
-                let content_disp = Header::from_bytes(&b"Content-Disposition"[..], &b"attachment; filename=\"tally-mcp.mcpb\""[..]).unwrap();
-                let resp = Response::from_string(serde_json::to_string_pretty(&mcpb_manifest).unwrap_or_default())
-                    .with_header(content_type)
-                    .with_header(content_disp);
+                let content_type =
+                    Header::from_bytes(&b"Content-Type"[..], &b"application/json"[..]).unwrap();
+                let content_disp = Header::from_bytes(
+                    &b"Content-Disposition"[..],
+                    &b"attachment; filename=\"tally-mcp.mcpb\""[..],
+                )
+                .unwrap();
+                let resp = Response::from_string(
+                    serde_json::to_string_pretty(&mcpb_manifest).unwrap_or_default(),
+                )
+                .with_header(content_type)
+                .with_header(content_disp);
                 let _ = request.respond(resp);
                 continue;
             }
 
             if url_path == "/api/drafts" && method == "GET" {
                 let drafts = self.journal.list_pending_drafts().unwrap_or_default();
-                let header = Header::from_bytes(&b"Content-Type"[..], &b"application/json"[..]).unwrap();
-                let resp = Response::from_string(serde_json::to_string(&drafts).unwrap_or_default()).with_header(header);
+                let header =
+                    Header::from_bytes(&b"Content-Type"[..], &b"application/json"[..]).unwrap();
+                let resp =
+                    Response::from_string(serde_json::to_string(&drafts).unwrap_or_default())
+                        .with_header(header);
                 let _ = request.respond(resp);
                 continue;
             }
@@ -585,13 +718,21 @@ impl CompanionUiServer {
 
                 if let Ok(val) = parsed {
                     let draft_id = val.get("draft_id").and_then(|d| d.as_str()).unwrap_or("");
-                    let content_hash = val.get("content_hash").and_then(|h| h.as_str()).unwrap_or("");
+                    let content_hash = val
+                        .get("content_hash")
+                        .and_then(|h| h.as_str())
+                        .unwrap_or("");
 
                     if let Ok(mut draft) = self.journal.get_draft(draft_id) {
                         if draft.content_hash == content_hash {
                             draft.status = DraftStatus::Approved;
                             if self.journal.save_draft(&draft).is_ok() {
-                                self.audit.log("companion_ui_approve", Some(draft_id), Some(&draft.company), "human_approved");
+                                self.audit.log(
+                                    "companion_ui_approve",
+                                    Some(draft_id),
+                                    Some(&draft.company),
+                                    "human_approved",
+                                );
                                 outcome = json!({ "success": true, "draft_id": draft_id });
                             }
                         } else {
@@ -600,7 +741,8 @@ impl CompanionUiServer {
                     }
                 }
 
-                let header = Header::from_bytes(&b"Content-Type"[..], &b"application/json"[..]).unwrap();
+                let header =
+                    Header::from_bytes(&b"Content-Type"[..], &b"application/json"[..]).unwrap();
                 let resp = Response::from_string(outcome.to_string()).with_header(header);
                 let _ = request.respond(resp);
                 continue;
@@ -623,8 +765,14 @@ impl CompanionUiServer {
                             // Execute in worker thread with fresh runtime
                             let (tx, rx) = std::sync::mpsc::channel();
                             std::thread::spawn(move || {
-                                if let Ok(rt) = tokio::runtime::Builder::new_current_thread().enable_all().build() {
-                                    let res = rt.block_on(async move { tally.post_voucher_xml(&xml).await });
+                                if let Ok(rt) = tokio::runtime::Builder::new_current_thread()
+                                    .enable_all()
+                                    .build()
+                                {
+                                    let res =
+                                        rt.block_on(
+                                            async move { tally.post_voucher_xml(&xml).await },
+                                        );
                                     let _ = tx.send(res);
                                 }
                             });
@@ -632,7 +780,11 @@ impl CompanionUiServer {
                             match rx.recv_timeout(Duration::from_secs(5)) {
                                 Ok(Ok(im)) => {
                                     if im.created > 0 {
-                                        let _ = self.journal.record_commit_result(&draft, DraftStatus::Committed, "Posted via Companion UI");
+                                        let _ = self.journal.record_commit_result(
+                                            &draft,
+                                            DraftStatus::Committed,
+                                            "Posted via Companion UI",
+                                        );
                                         outcome = json!({ "success": true, "outcome": "Voucher created in Tally" });
                                     } else {
                                         outcome = json!({ "success": false, "error": im.error_message.unwrap_or_else(|| "Tally rejected voucher".to_string()) });
@@ -651,7 +803,8 @@ impl CompanionUiServer {
                     }
                 }
 
-                let header = Header::from_bytes(&b"Content-Type"[..], &b"application/json"[..]).unwrap();
+                let header =
+                    Header::from_bytes(&b"Content-Type"[..], &b"application/json"[..]).unwrap();
                 let resp = Response::from_string(outcome.to_string()).with_header(header);
                 let _ = request.respond(resp);
                 continue;
@@ -666,24 +819,29 @@ impl CompanionUiServer {
                 let mut status_code = 400;
 
                 if let Ok(val) = parsed {
-                    let name = val.get("name").and_then(|n| n.as_str()).unwrap_or("document.json").to_string();
-                    let mime = val.get("mime").and_then(|m| m.as_str()).unwrap_or("application/json").to_string();
+                    let name = val
+                        .get("name")
+                        .and_then(|n| n.as_str())
+                        .unwrap_or("document.json")
+                        .to_string();
+                    let mime = val
+                        .get("mime")
+                        .and_then(|m| m.as_str())
+                        .unwrap_or("application/json")
+                        .to_string();
                     let content_b64 = val.get("content_base64").and_then(|c| c.as_str());
                     let content_str = val.get("content").and_then(|c| c.as_str()).unwrap_or("");
 
                     use base64::Engine;
                     let bytes = if let Some(b64) = content_b64 {
-                        base64::engine::general_purpose::STANDARD.decode(b64.trim())
+                        base64::engine::general_purpose::STANDARD
+                            .decode(b64.trim())
                             .unwrap_or_else(|_| content_str.as_bytes().to_vec())
                     } else {
                         content_str.as_bytes().to_vec()
                     };
 
-                    let doc = crate::byok::Document {
-                        mime,
-                        bytes,
-                        name,
-                    };
+                    let doc = crate::byok::Document { mime, bytes, name };
 
                     let cfg = self.config.read().unwrap().clone();
                     match crate::byok::extract_document(&cfg, &doc) {
@@ -697,16 +855,22 @@ impl CompanionUiServer {
                     }
                 }
 
-                let header = Header::from_bytes(&b"Content-Type"[..], &b"application/json"[..]).unwrap();
-                let resp = Response::from_string(outcome.to_string()).with_header(header).with_status_code(status_code);
+                let header =
+                    Header::from_bytes(&b"Content-Type"[..], &b"application/json"[..]).unwrap();
+                let resp = Response::from_string(outcome.to_string())
+                    .with_header(header)
+                    .with_status_code(status_code);
                 let _ = request.respond(resp);
                 continue;
             }
 
             if url_path == "/api/audit" && method == "GET" {
                 let entries = self.audit.read_recent_entries(50);
-                let header = Header::from_bytes(&b"Content-Type"[..], &b"application/json"[..]).unwrap();
-                let resp = Response::from_string(serde_json::to_string(&entries).unwrap_or_default()).with_header(header);
+                let header =
+                    Header::from_bytes(&b"Content-Type"[..], &b"application/json"[..]).unwrap();
+                let resp =
+                    Response::from_string(serde_json::to_string(&entries).unwrap_or_default())
+                        .with_header(header);
                 let _ = request.respond(resp);
                 continue;
             }

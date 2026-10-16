@@ -84,7 +84,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         "version" => {
             println!("tally-mcp {}", env!("CARGO_PKG_VERSION"));
-            println!("Build Hash: {}", option_env!("GIT_HASH").unwrap_or("local-build"));
+            println!(
+                "Build Hash: {}",
+                option_env!("GIT_HASH").unwrap_or("local-build")
+            );
             println!("Target OS: {}", std::env::consts::OS);
             println!("Target Architecture: {}", std::env::consts::ARCH);
             println!("Schema Version: 1");
@@ -114,32 +117,52 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
 
             println!("Config file location: {}", config_path.display());
-            println!("Current Tally target: http://{}:{}", config.tally.host, config.tally.port);
+            println!(
+                "Current Tally target: http://{}:{}",
+                config.tally.host, config.tally.port
+            );
             println!("AI Profile: {}", config.ai.profile);
 
-            let serve_args = if config.tally.host != "127.0.0.1" && config.tally.host != "localhost" {
-                format!(r#"["serve", "--host", "{}", "--port", "{}"]"#, config.tally.host, config.tally.port)
+            let serve_args = if config.tally.host != "127.0.0.1" && config.tally.host != "localhost"
+            {
+                format!(
+                    r#"["serve", "--host", "{}", "--port", "{}"]"#,
+                    config.tally.host, config.tally.port
+                )
             } else {
                 r#"["serve"]"#.to_string()
             };
 
-            println!("\nTo configure Claude Desktop, add the following to claude_desktop_config.json:");
-            println!(r#"  "tally": {{ "command": "tally-mcp", "args": {} }}"#, serve_args);
+            println!(
+                "\nTo configure Claude Desktop, add the following to claude_desktop_config.json:"
+            );
+            println!(
+                r#"  "tally": {{ "command": "tally-mcp", "args": {} }}"#,
+                serve_args
+            );
             println!("\nLAN Support Tips:");
-            println!("  • Connect to remote/LAN TallyPrime: tally-mcp serve --host <LAN_IP> --port 9000");
+            println!(
+                "  • Connect to remote/LAN TallyPrime: tally-mcp serve --host <LAN_IP> --port 9000"
+            );
             println!("  • Or set environment variable:      TALLY_HOST=<LAN_IP>");
-            println!("  • Or save permanently:              tally-mcp setup --host <LAN_IP> --port 9000");
+            println!(
+                "  • Or save permanently:              tally-mcp setup --host <LAN_IP> --port 9000"
+            );
         }
 
         "cleanup" => {
             let dry_run = args.iter().any(|a| a == "--dry-run");
             let force = args.iter().any(|a| a == "--force");
 
-            let backup_dir = args.iter().position(|a| a == "--backup")
+            let backup_dir = args
+                .iter()
+                .position(|a| a == "--backup")
                 .and_then(|idx| args.get(idx + 1))
                 .map(std::path::PathBuf::from);
 
-            let categories = args.iter().position(|a| a == "--categories")
+            let categories = args
+                .iter()
+                .position(|a| a == "--categories")
                 .and_then(|idx| args.get(idx + 1))
                 .map(|s| s.split(',').map(|c| c.trim().to_string()).collect())
                 .unwrap_or_default();
@@ -177,7 +200,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 fn print_usage() {
-    println!("tally-mcp v{} — Safe, extensible Model Context Protocol server for TallyPrime", env!("CARGO_PKG_VERSION"));
+    println!(
+        "tally-mcp v{} — Safe, extensible Model Context Protocol server for TallyPrime",
+        env!("CARGO_PKG_VERSION")
+    );
     println!("\nUsage: tally-mcp <COMMAND> [OPTIONS]");
     println!("\nCommands:");
     println!("  serve     Start headless stdio MCP server for AI clients (Claude Desktop, etc.)");

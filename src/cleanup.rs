@@ -49,7 +49,8 @@ pub fn get_cleanup_inventory() -> Vec<CleanupInventoryItem> {
             path: PathBuf::from("Windows Credential Manager: TallyMCP/*"),
             size_bytes: 0,
             file_count: 0,
-            note: "Stored API keys. Keys are not exportable and must be re-entered if removed.".to_string(),
+            note: "Stored API keys. Keys are not exportable and must be re-entered if removed."
+                .to_string(),
         },
     ]
 }
@@ -115,7 +116,10 @@ pub fn execute_cleanup(options: &CleanupOptions) -> Result<(), Box<dyn std::erro
         let backup_folder = backup_dest.join(format!("tallymcp_backup_{}", timestamp));
         fs::create_dir_all(&backup_folder)?;
 
-        println!("Backing up non-secret categories to: {}", backup_folder.display());
+        println!(
+            "Backing up non-secret categories to: {}",
+            backup_folder.display()
+        );
         for item in &inventory {
             if selected_cats.contains(&item.category.as_str()) && item.category != "credentials" {
                 if item.path.exists() {

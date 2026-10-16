@@ -1,11 +1,11 @@
 #[cfg(test)]
 mod ui_and_byok_tests {
+    use rust_decimal::Decimal;
     use tally_mcp::byok::{is_host_allowed, mock_or_parse_invoice, Document};
     use tally_mcp::config::Config;
     use tally_mcp::journal::JournalManager;
     use tally_mcp::models::{compute_content_hash, DraftStatus, VoucherDraft, VoucherEntry};
     use tally_mcp::ui::CompanionUiServer;
-    use rust_decimal::Decimal;
 
     #[test]
     fn test_egress_allow_list() {
@@ -13,7 +13,10 @@ mod ui_and_byok_tests {
 
         // Built-in hosts allowed
         assert!(is_host_allowed("api.anthropic.com", &extra_hosts));
-        assert!(is_host_allowed("generativelanguage.googleapis.com", &extra_hosts));
+        assert!(is_host_allowed(
+            "generativelanguage.googleapis.com",
+            &extra_hosts
+        ));
         assert!(is_host_allowed("127.0.0.1", &extra_hosts));
         assert!(is_host_allowed("custom-model.internal", &extra_hosts));
 
@@ -81,8 +84,14 @@ mod ui_and_byok_tests {
             number: "INV-1042".to_string(),
             party_ledger: "Acme Corp".to_string(),
             entries: vec![
-                VoucherEntry { ledger: "Purchases".to_string(), amount: Decimal::from(-100) },
-                VoucherEntry { ledger: "Acme Corp".to_string(), amount: Decimal::from(100) },
+                VoucherEntry {
+                    ledger: "Purchases".to_string(),
+                    amount: Decimal::from(-100),
+                },
+                VoucherEntry {
+                    ledger: "Acme Corp".to_string(),
+                    amount: Decimal::from(100),
+                },
             ],
             narration: "UI test".to_string(),
             idempotency_key: "idemp_test".to_string(),
@@ -103,7 +112,10 @@ mod ui_and_byok_tests {
         use tally_mcp::byok::{get_api_key, get_masked_api_key, set_api_key};
 
         // Ollama needs no key
-        assert_eq!(get_masked_api_key("ollama"), Some("Local (No key required)".to_string()));
+        assert_eq!(
+            get_masked_api_key("ollama"),
+            Some("Local (No key required)".to_string())
+        );
 
         // Anthropic key setting and retrieval
         let test_key = "sk-ant-api03-testkey1234567890abcdef";

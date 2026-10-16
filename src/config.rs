@@ -182,7 +182,10 @@ pub fn get_local_app_data_dir() -> PathBuf {
     if let Ok(local_appdata) = std::env::var("LOCALAPPDATA") {
         PathBuf::from(local_appdata).join("TallyMCP")
     } else if let Ok(home) = std::env::var("HOME") {
-        PathBuf::from(home).join(".local").join("share").join("TallyMCP")
+        PathBuf::from(home)
+            .join(".local")
+            .join("share")
+            .join("TallyMCP")
     } else {
         PathBuf::from(".tallymcp_local")
     }

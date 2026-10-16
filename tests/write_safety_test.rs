@@ -115,7 +115,10 @@ mod write_safety_tests {
         let parsed = parse_import_response(sample_resp);
         assert_eq!(parsed.created, 0);
         assert_eq!(parsed.errors, 1);
-        assert_eq!(parsed.error_message, Some("Ledger 'Unknown Ledger' does not exist".to_string()));
+        assert_eq!(
+            parsed.error_message,
+            Some("Ledger 'Unknown Ledger' does not exist".to_string())
+        );
     }
 
     #[test]
@@ -132,7 +135,9 @@ mod write_safety_tests {
         assert!(reconciled.contains(&draft.draft_id));
 
         // Verify draft was safely reverted to Approved (never lost, never re-sent blindly)
-        let loaded = manager.get_draft(&draft.draft_id).expect("Draft should exist");
+        let loaded = manager
+            .get_draft(&draft.draft_id)
+            .expect("Draft should exist");
         assert_eq!(loaded.status, DraftStatus::Approved);
     }
 }
