@@ -116,10 +116,8 @@ pub fn parse_import_response(xml: &str) -> ImportResponse {
                         "ERRORS" => {
                             errors = trimmed.parse().unwrap_or(0);
                         }
-                        "LINEERROR" | "EXCEPTIONS" => {
-                            if !trimmed.is_empty() {
-                                error_msg = Some(trimmed.to_string());
-                            }
+                        "LINEERROR" | "EXCEPTIONS" if !trimmed.is_empty() => {
+                            error_msg = Some(trimmed.to_string());
                         }
                         _ => {}
                     }

@@ -191,7 +191,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             ui_server.run(port)?;
         }
 
-        "help" | "-h" | "--help" | _ => {
+        "help" | "-h" | "--help" => {
+            print_usage();
+        }
+        _ => {
             print_usage();
         }
     }

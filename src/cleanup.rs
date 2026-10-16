@@ -121,12 +121,13 @@ pub fn execute_cleanup(options: &CleanupOptions) -> Result<(), Box<dyn std::erro
             backup_folder.display()
         );
         for item in &inventory {
-            if selected_cats.contains(&item.category.as_str()) && item.category != "credentials" {
-                if item.path.exists() {
-                    let dest = backup_folder.join(&item.category);
-                    copy_dir_recursive(&item.path, &dest)?;
-                    println!("  Backed up: {}", item.category);
-                }
+            if selected_cats.contains(&item.category.as_str())
+                && item.category != "credentials"
+                && item.path.exists()
+            {
+                let dest = backup_folder.join(&item.category);
+                copy_dir_recursive(&item.path, &dest)?;
+                println!("  Backed up: {}", item.category);
             }
         }
     }

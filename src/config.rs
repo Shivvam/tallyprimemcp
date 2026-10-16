@@ -106,32 +106,15 @@ impl Default for AiConfig {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct PacksConfig {
     pub enable_unsigned: bool,
     pub disabled: Vec<String>,
 }
 
-impl Default for PacksConfig {
-    fn default() -> Self {
-        Self {
-            enable_unsigned: false,
-            disabled: Vec::new(),
-        }
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct UiConfig {
     pub auto_open_ui: bool,
-}
-
-impl Default for UiConfig {
-    fn default() -> Self {
-        Self {
-            auto_open_ui: false,
-        }
-    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -197,11 +180,7 @@ pub fn load_config() -> (Config, PathBuf) {
 
     let mut config = if config_path.exists() {
         if let Ok(content) = std::fs::read_to_string(&config_path) {
-            if let Ok(cfg) = toml::from_str::<Config>(&content) {
-                cfg
-            } else {
-                Config::default()
-            }
+            toml::from_str::<Config>(&content).unwrap_or_default()
         } else {
             Config::default()
         }
@@ -234,8 +213,8 @@ pub fn save_config(config: &Config) -> Result<PathBuf, std::io::Error> {
         std::fs::create_dir_all(parent)?;
     }
 
-    let serialized = toml::to_string_pretty(config)
-        .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?;
+    let serialized =
+        toml::to_string_pretty(config).map_err(|e| std::io::Error::other(e.to_string()))?;
     std::fs::write(&config_path, serialized)?;
 
     Ok(config_path)

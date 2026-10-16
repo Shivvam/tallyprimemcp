@@ -21,6 +21,12 @@ pub struct AuditLogger {
     lock: Mutex<()>,
 }
 
+impl Default for AuditLogger {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl AuditLogger {
     pub fn new() -> Self {
         let base_dir = get_local_app_data_dir();
