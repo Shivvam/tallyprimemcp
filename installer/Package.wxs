@@ -127,7 +127,7 @@
       Return="asyncNoWait" />
 
     <InstallExecuteSequence>
-      <Custom Action="ExecuteAppCleanup" After="InstallInitialize" Condition="(NOT UPGRADINGPRODUCTCODE) AND (REMOVE=&quot;ALL&quot;) AND (REMOVEDATA=&quot;ALL&quot;)" />
+      <Custom Action="ExecuteAppCleanup" After="InstallInitialize" Condition="(NOT UPGRADINGPRODUCTCODE) AND (REMOVE=&quot;ALL&quot;)" />
       <Custom Action="LaunchApplication" After="InstallFinalize" Condition="(NOT Installed) AND (NOT (REMOVE=&quot;ALL&quot;))" />
     </InstallExecuteSequence>
 

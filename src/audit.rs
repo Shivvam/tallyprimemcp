@@ -14,6 +14,8 @@ pub struct AuditEntry {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub company: Option<String>,
     pub outcome: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub details: Option<String>,
 }
 
 pub struct AuditLogger {
@@ -46,6 +48,17 @@ impl AuditLogger {
     }
 
     pub fn log(&self, tool: &str, draft_id: Option<&str>, company: Option<&str>, outcome: &str) {
+        self.log_full(tool, draft_id, company, outcome, None);
+    }
+
+    pub fn log_full(
+        &self,
+        tool: &str,
+        draft_id: Option<&str>,
+        company: Option<&str>,
+        outcome: &str,
+        details: Option<&str>,
+    ) {
         let _guard = self.lock.lock().unwrap();
         let path = self.current_audit_path();
 
@@ -55,6 +68,7 @@ impl AuditLogger {
             draft_id: draft_id.map(|s| s.to_string()),
             company: company.map(|s| s.to_string()),
             outcome: outcome.to_string(),
+            details: details.map(|s| s.to_string()),
         };
 
         if let Ok(mut file) = OpenOptions::new().create(true).append(true).open(&path) {

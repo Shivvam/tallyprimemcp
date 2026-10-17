@@ -70,5 +70,47 @@ mod lifecycle_and_cleanup_tests {
             content.contains(r#"Name="PATH""#) && content.contains(r#"Value="[INSTALLFOLDER]""#),
             "Package.wxs must add INSTALLFOLDER to PATH environment variable"
         );
+        // Verify Desktop Shortcut component exists in Package.wxs
+        assert!(
+            content.contains(r#"Id="ApplicationDesktopShortcut""#),
+            "Package.wxs must contain ApplicationDesktopShortcut component"
+        );
+        assert!(
+            content.contains(r#"Directory="DesktopFolder""#),
+            "ApplicationDesktopShortcut must target DesktopFolder"
+        );
+        // Verify unconditional cleanup on uninstall
+        assert!(
+            content.contains(r#"Action="ExecuteAppCleanup""#)
+                && content.contains(r#"Condition="(NOT UPGRADINGPRODUCTCODE) AND (REMOVE=&quot;ALL&quot;)""#),
+            "ExecuteAppCleanup must run on standard uninstall (REMOVE=\"ALL\") without requiring REMOVEDATA=\"ALL\""
+        );
+    }
+
+    #[test]
+    fn test_desktop_shortcut_creation_and_removal() {
+        use tally_mcp::cleanup::{create_desktop_shortcut, remove_desktop_shortcut};
+        // Creating desktop shortcut should succeed or report valid path
+        let res = create_desktop_shortcut();
+        assert!(
+            res.is_ok(),
+            "create_desktop_shortcut should succeed: {:?}",
+            res.err()
+        );
+        let path = res.unwrap();
+        assert!(
+            path.to_string_lossy().contains("tally") || path.to_string_lossy().contains("Tally")
+        );
+
+        // Removing desktop shortcut should cleanly execute
+        remove_desktop_shortcut();
+        assert!(!path.exists(), "Desktop shortcut should be cleanly removed");
+    }
+
+    #[test]
+    fn test_remove_client_integrations() {
+        use tally_mcp::cleanup::remove_client_integrations;
+        // Should execute cleanly without panicking even if configs do not exist
+        remove_client_integrations();
     }
 }

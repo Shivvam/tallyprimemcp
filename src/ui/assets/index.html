@@ -647,8 +647,74 @@
         </div>
         <p class="desc">Tamper-evident trail of all tool executions, queries, and draft commits.</p>
         <div id="audit-list">Loading audit entries...</div>
+      </div>
+    </div>
+
     <!-- TAB: MCP FUNCTIONS & TESTING -->
     <div id="tab-tools" style="display:none;">
+      <!-- CARD 0: DIRECT TALLY API INSPECTOR & XML CONSOLE -->
+      <div class="card" style="border: 2px solid #0284c7; background: #ffffff;">
+        <div class="card-header">
+          <div>
+            <h2 style="color:#0284c7;"><span>📡</span> Direct Tally API Inspector &amp; Live XML Console</h2>
+            <p style="font-size:12px; color:var(--muted); margin-top:2px;">
+              Verify TallyPrime's live XML API response directly before testing MCP tools. Inspect raw XML vs parsed JSON, check &lt;LINEERROR&gt; tags, or test custom TDL queries.
+            </p>
+          </div>
+          <span class="tag" style="background:#e0f2fe; color:#0284c7; font-weight:700;">Direct Tally API (Port 9000)</span>
+        </div>
+
+        <!-- API PRESETS -->
+        <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:12px;">
+          <label class="form-label" style="margin-bottom:0; font-weight:600; font-size:12.5px;">API Query Endpoint:</label>
+          <div class="radio-pill-group" style="margin-bottom:0;" id="api-preset-group">
+            <div class="radio-pill selected" id="preset-companies" onclick="selectApiPreset('companies')">🏢 List of Companies</div>
+            <div class="radio-pill" id="preset-company_master" onclick="selectApiPreset('company_master')">🏢 Company Master</div>
+            <div class="radio-pill" id="preset-ledgers" onclick="selectApiPreset('ledgers')">📒 Ledgers</div>
+            <div class="radio-pill" id="preset-day_book" onclick="selectApiPreset('day_book')">📑 Day Book</div>
+            <div class="radio-pill" id="preset-trial_balance" onclick="selectApiPreset('trial_balance')">⚖️ Trial Balance</div>
+            <div class="radio-pill" id="preset-bills_receivable" onclick="selectApiPreset('bills_receivable')">📥 Bills Receivable</div>
+            <div class="radio-pill" id="preset-custom" onclick="selectApiPreset('custom')">✏️ Custom XML / TDL</div>
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:14px; align-items:flex-start; margin-bottom:8px;">
+          <!-- Request Box -->
+          <div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+              <label class="form-label" style="margin-bottom:0; font-size:12px; font-weight:600;">Request Envelope (XML)</label>
+              <span id="api-endpoint-badge" style="font-size:11px; color:var(--muted); font-family:ui-monospace,monospace;">POST http://127.0.0.1:9000</span>
+            </div>
+            <textarea id="api-request-xml" class="form-control" rows="9" style="font-family:ui-monospace,monospace; font-size:11.5px; line-height:1.4; resize:vertical;"></textarea>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px; gap:8px;">
+              <input type="text" id="api-company-input" class="form-control" style="font-size:12px;" placeholder="Company Name (e.g. Apna Mart)..." oninput="onApiCompanyChange()">
+              <button class="btn btn-primary" id="btn-send-api" onclick="sendDirectApiRequest()" style="white-space:nowrap;">
+                ▶ Send Request to Tally
+              </button>
+            </div>
+          </div>
+
+          <!-- Response Box -->
+          <div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+              <div style="display:flex; align-items:center; gap:8px;">
+                <label class="form-label" style="margin-bottom:0; font-size:12px; font-weight:600;">Gateway Response</label>
+                <span id="api-resp-badge" class="badge">Idle</span>
+                <span id="api-resp-latency" style="font-size:11px; color:var(--muted);">0ms</span>
+              </div>
+              <div style="display:flex; gap:4px;">
+                <button class="btn btn-sm btn-outline" id="btn-api-view-json" onclick="setApiResponseView('parsed')" style="font-size:11px; padding:2px 8px; font-weight:700;">✨ JSON</button>
+                <button class="btn btn-sm btn-outline" id="btn-api-view-xml" onclick="setApiResponseView('raw')" style="font-size:11px; padding:2px 8px;">📄 Raw XML</button>
+                <button class="btn btn-sm btn-outline" id="btn-api-expand" onclick="toggleApiResultExpand()" style="font-size:11px; padding:2px 8px;">⤢ Expand</button>
+                <button class="btn btn-sm btn-outline" onclick="copyDirectApiResponse()" style="font-size:11px; padding:2px 8px;">📋 Copy</button>
+              </div>
+            </div>
+            <pre id="api-response-output" style="max-height:225px; min-height:225px; overflow-y:auto; transition: max-height 0.2s ease; margin:0;"><code id="api-response-code" style="font-size:11.5px; line-height:1.4;">Select a query preset above and click "Send Request to Tally" to query the gateway directly...</code></pre>
+            <div id="api-resp-summary" style="font-size:11.5px; color:var(--muted); margin-top:6px;"></div>
+          </div>
+        </div>
+      </div>
+
       <!-- CARD 1: PRE-PUSH VERIFICATION & QUICK TEST (COMMON GET MCPs) -->
       <div class="card" style="border: 2px solid var(--primary); background: linear-gradient(180deg, rgba(255, 251, 229, 0.4) 0%, rgba(255, 255, 255, 1) 100%);">
         <div class="card-header">
@@ -751,15 +817,18 @@
       <div class="card" id="tool-result-card" style="display:none;">
         <div class="card-header">
           <h2><span>🧪</span> Live Tool Execution Output</h2>
-          <div style="display:flex; gap:8px; align-items:center;">
+          <div style="display:flex; gap:6px; align-items:center;">
             <span id="tool-exec-badge" class="badge">Ready</span>
             <span id="tool-exec-time" style="font-size:12px; color:var(--muted);">0ms</span>
-            <button class="btn btn-sm btn-outline" onclick="copyToolResponse()">📋 Copy</button>
-            <button class="btn btn-sm btn-outline" onclick="closeToolResult()">✕</button>
+            <button class="btn btn-sm btn-outline" id="btn-tool-view-json" onclick="setToolOutputView('json')" style="font-size:11px; padding:2px 8px; font-weight:700;">✨ Formatted JSON</button>
+            <button class="btn btn-sm btn-outline" id="btn-tool-view-raw" onclick="setToolOutputView('raw')" style="font-size:11px; padding:2px 8px;">📄 Raw Output</button>
+            <button class="btn btn-sm btn-outline" id="btn-tool-expand" onclick="toggleToolResultExpand()" style="font-size:11px; padding:2px 8px;">⤢ Expand</button>
+            <button class="btn btn-sm btn-outline" onclick="copyToolResponse()" style="font-size:11px; padding:2px 8px;">📋 Copy</button>
+            <button class="btn btn-sm btn-outline" onclick="closeToolResult()" style="font-size:11px; padding:2px 8px;">✕</button>
           </div>
         </div>
         <div id="tool-exec-summary" style="margin-bottom:10px; font-size:13px;"></div>
-        <pre id="tool-exec-output" style="max-height:360px; overflow-y:auto;"><code>Waiting for execution...</code></pre>
+        <pre id="tool-exec-output" style="max-height:360px; overflow-y:auto; transition: max-height 0.2s ease;"><code>Waiting for execution...</code></pre>
       </div>
 
       <!-- CARD 3: INTERACTIVE MCP TOOL RUNNER (CUSTOM ARGUMENTS) -->
@@ -1917,10 +1986,9 @@
           }
 
           if (summaryEl) summaryEl.innerHTML = summaryHtml;
-          if (outputEl) {
-            outputEl.innerHTML = `<code>${escapeHtml(data.raw_text || JSON.stringify(data.response, null, 2))}</code>`;
-          }
+          window.lastToolData = data;
           window.lastToolResponse = data.raw_text || JSON.stringify(data.response, null, 2);
+          setToolOutputView('json');
         } else {
           if (badge) {
             badge.className = "badge badge-danger";
@@ -1929,10 +1997,9 @@
           if (summaryEl) {
             summaryEl.innerHTML = `<span style="color:var(--danger); font-weight:600;">⚠️ Tool Execution Returned Error:</span> ${escapeHtml(data.raw_text || data.error || data.message || "Failed to query TallyPrime")}`;
           }
-          if (outputEl) {
-            outputEl.innerHTML = `<code style="color:var(--danger);">${escapeHtml(data.raw_text || JSON.stringify(data.response || data, null, 2))}</code>`;
-          }
+          window.lastToolData = data;
           window.lastToolResponse = data.raw_text || JSON.stringify(data.response || data, null, 2);
+          setToolOutputView('raw');
         }
       } catch (err) {
         if (badge) {
@@ -1943,6 +2010,43 @@
         if (outputEl) outputEl.innerHTML = `<code style="color:var(--danger);">${escapeHtml(err.stack || err.message)}</code>`;
       } finally {
         if (execBtn) execBtn.disabled = false;
+      }
+    }
+
+    function setToolOutputView(view) {
+      window.currentToolView = view;
+      const jsonBtn = document.getElementById("btn-tool-view-json");
+      const rawBtn = document.getElementById("btn-tool-view-raw");
+      const outputEl = document.getElementById("tool-exec-output");
+      if (!outputEl || !window.lastToolData) return;
+
+      if (jsonBtn) jsonBtn.style.fontWeight = view === "json" ? "700" : "400";
+      if (rawBtn) rawBtn.style.fontWeight = view === "raw" ? "700" : "400";
+
+      if (view === "json") {
+        let content = window.lastToolData.raw_text;
+        try {
+          if (content && (content.startsWith("{") || content.startsWith("["))) {
+            outputEl.innerHTML = `<code>${escapeHtml(JSON.stringify(JSON.parse(content), null, 2))}</code>`;
+            return;
+          }
+        } catch (_) {}
+        outputEl.innerHTML = `<code>${escapeHtml(JSON.stringify(window.lastToolData.response || window.lastToolData, null, 2))}</code>`;
+      } else {
+        outputEl.innerHTML = `<code>${escapeHtml(window.lastToolData.raw_text || JSON.stringify(window.lastToolData.response, null, 2))}</code>`;
+      }
+    }
+
+    function toggleToolResultExpand() {
+      const outputEl = document.getElementById("tool-exec-output");
+      const btn = document.getElementById("btn-tool-expand");
+      if (!outputEl) return;
+      if (outputEl.style.maxHeight === "700px") {
+        outputEl.style.maxHeight = "360px";
+        if (btn) btn.textContent = "⤢ Expand";
+      } else {
+        outputEl.style.maxHeight = "700px";
+        if (btn) btn.textContent = "⤡ Collapse";
       }
     }
 
@@ -1957,6 +2061,162 @@
     function closeToolResult() {
       const card = document.getElementById("tool-result-card");
       if (card) card.style.display = "none";
+    }
+
+    // --- DIRECT TALLY API TESTER & XML CONSOLE ---
+    window.apiPresets = {
+      companies: `<ENVELOPE>\n  <HEADER>\n    <VERSION>1</VERSION>\n    <TALLYREQUEST>Export</TALLYREQUEST>\n    <TYPE>Collection</TYPE>\n    <ID>List of Companies</ID>\n  </HEADER>\n  <BODY>\n    <DESC>\n      <STATICVARIABLES>\n        <SVEXPORTFORMAT>$$SysName:XML</SVEXPORTFORMAT>\n      </STATICVARIABLES>\n    </DESC>\n  </BODY>\n</ENVELOPE>`,
+      company_master: `<ENVELOPE>\n  <HEADER>\n    <VERSION>1</VERSION>\n    <TALLYREQUEST>Export</TALLYREQUEST>\n    <TYPE>Collection</TYPE>\n    <ID>Company</ID>\n  </HEADER>\n  <BODY>\n    <DESC>\n      <STATICVARIABLES>\n        <SVEXPORTFORMAT>$$SysName:XML</SVEXPORTFORMAT>\n      </STATICVARIABLES>\n    </DESC>\n  </BODY>\n</ENVELOPE>`,
+      ledgers: `<ENVELOPE>\n  <HEADER>\n    <VERSION>1</VERSION>\n    <TALLYREQUEST>Export</TALLYREQUEST>\n    <TYPE>Collection</TYPE>\n    <ID>Ledger</ID>\n  </HEADER>\n  <BODY>\n    <DESC>\n      <STATICVARIABLES>\n        <SVEXPORTFORMAT>$$SysName:XML</SVEXPORTFORMAT>\n        <SVCURRENTCOMPANY>Apna Mart</SVCURRENTCOMPANY>\n      </STATICVARIABLES>\n      <TDL>\n        <TDLMESSAGE>\n          <COLLECTION NAME="Ledger" ISMODIFY="Yes">\n            <FETCH>Name,Parent,ClosingBalance</FETCH>\n          </COLLECTION>\n        </TDLMESSAGE>\n      </TDL>\n    </DESC>\n  </BODY>\n</ENVELOPE>`,
+      day_book: `<ENVELOPE>\n  <HEADER>\n    <VERSION>1</VERSION>\n    <TALLYREQUEST>Export</TALLYREQUEST>\n    <TYPE>Data</TYPE>\n    <ID>Day Book</ID>\n  </HEADER>\n  <BODY>\n    <DESC>\n      <STATICVARIABLES>\n        <SVEXPORTFORMAT>$$SysName:XML</SVEXPORTFORMAT>\n        <SVCURRENTCOMPANY>Apna Mart</SVCURRENTCOMPANY>\n      </STATICVARIABLES>\n    </DESC>\n  </BODY>\n</ENVELOPE>`,
+      trial_balance: `<ENVELOPE>\n  <HEADER>\n    <VERSION>1</VERSION>\n    <TALLYREQUEST>Export</TALLYREQUEST>\n    <TYPE>Data</TYPE>\n    <ID>Trial Balance</ID>\n  </HEADER>\n  <BODY>\n    <DESC>\n      <STATICVARIABLES>\n        <SVEXPORTFORMAT>$$SysName:XML</SVEXPORTFORMAT>\n        <SVCURRENTCOMPANY>Apna Mart</SVCURRENTCOMPANY>\n      </STATICVARIABLES>\n    </DESC>\n  </BODY>\n</ENVELOPE>`,
+      bills_receivable: `<ENVELOPE>\n  <HEADER>\n    <VERSION>1</VERSION>\n    <TALLYREQUEST>Export</TALLYREQUEST>\n    <TYPE>Data</TYPE>\n    <ID>Bills Receivable</ID>\n  </HEADER>\n  <BODY>\n    <DESC>\n      <STATICVARIABLES>\n        <SVEXPORTFORMAT>$$SysName:XML</SVEXPORTFORMAT>\n        <SVCURRENTCOMPANY>Apna Mart</SVCURRENTCOMPANY>\n      </STATICVARIABLES>\n    </DESC>\n  </BODY>\n</ENVELOPE>`,
+      custom: `<ENVELOPE>\n  <HEADER>\n    <VERSION>1</VERSION>\n    <TALLYREQUEST>Export</TALLYREQUEST>\n    <TYPE>Collection</TYPE>\n    <ID>List of Companies</ID>\n  </HEADER>\n  <BODY>\n    <DESC>\n      <STATICVARIABLES>\n        <SVEXPORTFORMAT>$$SysName:XML</SVEXPORTFORMAT>\n      </STATICVARIABLES>\n    </DESC>\n  </BODY>\n</ENVELOPE>`
+    };
+    window.currentApiPreset = "companies";
+    window.lastApiResult = null;
+    window.currentApiView = "parsed";
+
+    function selectApiPreset(name) {
+      window.currentApiPreset = name;
+      document.querySelectorAll("#api-preset-group .radio-pill").forEach(el => el.classList.remove("selected"));
+      const pill = document.getElementById("preset-" + name);
+      if (pill) pill.classList.add("selected");
+
+      const companyInput = document.getElementById("api-company-input");
+      const activeComp = (companyInput?.value || "").trim() || "Apna Mart";
+
+      let template = window.apiPresets[name] || window.apiPresets.companies;
+      if (activeComp && template.includes("Apna Mart")) {
+        template = template.replace(/<SVCURRENTCOMPANY>.*?<\/SVCURRENTCOMPANY>/g, `<SVCURRENTCOMPANY>${activeComp}</SVCURRENTCOMPANY>`);
+      }
+      const reqXmlArea = document.getElementById("api-request-xml");
+      if (reqXmlArea) reqXmlArea.value = template;
+    }
+
+    function onApiCompanyChange() {
+      const companyInput = document.getElementById("api-company-input");
+      const activeComp = (companyInput?.value || "").trim();
+      const reqXmlArea = document.getElementById("api-request-xml");
+      if (activeComp && reqXmlArea && reqXmlArea.value.includes("<SVCURRENTCOMPANY>")) {
+        reqXmlArea.value = reqXmlArea.value.replace(/<SVCURRENTCOMPANY>.*?<\/SVCURRENTCOMPANY>/g, `<SVCURRENTCOMPANY>${activeComp}</SVCURRENTCOMPANY>`);
+      }
+    }
+
+    async function sendDirectApiRequest() {
+      const reqXmlArea = document.getElementById("api-request-xml");
+      const companyInput = document.getElementById("api-company-input");
+      const badge = document.getElementById("api-resp-badge");
+      const latencyEl = document.getElementById("api-resp-latency");
+      const codeEl = document.getElementById("api-response-code");
+      const summaryEl = document.getElementById("api-resp-summary");
+      const btn = document.getElementById("btn-send-api");
+
+      const xml = reqXmlArea ? reqXmlArea.value.trim() : "";
+      const company = companyInput ? companyInput.value.trim() : "";
+
+      if (badge) {
+        badge.className = "badge";
+        badge.textContent = "Querying...";
+      }
+      if (latencyEl) latencyEl.textContent = "...";
+      if (codeEl) codeEl.textContent = "Sending XML payload to TallyPrime gateway...";
+      if (summaryEl) summaryEl.textContent = "";
+      if (btn) btn.disabled = true;
+
+      const startTime = performance.now();
+
+      try {
+        const res = await fetch("/api/tally/test-api", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            query_type: window.currentApiPreset,
+            company: company,
+            raw_xml: xml
+          })
+        });
+        const data = await res.json();
+        const elapsed = Math.round(data.latency_ms || (performance.now() - startTime));
+
+        window.lastApiResult = data;
+        if (latencyEl) latencyEl.textContent = `${elapsed}ms`;
+
+        if (data.success) {
+          if (badge) {
+            badge.className = "badge badge-success";
+            badge.textContent = "200 OK";
+          }
+          if (summaryEl) {
+            summaryEl.innerHTML = `<span style="color:#059669; font-weight:600;">✓ Success (${elapsed}ms):</span> Live TallyPrime response received (${(data.raw_xml_response || "").length} bytes).`;
+          }
+          setApiResponseView(window.currentApiView || "parsed");
+        } else {
+          if (badge) {
+            badge.className = "badge badge-danger";
+            badge.textContent = "Error";
+          }
+          if (summaryEl) {
+            summaryEl.innerHTML = `<span style="color:var(--danger); font-weight:600;">⚠️ Tally Error:</span> ${escapeHtml(data.error || "Gateway returned error")}`;
+          }
+          if (codeEl) {
+            codeEl.textContent = data.raw_xml_response || data.error || "Error querying TallyPrime";
+          }
+        }
+      } catch (err) {
+        if (badge) {
+          badge.className = "badge badge-danger";
+          badge.textContent = "Network Error";
+        }
+        if (codeEl) codeEl.textContent = "Failed to communicate with Companion UI server: " + err.message;
+      } finally {
+        if (btn) btn.disabled = false;
+      }
+    }
+
+    function setApiResponseView(view) {
+      window.currentApiView = view;
+      const jsonBtn = document.getElementById("btn-api-view-json");
+      const xmlBtn = document.getElementById("btn-api-view-xml");
+      const codeEl = document.getElementById("api-response-code");
+      if (!window.lastApiResult || !codeEl) return;
+
+      if (jsonBtn) jsonBtn.style.fontWeight = view === "parsed" ? "700" : "400";
+      if (xmlBtn) xmlBtn.style.fontWeight = view === "raw" ? "700" : "400";
+
+      if (view === "parsed") {
+        if (window.lastApiResult.parsed_json) {
+          codeEl.textContent = JSON.stringify(window.lastApiResult.parsed_json, null, 2);
+        } else {
+          codeEl.textContent = window.lastApiResult.raw_xml_response || window.lastApiResult.error || "No data";
+        }
+      } else {
+        codeEl.textContent = window.lastApiResult.raw_xml_response || window.lastApiResult.error || "No XML returned";
+      }
+    }
+
+    function toggleApiResultExpand() {
+      const outputEl = document.getElementById("api-response-output");
+      const btn = document.getElementById("btn-api-expand");
+      if (!outputEl) return;
+      if (outputEl.style.maxHeight === "650px") {
+        outputEl.style.maxHeight = "225px";
+        if (btn) btn.textContent = "⤢ Expand";
+      } else {
+        outputEl.style.maxHeight = "650px";
+        if (btn) btn.textContent = "⤡ Collapse";
+      }
+    }
+
+    function copyDirectApiResponse() {
+      if (window.lastApiResult) {
+        const text = window.currentApiView === "parsed" && window.lastApiResult.parsed_json
+          ? JSON.stringify(window.lastApiResult.parsed_json, null, 2)
+          : (window.lastApiResult.raw_xml_response || window.lastApiResult.error || "");
+        navigator.clipboard.writeText(text).then(() => {
+          showBanner("Tally API response copied to clipboard!", "success");
+        });
+      }
     }
 
     async function runPrePushDiagnosticSuite() {
@@ -2046,20 +2306,65 @@
           return;
         }
 
-        let html = "<table><thead><tr><th>Time</th><th>Action / Tool</th><th>Draft ID</th><th>Company</th><th>Outcome</th></tr></thead><tbody>";
-        entries.forEach(e => {
+        let html = "<table><thead><tr><th>Time</th><th>Action / Tool</th><th>Draft ID</th><th>Company</th><th>Outcome</th><th>Details / Live Response</th></tr></thead><tbody>";
+        entries.forEach((e, idx) => {
+          const outcome = (e.outcome || "").toLowerCase();
+          const isSuccess = outcome === "success" || outcome === "human_approved" || outcome === "committed";
+          const isError = outcome === "error" || outcome === "failed";
+          const badgeStyle = isSuccess 
+            ? "background:#ecfdf5; color:#059669; font-weight:600;" 
+            : isError 
+              ? "background:#fef2f2; color:#dc2626; font-weight:600;" 
+              : "background:#eff6ff; color:#2563eb; font-weight:600;";
+          const badgeIcon = isSuccess ? "✓ " : isError ? "✕ " : "ℹ ";
+          const detailId = "audit-detail-" + idx;
+          const hasDetails = Boolean(e.details && e.details.trim().length > 0);
+
           html += `<tr>
-            <td style=\"font-size:12px; color:var(--muted);\">${escapeHtml(e.timestamp.replace("T", " ").slice(0, 19))}</td>
+            <td style="font-size:12px; color:var(--muted);">${escapeHtml(e.timestamp.replace("T", " ").slice(0, 19))}</td>
             <td><code>${escapeHtml(e.tool)}</code></td>
             <td>${e.draft_id ? `<code>${escapeHtml(e.draft_id)}</code>` : "-"}</td>
             <td>${e.company ? escapeHtml(e.company) : "-"}</td>
-            <td><span class=\"tag\" style=\"background:#ecfdf5;color:#059669;\">${escapeHtml(e.outcome)}</span></td>
-          </tr>`;
+            <td><span class="tag" style="${badgeStyle}">${badgeIcon}${escapeHtml(e.outcome)}</span></td>
+            <td>
+              ${hasDetails 
+                ? `<button class="btn btn-sm btn-outline" style="font-size:11px; padding:2px 8px;" onclick="toggleAuditDetail('${detailId}')">👁 View Details</button>`
+                : `<span style="color:var(--muted); font-size:11.5px;">-</span>`
+              }
+            </td>
+          </tr>
+          ${hasDetails ? `
+            <tr id="${detailId}" style="display:none; background:#f8fafc;">
+              <td colspan="6" style="padding:10px 14px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                  <strong style="font-size:11.5px; color:#475569;">Recorded Payload / Response Details:</strong>
+                  <button class="btn btn-sm btn-outline" style="font-size:10.5px; padding:1px 6px;" onclick="copyAuditDetail('${detailId}')">📋 Copy</button>
+                </div>
+                <pre style="margin:0; max-height:220px; overflow-y:auto; background:#ffffff; border:1px solid var(--border); border-radius:6px; padding:8px 10px; font-size:11.5px; line-height:1.4;"><code id="${detailId}-code">${escapeHtml(e.details)}</code></pre>
+              </td>
+            </tr>
+          ` : ""}`;
         });
         html += "</tbody></table>";
         auditList.innerHTML = html;
       } catch (e) {
         document.getElementById("audit-list").innerHTML = "<p style=\"color:var(--danger)\">Failed to load audit logs.</p>";
+      }
+    }
+
+    function toggleAuditDetail(id) {
+      const el = document.getElementById(id);
+      if (el) {
+        el.style.display = el.style.display === "none" ? "table-row" : "none";
+      }
+    }
+
+    function copyAuditDetail(id) {
+      const codeEl = document.getElementById(id + "-code");
+      if (codeEl) {
+        navigator.clipboard.writeText(codeEl.textContent).then(() => {
+          showBanner("Audit details copied to clipboard!", "success");
+        });
       }
     }
 
@@ -2073,6 +2378,7 @@
     loadDrafts();
     loadByokConfig();
     loadMcpTools();
+    selectApiPreset("companies");
     setInterval(loadDrafts, 6000);
   </script>
 </body>

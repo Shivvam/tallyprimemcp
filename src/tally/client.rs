@@ -81,6 +81,15 @@ impl TallyClient {
 
         let url = self.target_url();
 
+        let debug_mode = std::env::var("TALLY_DEBUG")
+            .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
+            .unwrap_or(false);
+
+        if debug_mode {
+            eprintln!("[TallyMCP DEBUG] Request -> {}:\n{}", url, xml_payload);
+        }
+        tracing::debug!("Tally XML Request (to {}):\n{}", url, xml_payload);
+
         // Prepare request bytes (UTF-16LE with BOM if necessary, or UTF-8)
         let body_bytes = xml_payload.as_bytes().to_vec();
 
@@ -90,10 +99,24 @@ impl TallyClient {
             Ok(resp_bytes) => {
                 self.breaker.record_success().await;
                 let decoded = decode_tally_response(&resp_bytes);
+
+                if debug_mode {
+                    eprintln!("[TallyMCP DEBUG] Response <-\n{}", decoded);
+                }
+                tracing::debug!("Tally XML Response:\n{}", decoded);
+
+                // Detect Tally runtime errors (e.g. <LINEERROR>...</LINEERROR>)
+                if let Some(err_msg) = extract_tally_error(&decoded) {
+                    return Err(TallyError::TallyResponseError(err_msg));
+                }
+
                 Ok(decoded)
             }
             Err(err) => {
                 self.breaker.record_failure().await;
+                if debug_mode {
+                    eprintln!("[TallyMCP DEBUG] Transport Error: {}", err);
+                }
                 Err(err)
             }
         }
@@ -129,7 +152,20 @@ impl TallyClient {
         let xml = build_list_companies_xml();
         let deadline = Duration::from_secs(self.config.call_deadline_secs);
         let resp = self.execute_raw_xml(&xml, deadline).await?;
-        Ok(parse_company_names(&resp))
+        let mut comps = parse_company_names(&resp);
+
+        // If List of Companies was empty, fallback to querying Collection Company
+        if comps.is_empty() {
+            let fallback_xml = build_collection_company_xml();
+            if let Ok(fallback_resp) = self.execute_raw_xml(&fallback_xml, deadline).await {
+                let fallback_comps = parse_company_names(&fallback_resp);
+                if !fallback_comps.is_empty() {
+                    comps = fallback_comps;
+                }
+            }
+        }
+
+        Ok(comps)
     }
 
     pub async fn list_ledgers(&self, company: Option<&str>) -> Result<Vec<String>, TallyError> {
@@ -193,7 +229,8 @@ impl TallyClient {
 
         let xml = build_trial_balance_xml(comp, from_date, to_date);
         let deadline = Duration::from_secs(self.config.report_deadline_secs);
-        self.execute_raw_xml(&xml, deadline).await
+        let resp = self.execute_raw_xml(&xml, deadline).await?;
+        Ok(format_report_response("Trial Balance", &resp))
     }
 
     pub async fn day_book(
@@ -227,7 +264,8 @@ impl TallyClient {
 
         let xml = build_day_book_xml(comp, from_date, to_date);
         let deadline = Duration::from_secs(self.config.report_deadline_secs);
-        self.execute_raw_xml(&xml, deadline).await
+        let resp = self.execute_raw_xml(&xml, deadline).await?;
+        Ok(format_day_book_response(&resp))
     }
 
     pub async fn post_voucher_xml(
@@ -501,6 +539,51 @@ pub fn decode_tally_response(bytes: &[u8]) -> String {
     String::from_utf8_lossy(bytes).to_string()
 }
 
+pub fn extract_tally_error(xml: &str) -> Option<String> {
+    let upper = xml.to_ascii_uppercase();
+    if let Some(start_pos) = upper.find("<LINEERROR>") {
+        let after = &xml[start_pos + "<LINEERROR>".len()..];
+        if let Some(end_pos) = after.to_ascii_uppercase().find("</LINEERROR>") {
+            let msg = after[..end_pos].trim();
+            if !msg.is_empty() {
+                return Some(format!("Tally LINEERROR: {}", msg));
+            }
+        }
+    }
+    None
+}
+
+pub fn is_empty_envelope(xml: &str) -> bool {
+    let trimmed = xml.trim();
+    if trimmed.is_empty() {
+        return true;
+    }
+    if trimmed.eq_ignore_ascii_case("<ENVELOPE></ENVELOPE>")
+        || trimmed.eq_ignore_ascii_case("<ENVELOPE/>")
+    {
+        return true;
+    }
+    let stripped: String = trimmed.chars().filter(|c| !c.is_whitespace()).collect();
+    stripped.eq_ignore_ascii_case("<ENVELOPE></ENVELOPE>")
+        || stripped.eq_ignore_ascii_case("<ENVELOPE/>")
+        || stripped.eq_ignore_ascii_case("<ENVELOPE><HEADER></HEADER><BODY></BODY></ENVELOPE>")
+        || stripped.eq_ignore_ascii_case("<ENVELOPE><BODY><DATA></DATA></BODY></ENVELOPE>")
+        || stripped.eq_ignore_ascii_case(
+            "<ENVELOPE><BODY><DATA><COLLECTION></COLLECTION></DATA></BODY></ENVELOPE>",
+        )
+}
+
+pub fn format_report_response(report_name: &str, xml: &str) -> String {
+    if is_empty_envelope(xml) {
+        format!(
+            "No data records found in Tally for '{}' for the selected company and period (empty report envelope).",
+            report_name
+        )
+    } else {
+        xml.to_string()
+    }
+}
+
 pub fn parse_company_names(xml: &str) -> Vec<String> {
     let mut names = Vec::new();
     use quick_xml::events::Event;
@@ -510,22 +593,18 @@ pub fn parse_company_names(xml: &str) -> Vec<String> {
     reader.config_mut().trim_text(true);
 
     let mut in_name_tag = false;
+    let mut inside_company = false;
 
     while let Ok(event) = reader.read_event() {
         match event {
-            Event::Start(ref e) => {
+            Event::Start(ref e) | Event::Empty(ref e) => {
                 let local = e.local_name();
                 let tag = local.as_ref();
-                if tag.eq_ignore_ascii_case(b"companyname")
-                    || tag.eq_ignore_ascii_case(b"name")
-                    || tag.eq_ignore_ascii_case(b"svcurrentcompany")
-                    || tag.eq_ignore_ascii_case(b"currentcompany")
-                {
-                    in_name_tag = true;
-                }
 
                 if tag.eq_ignore_ascii_case(b"company") || tag.eq_ignore_ascii_case(b"companyname")
                 {
+                    inside_company = true;
+                    // Check attributes on <COMPANY NAME="..." COMPANYNAME="...">
                     for attr in e.attributes().flatten() {
                         let k = attr.key.local_name();
                         if k.as_ref().eq_ignore_ascii_case(b"name")
@@ -539,6 +618,15 @@ pub fn parse_company_names(xml: &str) -> Vec<String> {
                             }
                         }
                     }
+                }
+
+                if (inside_company
+                    && (tag.eq_ignore_ascii_case(b"name")
+                        || tag.eq_ignore_ascii_case(b"companyname")))
+                    || tag.eq_ignore_ascii_case(b"svcurrentcompany")
+                    || tag.eq_ignore_ascii_case(b"currentcompany")
+                {
+                    in_name_tag = true;
                 }
             }
             Event::Text(e) if in_name_tag => {
@@ -558,7 +646,13 @@ pub fn parse_company_names(xml: &str) -> Vec<String> {
                 }
                 in_name_tag = false;
             }
-            Event::End(_) => {
+            Event::End(ref e) => {
+                let local = e.local_name();
+                let tag = local.as_ref();
+                if tag.eq_ignore_ascii_case(b"company") || tag.eq_ignore_ascii_case(b"companyname")
+                {
+                    inside_company = false;
+                }
                 in_name_tag = false;
             }
             Event::Eof => break,
@@ -569,6 +663,19 @@ pub fn parse_company_names(xml: &str) -> Vec<String> {
     names
 }
 
+fn is_uuid_like(s: &str) -> bool {
+    let bytes = s.as_bytes();
+    if bytes.len() == 36
+        && bytes[8] == b'-'
+        && bytes[13] == b'-'
+        && bytes[18] == b'-'
+        && bytes[23] == b'-'
+    {
+        return s.chars().all(|c| c.is_ascii_hexdigit() || c == '-');
+    }
+    false
+}
+
 pub fn parse_ledger_names(xml: &str) -> Vec<String> {
     let mut ledgers = Vec::new();
     use quick_xml::events::Event;
@@ -577,21 +684,18 @@ pub fn parse_ledger_names(xml: &str) -> Vec<String> {
     let mut reader = Reader::from_str(xml);
     reader.config_mut().trim_text(true);
 
-    let mut in_ledger = false;
+    let mut inside_ledger = false;
+    let mut in_ledger_name_tag = false;
 
     while let Ok(event) = reader.read_event() {
         match event {
-            Event::Start(ref e) => {
+            Event::Start(ref e) | Event::Empty(ref e) => {
                 let local = e.local_name();
                 let tag = local.as_ref();
-                if tag.eq_ignore_ascii_case(b"dspaccname")
-                    || tag.eq_ignore_ascii_case(b"ledgername")
-                    || tag.eq_ignore_ascii_case(b"name")
-                {
-                    in_ledger = true;
-                }
 
                 if tag.eq_ignore_ascii_case(b"ledger") {
+                    inside_ledger = true;
+                    // Check attributes on <LEDGER NAME="..." LEDGERNAME="...">
                     for attr in e.attributes().flatten() {
                         let k = attr.key.local_name();
                         if k.as_ref().eq_ignore_ascii_case(b"name")
@@ -599,33 +703,47 @@ pub fn parse_ledger_names(xml: &str) -> Vec<String> {
                         {
                             if let Ok(val) = attr.decode_and_unescape_value(reader.decoder()) {
                                 let s = val.trim();
-                                if !s.is_empty() && !ledgers.contains(&s.to_string()) {
+                                if !s.is_empty()
+                                    && !is_uuid_like(s)
+                                    && !ledgers.contains(&s.to_string())
+                                {
                                     ledgers.push(s.to_string());
                                 }
                             }
                         }
                     }
+                } else if inside_ledger
+                    && (tag.eq_ignore_ascii_case(b"name")
+                        || tag.eq_ignore_ascii_case(b"dspaccname")
+                        || tag.eq_ignore_ascii_case(b"ledgername"))
+                {
+                    in_ledger_name_tag = true;
                 }
             }
-            Event::Text(e) if in_ledger => {
+            Event::Text(e) if in_ledger_name_tag && inside_ledger => {
                 if let Ok(text) = e.unescape() {
                     let s = text.trim();
-                    if !s.is_empty() && !ledgers.contains(&s.to_string()) {
+                    if !s.is_empty() && !is_uuid_like(s) && !ledgers.contains(&s.to_string()) {
                         ledgers.push(s.to_string());
                     }
                 }
-                in_ledger = false;
+                in_ledger_name_tag = false;
             }
-            Event::CData(e) if in_ledger => {
+            Event::CData(e) if in_ledger_name_tag && inside_ledger => {
                 let text = String::from_utf8_lossy(&e);
                 let s = text.trim();
-                if !s.is_empty() && !ledgers.contains(&s.to_string()) {
+                if !s.is_empty() && !is_uuid_like(s) && !ledgers.contains(&s.to_string()) {
                     ledgers.push(s.to_string());
                 }
-                in_ledger = false;
+                in_ledger_name_tag = false;
             }
-            Event::End(_) => {
-                in_ledger = false;
+            Event::End(ref e) => {
+                let local = e.local_name();
+                let tag = local.as_ref();
+                if tag.eq_ignore_ascii_case(b"ledger") {
+                    inside_ledger = false;
+                }
+                in_ledger_name_tag = false;
             }
             Event::Eof => break,
             _ => {}
@@ -633,4 +751,150 @@ pub fn parse_ledger_names(xml: &str) -> Vec<String> {
     }
 
     ledgers
+}
+
+pub fn parse_day_book_vouchers(xml: &str) -> Vec<serde_json::Value> {
+    let mut vouchers = Vec::new();
+    use quick_xml::events::Event;
+    use quick_xml::Reader;
+
+    let mut reader = Reader::from_str(xml);
+    reader.config_mut().trim_text(true);
+
+    let mut in_voucher = false;
+    let mut in_all_ledger = false;
+    let mut current_tag = String::new();
+
+    let mut cur_date = String::new();
+    let mut cur_type = String::new();
+    let mut cur_number = String::new();
+    let mut cur_party = String::new();
+    let mut cur_amount: Option<f64> = None;
+    let mut cur_cancelled: Option<bool> = None;
+    let mut cur_narration = String::new();
+    let mut cur_ledger_name = String::new();
+    let mut cur_ledger_amount: Option<f64> = None;
+    let mut cur_entries: Vec<serde_json::Value> = Vec::new();
+
+    while let Ok(event) = reader.read_event() {
+        match event {
+            Event::Start(ref e) => {
+                let local = e.local_name();
+                let tag_str = String::from_utf8_lossy(local.as_ref()).to_string();
+                let tag_lower = tag_str.to_ascii_lowercase();
+
+                if tag_lower == "voucher" {
+                    in_voucher = true;
+                    cur_date.clear();
+                    cur_type.clear();
+                    cur_number.clear();
+                    cur_party.clear();
+                    cur_amount = None;
+                    cur_cancelled = None;
+                    cur_narration.clear();
+                    cur_entries.clear();
+                } else if in_voucher && tag_lower == "allledgerentries.list" {
+                    in_all_ledger = true;
+                    cur_ledger_name.clear();
+                    cur_ledger_amount = None;
+                } else if in_voucher {
+                    current_tag = tag_lower;
+                }
+            }
+            Event::Text(e) if in_voucher => {
+                if let Ok(text) = e.unescape() {
+                    let s = text.trim();
+                    if in_all_ledger {
+                        if current_tag == "ledgername" {
+                            cur_ledger_name = s.to_string();
+                        } else if current_tag == "amount" {
+                            cur_ledger_amount = s.parse::<f64>().ok();
+                        }
+                    } else {
+                        match current_tag.as_str() {
+                            "date" => {
+                                if cur_date.is_empty() {
+                                    if s.len() == 8 && s.chars().all(|c| c.is_ascii_digit()) {
+                                        cur_date =
+                                            format!("{}-{}-{}", &s[0..4], &s[4..6], &s[6..8]);
+                                    } else {
+                                        cur_date = s.to_string();
+                                    }
+                                }
+                            }
+                            "vouchertypename" => cur_type = s.to_string(),
+                            "vouchernumber" => cur_number = s.to_string(),
+                            "partyledgername" | "partyname" => cur_party = s.to_string(),
+                            "amount" if cur_amount.is_none() => cur_amount = s.parse::<f64>().ok(),
+                            "iscancelled" => cur_cancelled = Some(s.eq_ignore_ascii_case("yes")),
+                            "narration" => cur_narration = s.to_string(),
+                            _ => {}
+                        }
+                    }
+                }
+            }
+            Event::CData(e) if in_voucher => {
+                let text = String::from_utf8_lossy(&e);
+                let s = text.trim();
+                if in_all_ledger {
+                    if current_tag == "ledgername" {
+                        cur_ledger_name = s.to_string();
+                    }
+                } else {
+                    match current_tag.as_str() {
+                        "vouchertypename" => cur_type = s.to_string(),
+                        "vouchernumber" => cur_number = s.to_string(),
+                        "partyledgername" | "partyname" => cur_party = s.to_string(),
+                        "narration" => cur_narration = s.to_string(),
+                        _ => {}
+                    }
+                }
+            }
+            Event::End(ref e) => {
+                let local = e.local_name();
+                let tag_str = String::from_utf8_lossy(local.as_ref()).to_string();
+                let tag_lower = tag_str.to_ascii_lowercase();
+
+                if tag_lower == "allledgerentries.list" {
+                    in_all_ledger = false;
+                    if !cur_ledger_name.is_empty() {
+                        cur_entries.push(serde_json::json!({
+                            "ledger": cur_ledger_name,
+                            "amount": cur_ledger_amount.unwrap_or(0.0)
+                        }));
+                    }
+                } else if tag_lower == "voucher" {
+                    in_voucher = false;
+                    vouchers.push(serde_json::json!({
+                        "date": cur_date,
+                        "voucher_type": cur_type,
+                        "voucher_number": cur_number,
+                        "party": cur_party,
+                        "amount": cur_amount,
+                        "is_cancelled": cur_cancelled.unwrap_or(false),
+                        "narration": cur_narration,
+                        "ledger_entries": cur_entries
+                    }));
+                }
+                current_tag.clear();
+            }
+            Event::Eof => break,
+            _ => {}
+        }
+    }
+
+    vouchers
+}
+
+pub fn format_day_book_response(xml: &str) -> String {
+    if is_empty_envelope(xml) {
+        return "No vouchers found in Day Book for the selected company and period (empty report envelope).".to_string();
+    }
+
+    let vouchers = parse_day_book_vouchers(xml);
+    if !vouchers.is_empty() {
+        serde_json::to_string_pretty(&vouchers).unwrap_or_else(|_| xml.to_string())
+    } else {
+        xml.to_string()
+    }
 }

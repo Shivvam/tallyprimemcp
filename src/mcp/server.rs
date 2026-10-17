@@ -415,71 +415,122 @@ impl McpServer {
                     let deadline = Duration::from_secs(self.config.tally.report_deadline_secs);
                     match self.tally.execute_raw_xml(&xml, deadline).await {
                         Ok(resp) => {
-                            self.audit.log(name, None, None, "report_executed");
+                            let formatted =
+                                crate::tally::client::format_report_response(name, &resp);
+                            self.audit.log_full(
+                                name,
+                                None,
+                                None,
+                                "Success (Pack Tool Executed)",
+                                Some(&formatted),
+                            );
                             return json!({
                                 "jsonrpc": "2.0",
                                 "id": id,
-                                "result": { "content": [{ "type": "text", "text": resp }] }
+                                "result": { "content": [{ "type": "text", "text": formatted }] }
                             });
                         }
                         Err(e) => {
+                            let err_msg = format!("Tally error: {}", e);
+                            self.audit.log_full(name, None, None, &err_msg, None);
                             return json!({
                                 "jsonrpc": "2.0",
                                 "id": id,
-                                "result": { "isError": true, "content": [{ "type": "text", "text": format!("Tally error: {}", e) }] }
+                                "result": { "isError": true, "content": [{ "type": "text", "text": err_msg }] }
                             });
                         }
                     }
                 }
                 Err(e) => {
+                    let err_msg = format!("Pack error: {}", e);
+                    self.audit.log_full(name, None, None, &err_msg, None);
                     return json!({
                         "jsonrpc": "2.0",
                         "id": id,
-                        "result": { "isError": true, "content": [{ "type": "text", "text": format!("Pack error: {}", e) }] }
+                        "result": { "isError": true, "content": [{ "type": "text", "text": err_msg }] }
                     });
                 }
             }
         }
 
         match name {
-            "tally_status" => {
-                self.audit.log("tally_status", None, None, "queried");
-                match self.tally.status().await {
-                    Ok(status) => json!({
+            "tally_status" => match self.tally.status().await {
+                Ok(status) => {
+                    let outcome = if status.reachable {
+                        format!(
+                            "Success: Gateway Online (Active: {})",
+                            status.active_company.as_deref().unwrap_or("None")
+                        )
+                    } else {
+                        "Offline: Gateway Unreachable".to_string()
+                    };
+                    self.audit.log_full(
+                        "tally_status",
+                        None,
+                        None,
+                        &outcome,
+                        Some(&serde_json::to_string(&status).unwrap_or_default()),
+                    );
+                    json!({
                         "jsonrpc": "2.0",
                         "id": id,
                         "result": { "content": [{ "type": "text", "text": serde_json::to_string_pretty(&status).unwrap_or_default() }] }
-                    }),
-                    Err(err) => json!({
+                    })
+                }
+                Err(err) => {
+                    let err_msg = format!("Error: {}", err);
+                    self.audit
+                        .log_full("tally_status", None, None, &err_msg, None);
+                    json!({
                         "jsonrpc": "2.0",
                         "id": id,
-                        "result": { "isError": true, "content": [{ "type": "text", "text": format!("Error: {}", err) }] }
-                    }),
+                        "result": { "isError": true, "content": [{ "type": "text", "text": err_msg }] }
+                    })
                 }
-            }
+            },
 
-            "tally_list_companies" => {
-                self.audit
-                    .log("tally_list_companies", None, None, "queried");
-                match self.tally.list_companies().await {
-                    Ok(companies) => json!({
+            "tally_list_companies" => match self.tally.list_companies().await {
+                Ok(companies) => {
+                    let summary = if companies.is_empty() {
+                        "Success: 0 companies loaded".to_string()
+                    } else {
+                        format!(
+                            "Success: {} company(s) found ({})",
+                            companies.len(),
+                            companies.join(", ")
+                        )
+                    };
+                    self.audit.log_full(
+                        "tally_list_companies",
+                        None,
+                        None,
+                        &summary,
+                        Some(&serde_json::to_string(&companies).unwrap_or_default()),
+                    );
+                    json!({
                         "jsonrpc": "2.0",
                         "id": id,
                         "result": { "content": [{ "type": "text", "text": serde_json::to_string_pretty(&companies).unwrap_or_default() }] }
-                    }),
-                    Err(err) => json!({
+                    })
+                }
+                Err(err) => {
+                    let err_msg = format!("Error: {}", err);
+                    self.audit
+                        .log_full("tally_list_companies", None, None, &err_msg, None);
+                    json!({
                         "jsonrpc": "2.0",
                         "id": id,
-                        "result": { "isError": true, "content": [{ "type": "text", "text": format!("Error: {}", err) }] }
-                    }),
+                        "result": { "isError": true, "content": [{ "type": "text", "text": err_msg }] }
+                    })
                 }
-            }
+            },
 
             "tally_set_active_company" => {
                 let company = arguments
                     .get("company")
                     .and_then(|c| c.as_str())
-                    .unwrap_or("");
+                    .unwrap_or("")
+                    .trim();
                 if company.is_empty() {
                     json!({
                         "jsonrpc": "2.0",
@@ -487,31 +538,99 @@ impl McpServer {
                         "result": { "isError": true, "content": [{ "type": "text", "text": "Company name cannot be empty" }] }
                     })
                 } else {
-                    self.tally.set_active_company(company.to_string()).await;
-                    self.audit
-                        .log("tally_set_active_company", None, Some(company), "set");
-                    json!({
-                        "jsonrpc": "2.0",
-                        "id": id,
-                        "result": { "content": [{ "type": "text", "text": format!("Active company set to '{}'", company) }] }
-                    })
+                    // Validate against currently loaded companies in Tally if available
+                    match self.tally.list_companies().await {
+                        Ok(companies) if !companies.is_empty() => {
+                            if let Some(matched) =
+                                companies.iter().find(|c| c.eq_ignore_ascii_case(company))
+                            {
+                                self.tally.set_active_company(matched.clone()).await;
+                                self.audit.log_full(
+                                    "tally_set_active_company",
+                                    None,
+                                    Some(matched),
+                                    &format!("Success: Active company set to '{}'", matched),
+                                    Some(matched),
+                                );
+                                json!({
+                                    "jsonrpc": "2.0",
+                                    "id": id,
+                                    "result": { "content": [{ "type": "text", "text": format!("Active company set to '{}'", matched) }] }
+                                })
+                            } else {
+                                let err_msg = format!(
+                                    "Company '{}' not found in loaded companies. Available companies: {}",
+                                    company,
+                                    companies.join(", ")
+                                );
+                                self.audit.log_full(
+                                    "tally_set_active_company",
+                                    None,
+                                    Some(company),
+                                    "Error: Company not found",
+                                    Some(&err_msg),
+                                );
+                                json!({
+                                    "jsonrpc": "2.0",
+                                    "id": id,
+                                    "result": {
+                                        "isError": true,
+                                        "content": [{
+                                            "type": "text",
+                                            "text": err_msg
+                                        }]
+                                    }
+                                })
+                            }
+                        }
+                        _ => {
+                            // If Tally list_companies is unavailable, set active company
+                            self.tally.set_active_company(company.to_string()).await;
+                            self.audit.log_full(
+                                "tally_set_active_company",
+                                None,
+                                Some(company),
+                                &format!("Active company set to '{}' (unverified)", company),
+                                None,
+                            );
+                            json!({
+                                "jsonrpc": "2.0",
+                                "id": id,
+                                "result": { "content": [{ "type": "text", "text": format!("Active company set to '{}'", company) }] }
+                            })
+                        }
+                    }
                 }
             }
 
             "tally_list_ledgers" => {
                 let comp = arguments.get("company").and_then(|c| c.as_str());
-                self.audit.log("tally_list_ledgers", None, comp, "queried");
                 match self.tally.list_ledgers(comp).await {
-                    Ok(ledgers) => json!({
-                        "jsonrpc": "2.0",
-                        "id": id,
-                        "result": { "content": [{ "type": "text", "text": serde_json::to_string_pretty(&ledgers).unwrap_or_default() }] }
-                    }),
-                    Err(err) => json!({
-                        "jsonrpc": "2.0",
-                        "id": id,
-                        "result": { "isError": true, "content": [{ "type": "text", "text": format!("Error: {}", err) }] }
-                    }),
+                    Ok(ledgers) => {
+                        let summary = format!("Success: {} ledger(s) found", ledgers.len());
+                        self.audit.log_full(
+                            "tally_list_ledgers",
+                            None,
+                            comp,
+                            &summary,
+                            Some(&serde_json::to_string(&ledgers).unwrap_or_default()),
+                        );
+                        json!({
+                            "jsonrpc": "2.0",
+                            "id": id,
+                            "result": { "content": [{ "type": "text", "text": serde_json::to_string_pretty(&ledgers).unwrap_or_default() }] }
+                        })
+                    }
+                    Err(err) => {
+                        let err_msg = format!("Error: {}", err);
+                        self.audit
+                            .log_full("tally_list_ledgers", None, comp, &err_msg, None);
+                        json!({
+                            "jsonrpc": "2.0",
+                            "id": id,
+                            "result": { "isError": true, "content": [{ "type": "text", "text": err_msg }] }
+                        })
+                    }
                 }
             }
 
@@ -519,18 +638,31 @@ impl McpServer {
                 let comp = arguments.get("company").and_then(|c| c.as_str());
                 let from = arguments.get("from_date").and_then(|d| d.as_str());
                 let to = arguments.get("to_date").and_then(|d| d.as_str());
-                self.audit.log("tally_trial_balance", None, comp, "queried");
                 match self.tally.trial_balance(comp, from, to).await {
-                    Ok(report) => json!({
-                        "jsonrpc": "2.0",
-                        "id": id,
-                        "result": { "content": [{ "type": "text", "text": report }] }
-                    }),
-                    Err(err) => json!({
-                        "jsonrpc": "2.0",
-                        "id": id,
-                        "result": { "isError": true, "content": [{ "type": "text", "text": format!("Error: {}", err) }] }
-                    }),
+                    Ok(report) => {
+                        self.audit.log_full(
+                            "tally_trial_balance",
+                            None,
+                            comp,
+                            "Success: Trial Balance queried",
+                            Some(&report),
+                        );
+                        json!({
+                            "jsonrpc": "2.0",
+                            "id": id,
+                            "result": { "content": [{ "type": "text", "text": report }] }
+                        })
+                    }
+                    Err(err) => {
+                        let err_msg = format!("Error: {}", err);
+                        self.audit
+                            .log_full("tally_trial_balance", None, comp, &err_msg, None);
+                        json!({
+                            "jsonrpc": "2.0",
+                            "id": id,
+                            "result": { "isError": true, "content": [{ "type": "text", "text": err_msg }] }
+                        })
+                    }
                 }
             }
 
@@ -538,18 +670,31 @@ impl McpServer {
                 let comp = arguments.get("company").and_then(|c| c.as_str());
                 let from = arguments.get("from_date").and_then(|d| d.as_str());
                 let to = arguments.get("to_date").and_then(|d| d.as_str());
-                self.audit.log("tally_day_book", None, comp, "queried");
                 match self.tally.day_book(comp, from, to).await {
-                    Ok(report) => json!({
-                        "jsonrpc": "2.0",
-                        "id": id,
-                        "result": { "content": [{ "type": "text", "text": report }] }
-                    }),
-                    Err(err) => json!({
-                        "jsonrpc": "2.0",
-                        "id": id,
-                        "result": { "isError": true, "content": [{ "type": "text", "text": format!("Error: {}", err) }] }
-                    }),
+                    Ok(report) => {
+                        self.audit.log_full(
+                            "tally_day_book",
+                            None,
+                            comp,
+                            "Success: Day Book queried",
+                            Some(&report),
+                        );
+                        json!({
+                            "jsonrpc": "2.0",
+                            "id": id,
+                            "result": { "content": [{ "type": "text", "text": report }] }
+                        })
+                    }
+                    Err(err) => {
+                        let err_msg = format!("Error: {}", err);
+                        self.audit
+                            .log_full("tally_day_book", None, comp, &err_msg, None);
+                        json!({
+                            "jsonrpc": "2.0",
+                            "id": id,
+                            "result": { "isError": true, "content": [{ "type": "text", "text": err_msg }] }
+                        })
+                    }
                 }
             }
 
@@ -952,10 +1097,14 @@ impl McpServer {
                                         None,
                                         &format!("executed: {}", report_name),
                                     );
+                                    let formatted = crate::tally::client::format_report_response(
+                                        report_name,
+                                        &resp,
+                                    );
                                     json!({
                                         "jsonrpc": "2.0",
                                         "id": id,
-                                        "result": { "content": [{ "type": "text", "text": resp }] }
+                                        "result": { "content": [{ "type": "text", "text": formatted }] }
                                     })
                                 }
                                 Err(err) => json!({

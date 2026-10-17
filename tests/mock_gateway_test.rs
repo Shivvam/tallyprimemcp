@@ -154,4 +154,145 @@ mod tests {
         assert!(status.loaded_companies.is_empty());
         assert!(status.error.is_some(), "Should contain error description");
     }
+
+    #[test]
+    fn test_parse_company_names_apna_mart_format() {
+        // Exact format reported from TallyPrime via PowerShell query
+        let sample_xml = r#"<ENVELOPE>
+            <BODY>
+                <DATA>
+                    <COLLECTION>
+                        <COMPANY NAME="Apna Mart" RESERVEDNAME="">
+                            <NAME TYPE="String">Apna Mart</NAME>
+                        </COMPANY>
+                    </COLLECTION>
+                </DATA>
+            </BODY>
+        </ENVELOPE>"#;
+
+        let companies = parse_company_names(sample_xml);
+        assert_eq!(companies, vec!["Apna Mart".to_string()]);
+    }
+
+    #[test]
+    fn test_parse_company_names_self_closing_tag() {
+        let sample_xml = r#"<ENVELOPE>
+            <BODY>
+                <DATA>
+                    <COLLECTION>
+                        <COMPANY NAME="Self Closing Traders Ltd" RESERVEDNAME=""/>
+                    </COLLECTION>
+                </DATA>
+            </BODY>
+        </ENVELOPE>"#;
+
+        let companies = parse_company_names(sample_xml);
+        assert_eq!(companies, vec!["Self Closing Traders Ltd".to_string()]);
+    }
+
+    #[test]
+    fn test_parse_ledger_names_filters_out_groups_and_guids() {
+        // Tally List of Accounts returns groups, ledgers, and remote company GUIDs
+        let sample_xml = r#"<ENVELOPE>
+            <BODY>
+                <DATA>
+                    <COLLECTION>
+                        <GROUP NAME="Capital Account" RESERVEDNAME="">
+                            <NAME TYPE="String">Capital Account</NAME>
+                        </GROUP>
+                        <GROUP NAME="Sundry Debtors" RESERVEDNAME="">
+                            <NAME TYPE="String">Sundry Debtors</NAME>
+                        </GROUP>
+                        <REMOTECMPINFO.LIST>
+                            <NAME TYPE="String">407d9af7-f23c-4983-801d-c165e2d1f700</NAME>
+                        </REMOTECMPINFO.LIST>
+                        <LEDGER NAME="Cash" RESERVEDNAME="">
+                            <NAME TYPE="String">Cash</NAME>
+                            <PARENT>Cash-in-Hand</PARENT>
+                        </LEDGER>
+                        <LEDGER NAME="M/s Sr Traders" RESERVEDNAME="">
+                            <NAME TYPE="String">M/s Sr Traders</NAME>
+                            <PARENT>Sundry Debtors</PARENT>
+                        </LEDGER>
+                    </COLLECTION>
+                </DATA>
+            </BODY>
+        </ENVELOPE>"#;
+
+        let ledgers = parse_ledger_names(sample_xml);
+        // Groups must be excluded
+        assert!(!ledgers.contains(&"Capital Account".to_string()));
+        assert!(!ledgers.contains(&"Sundry Debtors".to_string()));
+        // Company GUID must be excluded
+        assert!(!ledgers.contains(&"407d9af7-f23c-4983-801d-c165e2d1f700".to_string()));
+        // Real ledgers must be present
+        assert!(ledgers.contains(&"Cash".to_string()));
+        assert!(ledgers.contains(&"M/s Sr Traders".to_string()));
+        assert_eq!(ledgers.len(), 2);
+    }
+
+    #[test]
+    fn test_extract_tally_lineerror() {
+        use tally_mcp::tally::client::extract_tally_error;
+
+        let err_xml = r#"<RESPONSE>
+            <STATUS>0</STATUS>
+            <LINEERROR>Could not find Report 'Bills Outstanding'</LINEERROR>
+        </RESPONSE>"#;
+
+        let err = extract_tally_error(err_xml);
+        assert_eq!(
+            err,
+            Some("Tally LINEERROR: Could not find Report 'Bills Outstanding'".to_string())
+        );
+
+        let clean_xml = "<ENVELOPE><BODY><DATA></DATA></BODY></ENVELOPE>";
+        assert!(extract_tally_error(clean_xml).is_none());
+    }
+
+    #[test]
+    fn test_empty_envelope_and_format_report() {
+        use tally_mcp::tally::client::{format_report_response, is_empty_envelope};
+
+        assert!(is_empty_envelope("<ENVELOPE></ENVELOPE>"));
+        assert!(is_empty_envelope("<ENVELOPE/>"));
+        assert!(is_empty_envelope("  <ENVELOPE>\n  </ENVELOPE>  "));
+
+        let msg = format_report_response("Trial Balance", "<ENVELOPE></ENVELOPE>");
+        assert!(msg.contains("No data records found in Tally for 'Trial Balance'"));
+    }
+
+    #[test]
+    fn test_parse_day_book_summary() {
+        use tally_mcp::tally::client::format_day_book_response;
+
+        let sample_day_book = r#"<ENVELOPE>
+            <BODY>
+                <DATA>
+                    <COLLECTION>
+                        <VOUCHER DATE="20260401" VCHTYPE="Receipt">
+                            <DATE>20260401</DATE>
+                            <VOUCHERTYPENAME>Receipt</VOUCHERTYPENAME>
+                            <VOUCHERNUMBER>1</VOUCHERNUMBER>
+                            <PARTYLEDGERNAME>Cash</PARTYLEDGERNAME>
+                            <AMOUNT>-5000.00</AMOUNT>
+                            <ISCANCELLED>Yes</ISCANCELLED>
+                            <NARRATION>Opening receipt</NARRATION>
+                            <ALLLEDGERENTRIES.LIST>
+                                <LEDGERNAME>Cash</LEDGERNAME>
+                                <AMOUNT>-5000.00</AMOUNT>
+                            </ALLLEDGERENTRIES.LIST>
+                        </VOUCHER>
+                    </COLLECTION>
+                </DATA>
+            </BODY>
+        </ENVELOPE>"#;
+
+        let formatted = format_day_book_response(sample_day_book);
+        assert!(formatted.contains("\"voucher_type\": \"Receipt\""));
+        assert!(formatted.contains("\"voucher_number\": \"1\""));
+        assert!(formatted.contains("\"date\": \"2026-04-01\""));
+        assert!(formatted.contains("\"is_cancelled\": true"));
+        assert!(formatted.contains("\"party\": \"Cash\""));
+    }
 }

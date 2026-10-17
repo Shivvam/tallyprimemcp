@@ -399,6 +399,268 @@ impl CompanionUiServer {
                 continue;
             }
 
+            // Direct Tally XML API Tester & Inspector
+            if url_path == "/api/tally/test-api" && method == "POST" {
+                let mut body = String::new();
+                let _ = request.as_reader().read_to_string(&mut body);
+
+                let parsed: Result<serde_json::Value, _> = serde_json::from_str(&body);
+                let mut outcome = json!({ "success": false, "error": "Invalid request payload" });
+                let mut status_code = 400;
+
+                if let Ok(val) = parsed {
+                    let query_type = val
+                        .get("query_type")
+                        .and_then(|q| q.as_str())
+                        .unwrap_or("companies")
+                        .trim()
+                        .to_string();
+                    let company = val
+                        .get("company")
+                        .and_then(|c| c.as_str())
+                        .map(|c| c.trim().to_string())
+                        .unwrap_or_default();
+                    let custom_xml = val
+                        .get("raw_xml")
+                        .and_then(|x| x.as_str())
+                        .unwrap_or("")
+                        .trim();
+
+                    let tally = self.tally.read().unwrap().clone();
+                    let target_url = tally.target_url();
+
+                    let (req_xml, req_label) = match query_type.as_str() {
+                        "companies" | "list_companies" => (
+                            crate::tally::envelope::build_list_companies_xml(),
+                            "List of Companies (Collection)",
+                        ),
+                        "company_master" => (
+                            crate::tally::envelope::build_collection_company_xml(),
+                            "Company Master (Collection)",
+                        ),
+                        "ledgers" | "list_ledgers" => {
+                            let comp = if company.is_empty() {
+                                query_companies(tally.clone())
+                                    .first()
+                                    .cloned()
+                                    .unwrap_or_else(|| "Apna Mart".to_string())
+                            } else {
+                                company.clone()
+                            };
+                            (
+                                crate::tally::envelope::build_list_ledgers_xml(&comp),
+                                "Ledger Accounts (Collection)",
+                            )
+                        }
+                        "day_book" => {
+                            let comp = if company.is_empty() {
+                                query_companies(tally.clone())
+                                    .first()
+                                    .cloned()
+                                    .unwrap_or_else(|| "Apna Mart".to_string())
+                            } else {
+                                company.clone()
+                            };
+                            (
+                                crate::tally::envelope::build_day_book_xml(&comp, None, None),
+                                "Day Book (Report)",
+                            )
+                        }
+                        "trial_balance" => {
+                            let comp = if company.is_empty() {
+                                query_companies(tally.clone())
+                                    .first()
+                                    .cloned()
+                                    .unwrap_or_else(|| "Apna Mart".to_string())
+                            } else {
+                                company.clone()
+                            };
+                            (
+                                crate::tally::envelope::build_trial_balance_xml(&comp, None, None),
+                                "Trial Balance (Report)",
+                            )
+                        }
+                        "bills_receivable" => {
+                            let comp = if company.is_empty() {
+                                query_companies(tally.clone())
+                                    .first()
+                                    .cloned()
+                                    .unwrap_or_else(|| "Apna Mart".to_string())
+                            } else {
+                                company.clone()
+                            };
+                            (
+                                crate::tally::envelope::build_report_xml(
+                                    "Bills Receivable",
+                                    &comp,
+                                    None,
+                                    None,
+                                ),
+                                "Bills Receivable (Report)",
+                            )
+                        }
+                        _ => {
+                            if !custom_xml.is_empty() {
+                                (custom_xml.to_string(), "Custom TDL XML Request")
+                            } else {
+                                (
+                                    crate::tally::envelope::build_list_companies_xml(),
+                                    "List of Companies (Collection)",
+                                )
+                            }
+                        }
+                    };
+
+                    let start = std::time::Instant::now();
+                    let req_xml_clone = req_xml.clone();
+                    let tally_clone = tally.clone();
+
+                    let (tx, rx) = std::sync::mpsc::channel();
+                    std::thread::spawn(move || {
+                        if let Ok(rt) = tokio::runtime::Builder::new_current_thread()
+                            .enable_all()
+                            .build()
+                        {
+                            let res = rt.block_on(async move {
+                                tally_clone
+                                    .execute_raw_xml(&req_xml_clone, Duration::from_secs(12))
+                                    .await
+                            });
+                            let _ = tx.send(res);
+                        }
+                    });
+
+                    match rx.recv_timeout(Duration::from_secs(15)) {
+                        Ok(Ok(raw_resp)) => {
+                            let latency_ms = start.elapsed().as_millis();
+                            let parsed_json = match query_type.as_str() {
+                                "companies" | "list_companies" | "company_master" => {
+                                    let names =
+                                        crate::tally::client::parse_company_names(&raw_resp);
+                                    json!({
+                                        "count": names.len(),
+                                        "companies": names
+                                    })
+                                }
+                                "ledgers" | "list_ledgers" => {
+                                    let ledgers =
+                                        crate::tally::client::parse_ledger_names(&raw_resp);
+                                    json!({
+                                        "count": ledgers.len(),
+                                        "ledgers": ledgers
+                                    })
+                                }
+                                "day_book" => {
+                                    let vouchers =
+                                        crate::tally::client::parse_day_book_vouchers(&raw_resp);
+                                    json!({
+                                        "count": vouchers.len(),
+                                        "vouchers": vouchers
+                                    })
+                                }
+                                _ => {
+                                    if crate::tally::client::is_empty_envelope(&raw_resp) {
+                                        json!({
+                                            "status": "empty_envelope",
+                                            "message": "Tally returned an empty envelope (no matching records)."
+                                        })
+                                    } else {
+                                        json!({
+                                            "status": "received",
+                                            "xml_length_bytes": raw_resp.len()
+                                        })
+                                    }
+                                }
+                            };
+
+                            self.audit.log_full(
+                                "tally_api_test",
+                                None,
+                                if company.is_empty() {
+                                    None
+                                } else {
+                                    Some(&company)
+                                },
+                                "success",
+                                Some(&format!(
+                                    "Query: {} ({}ms)\nResponse Preview: {}",
+                                    req_label,
+                                    latency_ms,
+                                    if raw_resp.len() > 300 {
+                                        format!("{}...", &raw_resp[..300])
+                                    } else {
+                                        raw_resp.clone()
+                                    }
+                                )),
+                            );
+
+                            outcome = json!({
+                                "success": true,
+                                "query_type": query_type,
+                                "label": req_label,
+                                "target_url": target_url,
+                                "latency_ms": latency_ms,
+                                "request_xml": req_xml,
+                                "raw_xml_response": raw_resp,
+                                "parsed_json": parsed_json,
+                            });
+                            status_code = 200;
+                        }
+                        Ok(Err(e)) => {
+                            let latency_ms = start.elapsed().as_millis();
+                            let err_str = e.to_string();
+
+                            self.audit.log_full(
+                                "tally_api_test",
+                                None,
+                                if company.is_empty() {
+                                    None
+                                } else {
+                                    Some(&company)
+                                },
+                                "error",
+                                Some(&format!(
+                                    "Query: {} failed ({}ms): {}",
+                                    req_label, latency_ms, err_str
+                                )),
+                            );
+
+                            outcome = json!({
+                                "success": false,
+                                "query_type": query_type,
+                                "label": req_label,
+                                "target_url": target_url,
+                                "latency_ms": latency_ms,
+                                "request_xml": req_xml,
+                                "raw_xml_response": null,
+                                "parsed_json": null,
+                                "error": err_str
+                            });
+                            status_code = 200;
+                        }
+                        Err(_) => {
+                            outcome = json!({
+                                "success": false,
+                                "query_type": query_type,
+                                "label": req_label,
+                                "target_url": target_url,
+                                "request_xml": req_xml,
+                                "error": "Request to TallyPrime timed out after 15 seconds"
+                            });
+                            status_code = 504;
+                        }
+                    }
+                }
+
+                let header =
+                    Header::from_bytes(&b"Content-Type"[..], &b"application/json"[..]).unwrap();
+                let resp = Response::from_string(outcome.to_string())
+                    .with_header(header)
+                    .with_status_code(status_code);
+                let _ = request.respond(resp);
+                continue;
+            }
+
             // Get BYOK AI Configuration
             if url_path == "/api/byok/config" && method == "GET" {
                 let cfg = self.config.read().unwrap().clone();
@@ -926,19 +1188,23 @@ impl CompanionUiServer {
                                     })
                                     .to_string();
 
-                                self.audit.log(
+                                let target_url = self.tally.read().unwrap().target_url();
+                                self.audit.log_full(
                                     "companion_ui_test_tool",
                                     None,
                                     None,
-                                    &format!(
-                                        "Tested tool: {} (latency: {}ms, is_error: {})",
-                                        tool_name, latency_ms, is_error
-                                    ),
+                                    if is_error { "error" } else { "success" },
+                                    Some(&format!(
+                                        "Tested tool: {} (latency: {}ms, is_error: {})\nResult preview: {}",
+                                        tool_name, latency_ms, is_error,
+                                        if content_text.len() > 300 { format!("{}...", &content_text[..300]) } else { content_text.clone() }
+                                    )),
                                 );
 
                                 outcome = json!({
                                     "success": !is_error,
                                     "tool": tool_name,
+                                    "target_url": target_url,
                                     "latency_ms": latency_ms,
                                     "is_error": is_error,
                                     "raw_text": content_text,

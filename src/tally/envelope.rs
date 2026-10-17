@@ -3,8 +3,27 @@ pub fn build_list_companies_xml() -> String {
   <HEADER>
     <VERSION>1</VERSION>
     <TALLYREQUEST>Export</TALLYREQUEST>
-    <TYPE>Data</TYPE>
+    <TYPE>Collection</TYPE>
     <ID>List of Companies</ID>
+  </HEADER>
+  <BODY>
+    <DESC>
+      <STATICVARIABLES>
+        <SVEXPORTFORMAT>$$SysName:XML</SVEXPORTFORMAT>
+      </STATICVARIABLES>
+    </DESC>
+  </BODY>
+</ENVELOPE>"#
+        .to_string()
+}
+
+pub fn build_collection_company_xml() -> String {
+    r#"<ENVELOPE>
+  <HEADER>
+    <VERSION>1</VERSION>
+    <TALLYREQUEST>Export</TALLYREQUEST>
+    <TYPE>Collection</TYPE>
+    <ID>Company</ID>
   </HEADER>
   <BODY>
     <DESC>
@@ -24,16 +43,22 @@ pub fn build_list_ledgers_xml(company: &str) -> String {
   <HEADER>
     <VERSION>1</VERSION>
     <TALLYREQUEST>Export</TALLYREQUEST>
-    <TYPE>Data</TYPE>
-    <ID>List of Accounts</ID>
+    <TYPE>Collection</TYPE>
+    <ID>Ledger</ID>
   </HEADER>
   <BODY>
     <DESC>
       <STATICVARIABLES>
         <SVEXPORTFORMAT>$$SysName:XML</SVEXPORTFORMAT>
-        <ACCOUNTTYPE>Ledgers</ACCOUNTTYPE>
         <SVCURRENTCOMPANY>{}</SVCURRENTCOMPANY>
       </STATICVARIABLES>
+      <TDL>
+        <TDLMESSAGE>
+          <COLLECTION NAME="Ledger" ISMODIFY="Yes">
+            <FETCH>Name,Parent,ClosingBalance</FETCH>
+          </COLLECTION>
+        </TDLMESSAGE>
+      </TDL>
     </DESC>
   </BODY>
 </ENVELOPE>"#,
@@ -77,6 +102,15 @@ pub fn build_trial_balance_xml(
 }
 
 pub fn build_day_book_xml(company: &str, from_date: Option<&str>, to_date: Option<&str>) -> String {
+    build_report_xml("Day Book", company, from_date, to_date)
+}
+
+pub fn build_report_xml(
+    report_name: &str,
+    company: &str,
+    from_date: Option<&str>,
+    to_date: Option<&str>,
+) -> String {
     let company_escaped = quick_xml::escape::escape(company);
     let from_xml = from_date
         .map(|d| format!("<SVFROMDATE>{}</SVFROMDATE>", d))
@@ -90,7 +124,7 @@ pub fn build_day_book_xml(company: &str, from_date: Option<&str>, to_date: Optio
     <VERSION>1</VERSION>
     <TALLYREQUEST>Export</TALLYREQUEST>
     <TYPE>Data</TYPE>
-    <ID>Day Book</ID>
+    <ID>{}</ID>
   </HEADER>
   <BODY>
     <DESC>
@@ -103,6 +137,6 @@ pub fn build_day_book_xml(company: &str, from_date: Option<&str>, to_date: Optio
     </DESC>
   </BODY>
 </ENVELOPE>"#,
-        company_escaped, from_xml, to_xml
+        report_name, company_escaped, from_xml, to_xml
     )
 }

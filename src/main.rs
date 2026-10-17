@@ -165,6 +165,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }
             }
 
+            // Create desktop shortcut for Companion UI
+            match crate::cleanup::create_desktop_shortcut() {
+                Ok(path) => println!("[✓] Desktop shortcut created: {}", path.display()),
+                Err(e) => println!("[!] Desktop shortcut skipped: {}", e),
+            }
+
             println!("\nLAN Support Tips:");
             println!(
                 "  • Connect to remote/LAN TallyPrime: tally-mcp serve --host <LAN_IP> --port 9000"
@@ -173,6 +179,21 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             println!(
                 "  • Or save permanently:              tally-mcp setup --host <LAN_IP> --port 9000"
             );
+        }
+
+        "uninstall" => {
+            let dry_run = args.iter().any(|a| a == "--dry-run");
+            println!("=== tally-mcp Complete Clean Uninstall ===");
+            let opts = cleanup::CleanupOptions {
+                dry_run,
+                categories: vec![],
+                backup_dir: None,
+                force: true,
+            };
+            cleanup::execute_cleanup(&opts)?;
+            if !dry_run {
+                println!("All TallyMCP application data, logs, credentials, PATH entries, and shortcuts have been cleanly removed.");
+            }
         }
 
         "cleanup" => {
@@ -239,6 +260,9 @@ fn print_usage() {
     println!("  doctor    Run connectivity and configuration diagnostics");
     println!("  setup     Interactive CLI wizard for client integration");
     println!("  cleanup   Manage and clean local application state");
+    println!(
+        "  uninstall Cleanly uninstall all app data, shortcuts, PATH, and client integrations"
+    );
     println!("  version   Print version, build target, and schema information");
     println!("  help      Print this usage information");
     println!("\nConnection Options (Local or LAN):");
