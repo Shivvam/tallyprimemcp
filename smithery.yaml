@@ -1,0 +1,6 @@
+startCommand:
+  type: stdio
+  config:
+    command: tally-mcp
+    args:
+      - serve

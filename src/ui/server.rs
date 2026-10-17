@@ -1447,7 +1447,7 @@ impl CompanionUiServer {
                         "name": "Shivvam",
                         "url": "https://github.com/Shivvam/tallyprimemcp"
                     },
-                    "homepage": "https://tallymcp.vercel.app/",
+                    "homepage": "https://www.tallymcp.pro/",
                     "repository": "https://github.com/Shivvam/tallyprimemcp",
                     "server": {
                         "type": "binary",

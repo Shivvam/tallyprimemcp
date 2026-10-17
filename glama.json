@@ -1,0 +1,7 @@
+{
+  "$schema": "https://glama.ai/mcp/schemas/server.json",
+  "name": "tally-mcp",
+  "description": "Local-first MCP server for TallyPrime accounting. Read ledgers, reports, trial balance, day book; stage drafts with human-approved writes.",
+  "homepage": "https://www.tallymcp.pro/",
+  "repository": "https://github.com/Shivvam/tallyprimemcp"
+}

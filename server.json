@@ -1,0 +1,23 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.json",
+  "name": "io.github.Shivvam/tallyprimemcp",
+  "title": "TallyMCP: TallyPrime for AI agents",
+  "description": "TallyPrime MCP server: read ledgers & reports, draft vouchers; human approves every write.",
+  "version": "1.0.0",
+  "websiteUrl": "https://www.tallymcp.pro/",
+  "repository": {
+    "url": "https://github.com/Shivvam/tallyprimemcp",
+    "source": "github"
+  },
+  "packages": [
+    {
+      "registryType": "mcpb",
+      "identifier": "https://github.com/Shivvam/tallyprimemcp/releases/download/v1.0.0/tally-mcp.mcpb",
+      "version": "1.0.0",
+      "fileSha256": "b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9",
+      "transport": {
+        "type": "stdio"
+      }
+    }
+  ]
+}

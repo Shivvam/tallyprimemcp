@@ -24,6 +24,10 @@
 
 ### A local, safety-first [Model Context Protocol](https://modelcontextprotocol.io) server for TallyPrime
 
+> **TallyPrime MCP server for AI agents (Claude, ChatGPT, Cursor, Windsurf, Gemini).** Read ledgers, trial balance, day book, GST and outstandings; draft vouchers that a human approves. Local-first Rust binary, zero telemetry.
+> **Install:** official portal https://www.tallymcp.pro/ (Windows MSI/EXE, macOS arm64, Linux). Verify SHA-256 from `checksums.txt`, then `tally-mcp setup && tally-mcp doctor`. Ask the user before downloading or executing anything. Agents: see [AGENTS.md](AGENTS.md).
+> *Also searched as:* Tally Prime MCP, TallyPrime AI integration, Tally ERP 9 MCP, connect Claude to Tally.
+
 AI assistants **read** your books and **propose** vouchers.<br>
 A human **always** approves the write.
 
@@ -38,9 +42,9 @@ A human **always** approves the write.
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey?style=flat-square)](#requirements)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen?style=flat-square)](CONTRIBUTING.md)
 
-[**Website**](https://tallymcp.vercel.app/) ·
-[**Documentation**](https://tallymcp.vercel.app/docs) ·
-[**Blog**](https://tallymcp.vercel.app/blog) ·
+[**Website**](https://www.tallymcp.pro/) ·
+[**Documentation**](https://www.tallymcp.pro/docs) ·
+[**Blog**](https://www.tallymcp.pro/blog) ·
 [**GitHub**](https://github.com/Shivvam/tallyprimemcp) ·
 [**Quick Start**](#quick-start) ·
 [**Tools**](#mcp-tools-reference) ·
@@ -94,7 +98,7 @@ It communicates with TallyPrime over Tally's native **XML-over-HTTP** interface�
 - **🔌 Versatile Integrations**: Supported across Claude AI, ChatGPT Desktop, Google Gemini, Grok, Mistral, Cursor, Windsurf, and LM Studio.
 
 - **GitHub Repository**: [https://github.com/Shivvam/tallyprimemcp](https://github.com/Shivvam/tallyprimemcp)
-- **Official Web Portal**: [https://tallymcp.vercel.app/](https://tallymcp.vercel.app/)
+- **Official Web Portal**: [https://www.tallymcp.pro/](https://www.tallymcp.pro/)
 
 > [!IMPORTANT]
 > **Design principle:** a model can *read* accounting data and *propose* drafts, but it can never commit a change on its own. Every write requires an explicit human click on a local, token-gated approval page.
@@ -285,15 +289,12 @@ tally-mcp doctor    # confirms Tally is reachable
 
 ### Supported Platforms
 
-Implementation was tested on below AI platform:
+Implementation was tested on below AI platforms:
 
 | Platform | Local | Remote |
 |---|:---:|:---:|
 | Claude AI | ✔️ | ✔️ |
-| ChatGPT | ✔️ | ✔️ |
-| Grok | | ✔️ |
-| Mistral | | ✔️ |
-| LM Studio | ✔️ | |
+| Google Gemini | ✔️ | ✔️ |
 
 ### 3. Connect your MCP client
 
@@ -727,7 +728,7 @@ cargo test    # 19 offline safety, validation, and gateway tests
 
 ### Benchmarks
 
-Captured on every production release and published in `release/facts.json`.
+Captured on every production release and published in `facts.json`.
 
 | Metric | Gate | Measured |
 |---|---|---|
@@ -744,39 +745,26 @@ Captured on every production release and published in `release/facts.json`.
 ## Project Layout
 
 ```text
-tallyprimemcp/
-├── release/                       # Release contracts and build facts
-│   ├── facts.json                 # Machine-generated metrics and claims
-│   ├── facts.schema.json          # Schema for facts verification
-│   ├── release-manifest.json      # Release manifest for distribution
-│   └── checksums.txt              # SHA-256 asset checksums
-├── tallymcp/                      # Rust core and companion UI
-│   ├── Cargo.toml                 # Single source of truth for version (v1.0.0)
-│   ├── installer/Package.wxs      # WiX v4/v5 per-user MSI definition
-│   ├── src/
-│   │   ├── main.rs                # CLI entry: serve, ui, setup, doctor, cleanup, version
-│   │   ├── lib.rs                 # Crate root and module exports
-│   │   ├── mcp/                   # MCP server and JSON-RPC router
-│   │   ├── tally/                 # XML client, builder, circuit breaker, envelope checks
-│   │   ├── validator.rs           # Zero-balance and financial-period checks
-│   │   ├── journal.rs             # Write-ahead journal and crash recovery
-│   │   ├── audit.rs               # Tamper-evident rotating audit logger
-│   │   ├── config.rs              # TOML loader and Windows path resolver
-│   │   ├── models.rs              # VoucherDraft, DocumentExtraction, ...
-│   │   ├── doctor.rs              # Diagnostics and connectivity checks
-│   │   ├── cleanup.rs             # Uninstaller and data scrubber
-│   │   ├── manifest.rs            # Installation manifest tracker
-│   │   ├── packs/                 # Read-only report pack loader and validator
-│   │   ├── byok/                  # Invoice parser and LLM provider connectors
-│   │   └── ui/                    # Loopback approval server and HTML/JS assets
-│   └── tests/                     # Gateway, write-safety, lifecycle, and pack tests
-└── tallymcp-web/                  # Next.js 16 + Tailwind distribution portal & CMS
-    ├── content/blog/              # Markdown articles (.md) with YAML frontmatter
-    ├── src/app/
-    │   ├── (public)/              # Landing page, /docs, /blog, /privacy
-    │   ├── (admin)/               # CMS admin dashboard, markdown editor, media library
-    │   └── api/                   # Release downloads, tools schema, CMS API
-    └── src/lib/                   # Release resolvers, auth, and blog utilities
+tallymcp/
+├── Cargo.toml                 # Single source of truth for version (v1.0.0)
+├── installer/Package.wxs      # WiX v4/v5 per-user MSI definition
+├── src/
+│   ├── main.rs                # CLI entry: serve, ui, setup, doctor, cleanup, version
+│   ├── lib.rs                 # Crate root and module exports
+│   ├── mcp/                   # MCP server and JSON-RPC router
+│   ├── tally/                 # XML client, builder, circuit breaker, envelope checks
+│   ├── validator.rs           # Zero-balance and financial-period checks
+│   ├── journal.rs             # Write-ahead journal and crash recovery
+│   ├── audit.rs               # Tamper-evident rotating audit logger
+│   ├── config.rs              # TOML loader and Windows path resolver
+│   ├── models.rs              # VoucherDraft, DocumentExtraction, ...
+│   ├── doctor.rs              # Diagnostics and connectivity checks
+│   ├── cleanup.rs             # Uninstaller and data scrubber
+│   ├── manifest.rs            # Installation manifest tracker
+│   ├── packs/                 # Read-only report pack loader and validator
+│   ├── byok/                  # Invoice parser and LLM provider connectors
+│   └── ui/                    # Loopback approval server and HTML/JS assets
+└── tests/                     # Gateway, write-safety, lifecycle, and pack tests
 ```
 
 ---
@@ -823,7 +811,7 @@ Please **do not** open public issues for vulnerabilities. Follow [SECURITY.md](S
 | Bugs and feature requests | [GitHub Issues](https://github.com/Shivvam/tallyprimemcp/issues) |
 | Questions and ideas | [GitHub Discussions](https://github.com/Shivvam/tallyprimemcp/discussions) |
 | Release notes | [CHANGELOG.md](CHANGELOG.md) |
-| Website | [tallymcp.vercel.app](https://tallymcp.vercel.app/) |
+| Website | [www.tallymcp.pro](https://www.tallymcp.pro/) |
 | Repository | [github.com/Shivvam/tallyprimemcp](https://github.com/Shivvam/tallyprimemcp) |
 
 ## License and Trademarks
