@@ -9,7 +9,7 @@
   protocol         : Model Context Protocol 2024-11-05
   transport        : stdio, JSON-RPC 2.0
   language         : Rust 2021 edition, MSRV 1.80
-  license          : MIT
+  license          : MIT (Non-Commercial)
   purpose          : MCP server bridging TallyPrime (accounting software) to LLM clients
   capabilities     : read accounting data; stage DRAFT vouchers/ledgers; human-approved commit
   write_policy     : NO MCP tool can commit. Commit requires a human click on a loopback page.
@@ -32,13 +32,15 @@ A human **always** approves the write.
 [![CI](https://github.com/Shivvam/tallyprimemcp/actions/workflows/release.yml/badge.svg)](https://github.com/Shivvam/tallyprimemcp/actions/workflows/release.yml)
 [![Release](https://img.shields.io/github/v/release/Shivvam/tallyprimemcp?style=flat-square)](https://github.com/Shivvam/tallyprimemcp/releases)
 [![Downloads](https://img.shields.io/github/downloads/Shivvam/tallyprimemcp/total?style=flat-square)](https://github.com/Shivvam/tallyprimemcp/releases)
-[![License: MIT](https://img.shields.io/badge/license-MIT-green?style=flat-square)](LICENSE)
+[![License: MIT (Non-Commercial)](https://img.shields.io/badge/license-MIT%20Non--Commercial-blue?style=flat-square)](LICENSE)
 [![MCP](https://img.shields.io/badge/MCP-2024--11--05-blueviolet?style=flat-square)](https://modelcontextprotocol.io)
 [![Rust](https://img.shields.io/badge/rust-1.80%2B-orange?style=flat-square&logo=rust)](https://www.rust-lang.org)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey?style=flat-square)](#requirements)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen?style=flat-square)](CONTRIBUTING.md)
 
 [**Website**](https://tallymcp.vercel.app/) ·
+[**Documentation**](https://tallymcp.vercel.app/docs) ·
+[**Blog**](https://tallymcp.vercel.app/blog) ·
 [**GitHub**](https://github.com/Shivvam/tallyprimemcp) ·
 [**Quick Start**](#quick-start) ·
 [**Tools**](#mcp-tools-reference) ·
@@ -81,14 +83,14 @@ A human **always** approves the write.
 
 **TallyMCP** is an ultra-lightweight, high-performance, open-source MCP server written in Rust. It bridges **TallyPrime** to AI assistants (Claude, Antigravity, ChatGPT, Cursor, Windsurf, and any MCP client).
 
-It communicates with TallyPrime over Tally's native **XML-over-HTTP** interface on loopback (`127.0.0.1:9000`) by default or across your LAN. There is no cloud relay, no third-party backend, and zero telemetry.
+It communicates with TallyPrime over Tally's native **XML-over-HTTP** interface—running directly on the PC/laptop where Tally is installed (`127.0.0.1:9000`), or from any other PC/laptop connected to the same network (including Wi-Fi or office LAN). There is no cloud relay, no third-party backend, and zero telemetry.
 
-### 🌟 Core Unique Selling Points (USPs)
+### 🌟 Why choose this ?
 
 - **⚡ Ultra-Lightweight**: Minimal binary footprint (~1.3 MB core binary), sub-120ms cold start, and ~24 MB idle RAM footprint.
 - **🦀 Faster (Written in Rust)**: Compiled directly to native machine code with zero garbage collection pauses. Processes high-volume XML requests in milliseconds (bulk-imports 1,000 vouchers in ~22s).
 - **🛡️ Reliable & Safe**: Strict compile-time safety, deterministic schema validation, loopback isolation, and human-in-the-loop write approval.
-- **🆓 100% Free & Open Source**: Licensed under the permissive MIT license. Zero paywalls, zero closed telemetry, and no recurring fees.
+- **🆓 100% Free & Open Source**: Licensed under the MIT (Non-Commercial) license. Free forever for personal, research, and internal company use with zero recurring fees or paywalls.
 - **🔌 Versatile Integrations**: Supported across Claude AI, ChatGPT Desktop, Google Gemini, Grok, Mistral, Cursor, Windsurf, and LM Studio.
 
 - **GitHub Repository**: [https://github.com/Shivvam/tallyprimemcp](https://github.com/Shivvam/tallyprimemcp)
@@ -215,7 +217,7 @@ If the process crashes between steps, drafts stuck in `committing` are reconcile
 
 | Requirement | Details |
 |---|---|
-| **OS** | Windows 10/11 (x64), Linux (x86_64), or macOS (Apple Silicon, arm64). TallyPrime itself runs on Windows; `tally-mcp` can run on the same PC or connect over LAN. |
+| **OS** | Windows 10/11 (x64), Linux (x86_64), or macOS (Apple Silicon, arm64). TallyPrime itself runs on Windows; `tally-mcp` can run directly on the same PC/laptop or from any machine connected to the same network (even Wi-Fi). |
 | **TallyPrime** | Release 5.0+ recommended; Releases 4.x and 3.x supported; Releases 1.x/2.x and Tally.ERP 9 best-effort. Silver, Gold, and Edit Log editions. |
 | **Tally HTTP/XML** | Must be enabled ([step 1](#1-enable-tallyprimes-xml-server)) |
 | **MCP client** | Any client that launches stdio MCP servers |
@@ -304,7 +306,7 @@ TallyMCP can export a pre-packaged **`.mcpb` bundle** for zero-config, one-click
 3. Open **Claude Desktop** and either:
    - **Drag and drop** `tally-mcp.mcpb` directly onto the Claude Desktop window, OR
    - Go to **Settings ▸ Developer / Extensions ▸ Add MCP Bundle** and select the file.
-4. Claude Desktop automatically configures all 128 TallyPrime tools without requiring manual JSON editing!
+4. Claude Desktop automatically configures all TallyPrime tools without requiring manual JSON editing!
 
 ---
 
@@ -420,9 +422,9 @@ Ask your assistant:
 
 > *"List my Tally companies and show the trial balance for FY 2025-26."*
 
-### Connecting to a remote TallyPrime over LAN
+### Connecting to TallyPrime on the Same Network (Wi-Fi or LAN)
 
-If TallyPrime runs on another machine (for example `192.168.1.50:9000`):
+You do not need Tally installed on your AI workstation. If TallyPrime is running on another desktop or laptop connected to the same network (e.g. over office LAN or shared Wi-Fi at `192.168.1.50:9000`):
 
 > [!WARNING]
 > Tally's XML/HTTP channel is **unauthenticated plain HTTP**. Remote access is disabled by default and requires `allow_remote_tally = true` in `config.toml`. Use only on trusted networks.
@@ -683,12 +685,12 @@ Still stuck? Run `tally-mcp doctor` and attach the output (company names redacte
 
 | Area | Detail |
 |---|---|
-| **Platform** | TallyPrime runs on Windows. `tally-mcp` ships for Windows, Linux, and macOS (arm64) and reaches Tally over loopback or LAN |
+| **Platform** | TallyPrime runs on Windows. `tally-mcp` ships for Windows, Linux, and macOS (arm64) and reaches Tally directly on the same PC or across any machine on the same network (Wi-Fi / LAN) |
 | **Tally versions** | Tested on Release 5.0+ (including Edit Log), 4.x, 3.x. Backwards-compatible with 2.x/1.x and Tally.ERP 9 on a best-effort basis |
 | **Voucher types** | `Purchase`, `Sales`, `Payment`, `Receipt`, `Journal`, with debit/credit balancing and multi-ledger entries. CGST/SGST/IGST supported through explicit ledger mapping |
 | **Inventory** | Stock item mutations and stock journals are planned. Read-only inventory queries work via tool packs |
 | **Draft isolation** | Drafts live only in the local journal and are invisible in Tally until a human approves them |
-| **Network** | Same-machine setups use loopback. Remote Tally needs `allow_remote_tally = true`; the channel is unauthenticated plain HTTP |
+| **Network** | Same-machine setups use local loopback. Access across the same Wi-Fi or LAN needs `allow_remote_tally = true`; the channel is unauthenticated plain HTTP |
 | **Independence** | Not affiliated with Tally Solutions Pvt. Ltd. |
 
 ---
@@ -768,9 +770,13 @@ tallyprimemcp/
 │   │   ├── byok/                  # Invoice parser and LLM provider connectors
 │   │   └── ui/                    # Loopback approval server and HTML/JS assets
 │   └── tests/                     # Gateway, write-safety, lifecycle, and pack tests
-└── tallymcp-web/                  # Next.js 16 + Tailwind distribution portal
-    ├── src/app/                   # Landing page, docs, uncached /api/download routes
-    └── src/lib/release.ts         # Release manifest resolver and rate limiting
+└── tallymcp-web/                  # Next.js 16 + Tailwind distribution portal & CMS
+    ├── content/blog/              # Markdown articles (.md) with YAML frontmatter
+    ├── src/app/
+    │   ├── (public)/              # Landing page, /docs, /blog, /privacy
+    │   ├── (admin)/               # CMS admin dashboard, markdown editor, media library
+    │   └── api/                   # Release downloads, tools schema, CMS API
+    └── src/lib/                   # Release resolvers, auth, and blog utilities
 ```
 
 ---
@@ -822,7 +828,7 @@ Please **do not** open public issues for vulnerabilities. Follow [SECURITY.md](S
 
 ## License and Trademarks
 
-Released under the [MIT License](LICENSE).
+Released under the [MIT License (Non-Commercial)](LICENSE). Personal use, open-source research, and internal company use with your own local TallyPrime accounting books are free and permitted; commercial redistribution, resale, or bundling into paid commercial SaaS offerings is restricted without prior authorization.
 
 **Tally** and **TallyPrime** are trademarks of Tally Solutions Pvt. Ltd. TallyMCP is an independent open-source project, not affiliated with, endorsed by, or sponsored by Tally Solutions Pvt. Ltd.
 
