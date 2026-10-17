@@ -327,6 +327,8 @@ Edit `%APPDATA%\Claude\claude_desktop_config.json`:
 ```
 
 Fully restart Claude Desktop after saving.
+
+> 📖 **Need step-by-step help or troubleshooting?** See the [Claude Desktop Complete Integration & Self-Diagnostic Guide](docs/CLAUDE_DESKTOP_GUIDE.md) for log locations, config recipes, and self-checks.
 </details>
 
 <details>

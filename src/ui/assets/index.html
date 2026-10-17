@@ -160,13 +160,16 @@
         <button class="btn btn-sm btn-outline" onclick="switchTab('connection')">
           <span>⚙️</span> Tally Target
         </button>
+        <button class="btn btn-sm btn-outline" onclick="switchTab('tools')">
+          <span>🧪</span> Test MCP
+        </button>
         <a href="/guides.html" target="_blank" class="btn btn-sm btn-outline" style="text-decoration:none; display:inline-flex; align-items:center; gap:4px;">
           <span>📚</span> Guides Hub
         </a>
       </div>
     </header>
 
-    <!-- PROGRESSIVE SETUP STEPPER (Step 1 -> Step 2 -> Step 3 -> Step 4) -->
+    <!-- PROGRESSIVE SETUP STEPPER (Step 1 -> Step 2 -> Step 3 -> Step 4 -> Step 5) -->
     <div class="setup-stepper" id="setup-stepper">
       <!-- STEP 1 -->
       <div class="step-item active" id="step-nav-1" onclick="switchTab('connection')">
@@ -215,11 +218,24 @@
         </div>
         <span class="badge" style="font-size:10px; padding:2px 6px;">Chat UI</span>
       </div>
+
+      <!-- STEP 5 -->
+      <div class="step-item" id="step-nav-5" onclick="switchTab('tools')">
+        <div class="step-item-left">
+          <div class="step-num" id="step-5-num">5</div>
+          <div>
+            <span class="step-title">Test MCP Functions</span>
+            <span class="step-sub" id="step-5-sub">Verify Before Push</span>
+          </div>
+        </div>
+        <span class="badge" style="font-size:10px; padding:2px 6px;">Test</span>
+      </div>
     </div>
 
     <!-- NAVIGATION TABS -->
     <div class="tabs">
       <button class="tab-btn active" id="tabbtn-chat" onclick="switchTab('chat')">💬 AI Chat</button>
+      <button class="tab-btn" id="tabbtn-tools" onclick="switchTab('tools')">🧪 MCP Functions &amp; Testing</button>
       <button class="tab-btn" id="tabbtn-connection" onclick="switchTab('connection')">🔌 Tally Target & Connection</button>
       <button class="tab-btn" id="tabbtn-clients" onclick="switchTab('clients')">🤖 Claude Desktop & Clients</button>
       <button class="tab-btn" id="tabbtn-dropzone" onclick="switchTab('dropzone')">⚙️ BYOK AI & OCR</button>
@@ -631,6 +647,181 @@
         </div>
         <p class="desc">Tamper-evident trail of all tool executions, queries, and draft commits.</p>
         <div id="audit-list">Loading audit entries...</div>
+    <!-- TAB: MCP FUNCTIONS & TESTING -->
+    <div id="tab-tools" style="display:none;">
+      <!-- CARD 1: PRE-PUSH VERIFICATION & QUICK TEST (COMMON GET MCPs) -->
+      <div class="card" style="border: 2px solid var(--primary); background: linear-gradient(180deg, rgba(255, 251, 229, 0.4) 0%, rgba(255, 255, 255, 1) 100%);">
+        <div class="card-header">
+          <div>
+            <h2 style="color:var(--primary);"><span>⚡</span> Pre-Push Verification &amp; Common GET MCP Tests</h2>
+            <p style="font-size:12px; color:var(--muted); margin-top:2px;">
+              Verify read-only GET MCP functions before pushing to production. Zero mutations, live gateway queries.
+            </p>
+          </div>
+          <button class="btn btn-success" id="btn-run-suite" onclick="runPrePushDiagnosticSuite()">
+            <span>🚀</span> Run Full Pre-Push Test Suite
+          </button>
+        </div>
+
+        <!-- QUICK TEST BUTTONS GRID -->
+        <h3 style="font-size:13.5px; font-weight:700; margin-bottom:8px;">Common GET Functions (1-Click Test)</h3>
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; margin-bottom:14px;">
+          <!-- Test 1: Get List of Companies -->
+          <div style="background:#ffffff; border:1px solid var(--border); border-radius:8px; padding:12px; display:flex; flex-direction:column; justify-content:space-between; gap:8px;">
+            <div>
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <strong style="font-size:13px; color:#111827;">🏢 List of Companies</strong>
+                <span class="tag" style="background:#ecfdf5; color:#059669; font-weight:600;">GET</span>
+              </div>
+              <p style="font-size:11.5px; color:var(--muted); margin-top:4px;"><code>tally_list_companies</code><br>Queries open &amp; loaded companies in TallyPrime.</p>
+            </div>
+            <button class="btn btn-sm btn-primary" onclick="quickTestTool('tally_list_companies', {})">
+              ▶ Test Get Companies
+            </button>
+          </div>
+
+          <!-- Test 2: System Status -->
+          <div style="background:#ffffff; border:1px solid var(--border); border-radius:8px; padding:12px; display:flex; flex-direction:column; justify-content:space-between; gap:8px;">
+            <div>
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <strong style="font-size:13px; color:#111827;">📊 Tally Status</strong>
+                <span class="tag" style="background:#ecfdf5; color:#059669; font-weight:600;">GET</span>
+              </div>
+              <p style="font-size:11.5px; color:var(--muted); margin-top:4px;"><code>tally_status</code><br>Tests gateway reachability, latency &amp; breaker state.</p>
+            </div>
+            <button class="btn btn-sm btn-outline" onclick="quickTestTool('tally_status', {})">
+              ▶ Test System Status
+            </button>
+          </div>
+
+          <!-- Test 3: List Ledgers -->
+          <div style="background:#ffffff; border:1px solid var(--border); border-radius:8px; padding:12px; display:flex; flex-direction:column; justify-content:space-between; gap:8px;">
+            <div>
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <strong style="font-size:13px; color:#111827;">📒 List Ledgers</strong>
+                <span class="tag" style="background:#ecfdf5; color:#059669; font-weight:600;">GET</span>
+              </div>
+              <p style="font-size:11.5px; color:var(--muted); margin-top:4px;"><code>tally_list_ledgers</code><br>Queries chart of accounts / ledger masters.</p>
+            </div>
+            <button class="btn btn-sm btn-outline" onclick="quickTestTool('tally_list_ledgers', { company: '' })">
+              ▶ Test List Ledgers
+            </button>
+          </div>
+
+          <!-- Test 4: Day Book -->
+          <div style="background:#ffffff; border:1px solid var(--border); border-radius:8px; padding:12px; display:flex; flex-direction:column; justify-content:space-between; gap:8px;">
+            <div>
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <strong style="font-size:13px; color:#111827;">📑 Day Book</strong>
+                <span class="tag" style="background:#ecfdf5; color:#059669; font-weight:600;">GET</span>
+              </div>
+              <p style="font-size:11.5px; color:var(--muted); margin-top:4px;"><code>tally_day_book</code><br>Queries recent transactions &amp; vouchers.</p>
+            </div>
+            <button class="btn btn-sm btn-outline" onclick="quickTestTool('tally_day_book', { company: '' })">
+              ▶ Test Day Book
+            </button>
+          </div>
+
+          <!-- Test 5: Trial Balance -->
+          <div style="background:#ffffff; border:1px solid var(--border); border-radius:8px; padding:12px; display:flex; flex-direction:column; justify-content:space-between; gap:8px;">
+            <div>
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <strong style="font-size:13px; color:#111827;">⚖️ Trial Balance</strong>
+                <span class="tag" style="background:#ecfdf5; color:#059669; font-weight:600;">GET</span>
+              </div>
+              <p style="font-size:11.5px; color:var(--muted); margin-top:4px;"><code>tally_trial_balance</code><br>Queries closing ledger balances report.</p>
+            </div>
+            <button class="btn btn-sm btn-outline" onclick="quickTestTool('tally_trial_balance', { company: '' })">
+              ▶ Test Trial Balance
+            </button>
+          </div>
+        </div>
+
+        <!-- SUITE RESULT CONTAINER (Hidden until run) -->
+        <div id="suite-result-container" style="display:none; margin-top:14px; padding:14px; border-radius:8px; border:1px solid var(--border); background:#ffffff;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+            <div style="font-weight:700; font-size:14px;" id="suite-summary-title">Suite Results</div>
+            <span id="suite-badge" class="badge">Running...</span>
+          </div>
+          <div id="suite-tests-list"></div>
+        </div>
+      </div>
+
+      <!-- CARD 2: LIVE TEST RESULTS CONSOLE -->
+      <div class="card" id="tool-result-card" style="display:none;">
+        <div class="card-header">
+          <h2><span>🧪</span> Live Tool Execution Output</h2>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <span id="tool-exec-badge" class="badge">Ready</span>
+            <span id="tool-exec-time" style="font-size:12px; color:var(--muted);">0ms</span>
+            <button class="btn btn-sm btn-outline" onclick="copyToolResponse()">📋 Copy</button>
+            <button class="btn btn-sm btn-outline" onclick="closeToolResult()">✕</button>
+          </div>
+        </div>
+        <div id="tool-exec-summary" style="margin-bottom:10px; font-size:13px;"></div>
+        <pre id="tool-exec-output" style="max-height:360px; overflow-y:auto;"><code>Waiting for execution...</code></pre>
+      </div>
+
+      <!-- CARD 3: INTERACTIVE MCP TOOL RUNNER (CUSTOM ARGUMENTS) -->
+      <div class="card">
+        <div class="card-header">
+          <h2><span>⚙️</span> Interactive MCP Tool Runner</h2>
+          <span class="tag">JSON-RPC Tester</span>
+        </div>
+        <p class="desc">
+          Select any function from the MCP registry below, customize the JSON parameters if required, and execute against the local server.
+        </p>
+
+        <div style="display:grid; grid-template-columns: 1fr 2fr; gap: 14px; align-items: flex-start;">
+          <div>
+            <label class="form-label">Select Tool to Test</label>
+            <select id="tool-select-runner" class="form-control" onchange="onToolSelectChange()">
+              <option value="">Loading tools...</option>
+            </select>
+            <div id="runner-tool-desc" style="font-size:12px; color:var(--muted); margin-top:6px; line-height:1.4;"></div>
+            <div style="margin-top:10px;">
+              <button class="btn btn-primary" id="btn-exec-tool" onclick="executeSelectedTool()" style="width:100%;">
+                ▶ Execute MCP Function
+              </button>
+            </div>
+          </div>
+          <div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+              <label class="form-label" style="margin-bottom:0;">Arguments (JSON)</label>
+              <button class="btn btn-sm btn-outline" onclick="resetToolArgs()" style="font-size:11px; padding:2px 6px;">Reset to Sample</button>
+            </div>
+            <textarea id="tool-args-input" class="form-control" rows="6" style="font-family:ui-monospace,monospace; font-size:12.5px;" placeholder="{}"></textarea>
+            <div class="form-hint">Must be a valid JSON object matching the tool's input schema.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CARD 4: DIRECTORY OF ALL REGISTERED MCP FUNCTIONS -->
+      <div class="card">
+        <div class="card-header">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <h2><span>📋</span> All Registered MCP Functions</h2>
+            <span id="tools-count-badge" class="badge">0 Tools</span>
+          </div>
+          <button class="btn btn-sm btn-outline" onclick="loadMcpTools()">🔄 Refresh Tools</button>
+        </div>
+        <p class="desc">
+          Complete inventory of built-in tools and loaded user tool packs exposed via MCP protocol (stdio &amp; HTTP).
+        </p>
+
+        <!-- SEARCH AND FILTER BAR -->
+        <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:14px;">
+          <input type="text" id="tool-search-input" class="form-control" style="max-width:320px;" placeholder="Search functions by name or keyword..." oninput="filterToolsList()">
+          <div class="radio-pill-group" style="margin-bottom:0;">
+            <div class="radio-pill selected" id="filter-all" onclick="setToolsFilter('all')">All</div>
+            <div class="radio-pill" id="filter-get" onclick="setToolsFilter('get')">GET / Read Only</div>
+            <div class="radio-pill" id="filter-write" onclick="setToolsFilter('write')">Draft / Write</div>
+          </div>
+        </div>
+
+        <div id="tools-list-container">
+          <p style="color:var(--muted);">Loading tools from MCP registry...</p>
+        </div>
       </div>
     </div>
   </div>
@@ -672,14 +863,17 @@
       if (name === "clients") document.getElementById("step-nav-2")?.classList.add("active");
       if (name === "dropzone") document.getElementById("step-nav-3")?.classList.add("active");
       if (name === "chat") document.getElementById("step-nav-4")?.classList.add("active");
+      if (name === "tools") document.getElementById("step-nav-5")?.classList.add("active");
 
       document.getElementById("tab-chat").style.display = name === "chat" ? "block" : "none";
+      document.getElementById("tab-tools").style.display = name === "tools" ? "block" : "none";
       document.getElementById("tab-connection").style.display = name === "connection" ? "block" : "none";
       document.getElementById("tab-clients").style.display = name === "clients" ? "block" : "none";
       document.getElementById("tab-dropzone").style.display = name === "dropzone" ? "block" : "none";
       document.getElementById("tab-drafts").style.display = name === "drafts" ? "block" : "none";
       document.getElementById("tab-audit").style.display = name === "audit" ? "block" : "none";
 
+      if (name === "tools") loadMcpTools();
       if (name === "clients") loadMcpConfigs();
       if (name === "audit") loadAudit();
       if (name === "connection") loadStatus();
@@ -1466,6 +1660,380 @@
       else reader.readAsText(file);
     }
 
+    // --- MCP FUNCTIONS & TESTING ---
+    window.allMcpTools = [];
+    window.currentToolsFilter = "all";
+
+    async function loadMcpTools() {
+      const listContainer = document.getElementById("tools-list-container");
+      const countBadge = document.getElementById("tools-count-badge");
+      const selectRunner = document.getElementById("tool-select-runner");
+
+      try {
+        const res = await fetch("/api/mcp/tools");
+        const data = await res.json();
+        if (data.success && data.tools) {
+          window.allMcpTools = data.tools;
+          if (countBadge) countBadge.textContent = `${data.count} Tools Available`;
+
+          // Populate select runner
+          if (selectRunner) {
+            const currentVal = selectRunner.value;
+            selectRunner.innerHTML = data.tools.map(t => 
+              `<option value="${escapeHtml(t.name)}">${escapeHtml(t.display_name || t.name)} (${escapeHtml(t.name)})</option>`
+            ).join("");
+            if (currentVal && data.tools.some(t => t.name === currentVal)) {
+              selectRunner.value = currentVal;
+            } else if (data.tools.length > 0) {
+              selectRunner.value = "tally_list_companies";
+            }
+            onToolSelectChange();
+          }
+
+          renderToolsList();
+        } else {
+          if (listContainer) listContainer.innerHTML = `<p style="color:var(--danger)">Failed to load tools: ${escapeHtml(data.error || "Unknown error")}</p>`;
+        }
+      } catch (err) {
+        if (listContainer) listContainer.innerHTML = `<p style="color:var(--danger)">Network error loading MCP tools: ${escapeHtml(err.message)}</p>`;
+      }
+    }
+
+    function setToolsFilter(filter) {
+      window.currentToolsFilter = filter;
+      document.querySelectorAll("#filter-all, #filter-get, #filter-write").forEach(el => el.classList.remove("selected"));
+      const btn = document.getElementById("filter-" + filter);
+      if (btn) btn.classList.add("selected");
+      renderToolsList();
+    }
+
+    function filterToolsList() {
+      renderToolsList();
+    }
+
+    function renderToolsList() {
+      const listContainer = document.getElementById("tools-list-container");
+      if (!listContainer) return;
+
+      const search = (document.getElementById("tool-search-input")?.value || "").toLowerCase().trim();
+      const filter = window.currentToolsFilter || "all";
+
+      let filtered = (window.allMcpTools || []).filter(t => {
+        if (filter === "get" && !t.is_get) return false;
+        if (filter === "write" && t.is_get) return false;
+        if (search) {
+          const matchName = t.name.toLowerCase().includes(search);
+          const matchDesc = (t.description || "").toLowerCase().includes(search);
+          const matchDisp = (t.display_name || "").toLowerCase().includes(search);
+          if (!matchName && !matchDesc && !matchDisp) return false;
+        }
+        return true;
+      });
+
+      if (filtered.length === 0) {
+        listContainer.innerHTML = `<p style="color:var(--muted); padding:16px 0;">No MCP functions matched your search or filter.</p>`;
+        return;
+      }
+
+      let html = `<div style="display:flex; flex-direction:column; gap:10px;">`;
+      filtered.forEach(t => {
+        const isGet = t.is_get;
+        const accessBadge = isGet 
+          ? `<span class="badge badge-success" style="font-size:11px;">GET / READ</span>`
+          : (t.access === "draft" 
+              ? `<span class="badge" style="background:#eff6ff; color:#1d4ed8; border-color:#93c5fd; font-size:11px;">DRAFT</span>`
+              : `<span class="badge badge-warning" style="font-size:11px;">${escapeHtml((t.access || "WRITE").toUpperCase())}</span>`);
+
+        const schemaProps = t.input_schema?.properties || {};
+        const paramNames = Object.keys(schemaProps);
+        const paramsDesc = paramNames.length > 0 
+          ? paramNames.map(p => `<code>${escapeHtml(p)}</code>`).join(", ")
+          : `<span style="color:var(--muted); font-size:11.5px;">None (Zero-arg)</span>`;
+
+        html += `
+          <div style="background:#ffffff; border:1px solid var(--border); border-radius:8px; padding:14px; display:flex; justify-content:space-between; align-items:flex-start; gap:14px; flex-wrap:wrap;">
+            <div style="flex:1; min-width:260px;">
+              <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:4px;">
+                <strong style="font-size:14px; color:#111827;">${escapeHtml(t.display_name || t.name)}</strong>
+                <code>${escapeHtml(t.name)}</code>
+                ${accessBadge}
+              </div>
+              <p style="font-size:12.5px; color:#475569; margin-bottom:8px; line-height:1.4;">${escapeHtml(t.description || "No description provided.")}</p>
+              <div style="font-size:12px; color:var(--muted);">
+                Parameters: ${paramsDesc}
+              </div>
+            </div>
+            <div style="display:flex; gap:6px; flex-shrink:0;">
+              <button class="btn btn-sm btn-outline" onclick="selectRunnerTool('${escapeHtml(t.name)}')">
+                ⚙️ Configure
+              </button>
+              <button class="btn btn-sm ${isGet ? "btn-primary" : "btn-secondary"}" onclick="quickTestTool('${escapeHtml(t.name)}')">
+                ▶ Test
+              </button>
+            </div>
+          </div>
+        `;
+      });
+      html += `</div>`;
+      listContainer.innerHTML = html;
+    }
+
+    function selectRunnerTool(name) {
+      const selectRunner = document.getElementById("tool-select-runner");
+      if (selectRunner) {
+        selectRunner.value = name;
+        onToolSelectChange();
+        selectRunner.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    }
+
+    function onToolSelectChange() {
+      const selectRunner = document.getElementById("tool-select-runner");
+      const descEl = document.getElementById("runner-tool-desc");
+      const argsInput = document.getElementById("tool-args-input");
+      if (!selectRunner) return;
+
+      const tool = (window.allMcpTools || []).find(t => t.name === selectRunner.value);
+      if (tool) {
+        if (descEl) descEl.textContent = tool.description || "";
+        if (argsInput) {
+          argsInput.value = JSON.stringify(tool.sample_args || {}, null, 2);
+        }
+      }
+    }
+
+    function resetToolArgs() {
+      onToolSelectChange();
+    }
+
+    async function executeSelectedTool() {
+      const selectRunner = document.getElementById("tool-select-runner");
+      const argsInput = document.getElementById("tool-args-input");
+      if (!selectRunner || !selectRunner.value) return;
+
+      let args = {};
+      try {
+        args = JSON.parse(argsInput?.value || "{}");
+      } catch (e) {
+        showBanner("Invalid JSON arguments: " + e.message, "error");
+        return;
+      }
+
+      await executeTool(selectRunner.value, args);
+    }
+
+    async function quickTestTool(name, customArgs) {
+      selectRunnerTool(name);
+      let args = customArgs;
+      if (args === undefined) {
+        const tool = (window.allMcpTools || []).find(t => t.name === name);
+        args = tool ? (tool.sample_args || {}) : {};
+      }
+      const argsInput = document.getElementById("tool-args-input");
+      if (argsInput) argsInput.value = JSON.stringify(args, null, 2);
+      await executeTool(name, args);
+    }
+
+    async function executeTool(name, args) {
+      const card = document.getElementById("tool-result-card");
+      const badge = document.getElementById("tool-exec-badge");
+      const timeEl = document.getElementById("tool-exec-time");
+      const summaryEl = document.getElementById("tool-exec-summary");
+      const outputEl = document.getElementById("tool-exec-output");
+      const execBtn = document.getElementById("btn-exec-tool");
+
+      if (card) {
+        card.style.display = "block";
+        card.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+      if (badge) {
+        badge.className = "badge";
+        badge.textContent = "Executing...";
+      }
+      if (timeEl) timeEl.textContent = "...";
+      if (summaryEl) summaryEl.innerHTML = `<em>Calling MCP function <code>${escapeHtml(name)}</code> against TallyPrime...</em>`;
+      if (outputEl) outputEl.innerHTML = `<code>Executing...</code>`;
+      if (execBtn) execBtn.disabled = true;
+
+      const startTime = performance.now();
+
+      try {
+        const res = await fetch("/api/mcp/test-tool", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ tool: name, arguments: args || {} })
+        });
+        const data = await res.json();
+        const elapsed = Math.round(data.latency_ms || (performance.now() - startTime));
+
+        if (timeEl) timeEl.textContent = `${elapsed}ms`;
+
+        if (data.success) {
+          if (badge) {
+            badge.className = "badge badge-success";
+            badge.textContent = "Success (200)";
+          }
+
+          let summaryHtml = `<strong>Result:</strong> Tool executed successfully in <strong>${elapsed}ms</strong>.`;
+          if (name === "tally_list_companies") {
+            try {
+              const companies = JSON.parse(data.raw_text || "[]");
+              if (Array.isArray(companies) && companies.length > 0) {
+                summaryHtml = `✅ <strong>Found ${companies.length} company(s) in TallyPrime:</strong> <span style="color:#059669; font-weight:600;">${escapeHtml(companies.join(", "))}</span>`;
+              } else {
+                if (badge) {
+                  badge.className = "badge badge-warning";
+                  badge.textContent = "0 Companies";
+                }
+                summaryHtml = `<div style="background:#fffbe5; border:1px solid #fde68a; border-radius:6px; padding:10px 12px; color:#92400e;">⚠️ <strong>0 companies detected in Tally:</strong> TallyPrime is reachable, but no company is currently open. In TallyPrime, press <strong>Alt+F3</strong> or <strong>F3</strong> to open a company.</div>`;
+              }
+            } catch (_) {}
+          } else if (name === "tally_status") {
+            try {
+              const statusObj = JSON.parse(data.raw_text || "{}");
+              if (statusObj.reachable) {
+                summaryHtml = `Gateway Status: <strong>Reachable Online ✅</strong> | Target: <code>${escapeHtml(statusObj.target_url || "")}</code> | Active Company: <code>${escapeHtml(statusObj.active_company || "None")}</code>`;
+              } else {
+                if (badge) {
+                  badge.className = "badge badge-danger";
+                  badge.textContent = "Offline (Reachable: False)";
+                }
+                summaryHtml = `<div style="background:#fef2f2; border:1px solid #fecaca; border-radius:6px; padding:10px 12px; color:#991b1b;">❌ <strong>TallyPrime is Unreachable:</strong> ${escapeHtml(statusObj.error || "Cannot connect to " + (statusObj.target_url || "127.0.0.1:9000"))}.<div style="font-size:12px; color:#475569; margin-top:4px;">Fix: Start TallyPrime, go to <strong>F1 (Help) ▸ Settings ▸ Connectivity</strong>, set <strong>TallyPrime acts as: Both</strong>, <strong>Enable ODBC: Yes</strong>, <strong>Port: 9000</strong>.</div></div>`;
+              }
+            } catch (_) {}
+          } else if (name === "tally_list_ledgers") {
+            try {
+              const ledgers = JSON.parse(data.raw_text || "[]");
+              if (Array.isArray(ledgers) && ledgers.length > 0) {
+                summaryHtml = `✅ <strong>${ledgers.length} ledger accounts returned from Tally.</strong>`;
+              } else {
+                if (badge) {
+                  badge.className = "badge badge-warning";
+                  badge.textContent = "0 Ledgers";
+                }
+                summaryHtml = `<div style="background:#fffbe5; border:1px solid #fde68a; border-radius:6px; padding:10px 12px; color:#92400e;">⚠️ <strong>0 ledgers returned:</strong> Ensure a company is loaded in TallyPrime and that ledger accounts exist.</div>`;
+              }
+            } catch (_) {}
+          }
+
+          if (summaryEl) summaryEl.innerHTML = summaryHtml;
+          if (outputEl) {
+            outputEl.innerHTML = `<code>${escapeHtml(data.raw_text || JSON.stringify(data.response, null, 2))}</code>`;
+          }
+          window.lastToolResponse = data.raw_text || JSON.stringify(data.response, null, 2);
+        } else {
+          if (badge) {
+            badge.className = "badge badge-danger";
+            badge.textContent = "Error";
+          }
+          if (summaryEl) {
+            summaryEl.innerHTML = `<span style="color:var(--danger); font-weight:600;">⚠️ Tool Execution Returned Error:</span> ${escapeHtml(data.raw_text || data.error || data.message || "Failed to query TallyPrime")}`;
+          }
+          if (outputEl) {
+            outputEl.innerHTML = `<code style="color:var(--danger);">${escapeHtml(data.raw_text || JSON.stringify(data.response || data, null, 2))}</code>`;
+          }
+          window.lastToolResponse = data.raw_text || JSON.stringify(data.response || data, null, 2);
+        }
+      } catch (err) {
+        if (badge) {
+          badge.className = "badge badge-danger";
+          badge.textContent = "Network Error";
+        }
+        if (summaryEl) summaryEl.innerHTML = `<span style="color:var(--danger)">Network error: ${escapeHtml(err.message)}</span>`;
+        if (outputEl) outputEl.innerHTML = `<code style="color:var(--danger);">${escapeHtml(err.stack || err.message)}</code>`;
+      } finally {
+        if (execBtn) execBtn.disabled = false;
+      }
+    }
+
+    function copyToolResponse() {
+      if (window.lastToolResponse) {
+        navigator.clipboard.writeText(window.lastToolResponse).then(() => {
+          showBanner("Tool output copied to clipboard!", "success");
+        });
+      }
+    }
+
+    function closeToolResult() {
+      const card = document.getElementById("tool-result-card");
+      if (card) card.style.display = "none";
+    }
+
+    async function runPrePushDiagnosticSuite() {
+      const suiteContainer = document.getElementById("suite-result-container");
+      const suiteBadge = document.getElementById("suite-badge");
+      const titleEl = document.getElementById("suite-summary-title");
+      const testsListEl = document.getElementById("suite-tests-list");
+      const runBtn = document.getElementById("btn-run-suite");
+
+      if (suiteContainer) suiteContainer.style.display = "block";
+      if (suiteBadge) {
+        suiteBadge.className = "badge";
+        suiteBadge.textContent = "Running 3 Tests...";
+      }
+      if (titleEl) titleEl.textContent = "Executing Pre-Push Verification Suite...";
+      if (testsListEl) testsListEl.innerHTML = "<p style=\"color:var(--muted);\">Testing tally_status, tally_list_companies, and tally_list_ledgers...</p>";
+      if (runBtn) runBtn.disabled = true;
+
+      try {
+        const res = await fetch("/api/mcp/test-suite", { method: "POST" });
+        const data = await res.json();
+
+        if (data.all_passed) {
+          if (suiteBadge) {
+            suiteBadge.className = "badge badge-success";
+            suiteBadge.textContent = "All Passed ✅";
+          }
+          if (titleEl) {
+            titleEl.innerHTML = `<span style="color:#059669;">✅ All Pre-Push Tests Passed (${data.passed_count}/${data.total_count} in ${data.total_latency_ms}ms)</span>`;
+          }
+        } else {
+          const allFailed = data.passed_count === 0;
+          if (suiteBadge) {
+            suiteBadge.className = allFailed ? "badge badge-danger" : "badge badge-warning";
+            suiteBadge.textContent = `${data.passed_count}/${data.total_count} Passed`;
+          }
+          if (titleEl) {
+            titleEl.innerHTML = `<span style="color:${allFailed ? "var(--danger)" : "var(--amber)"}; font-weight:700;">
+              ${allFailed ? "❌ Pre-Push Verification Failed (0/" + data.total_count + " Passed — TallyPrime Offline)" : "⚠️ Pre-Push Diagnostic Notice (" + data.passed_count + "/" + data.total_count + " Passed)"}
+            </span>`;
+          }
+        }
+
+        let html = "<div style=\"display:flex; flex-direction:column; gap:8px; margin-top:8px;\">";
+        (data.tests || []).forEach(t => {
+          const pass = t.passed;
+          html += `
+            <div style="background:${pass ? "#f0fdf4" : "#fef2f2"}; border:1px solid ${pass ? "#bbf7d0" : "#fecaca"}; border-radius:6px; padding:10px 12px; display:flex; justify-content:space-between; align-items:center; gap:10px;">
+              <div>
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <span style="font-size:16px;">${pass ? "✅" : "⚠️"}</span>
+                  <strong style="font-size:13px; color:#111827;">${escapeHtml(t.name)}</strong>
+                  <code>${escapeHtml(t.tool)}</code>
+                  <span style="font-size:11px; color:var(--muted);">${t.latency_ms || 0}ms</span>
+                </div>
+                ${t.error ? `<div style="font-size:12px; color:var(--danger); margin-top:3px;">${escapeHtml(t.error)}</div>` : ""}
+                ${t.items && t.items.length > 0 ? `<div style="font-size:12px; color:#15803d; margin-top:2px;">Companies: ${escapeHtml(t.items.join(", "))}</div>` : ""}
+              </div>
+              <button class="btn btn-sm btn-outline" style="background:#ffffff;" onclick="quickTestTool('${escapeHtml(t.tool)}', {})">
+                Re-test
+              </button>
+            </div>
+          `;
+        });
+        html += "</div>";
+        if (testsListEl) testsListEl.innerHTML = html;
+      } catch (err) {
+        if (suiteBadge) {
+          suiteBadge.className = "badge badge-danger";
+          suiteBadge.textContent = "Failed";
+        }
+        if (testsListEl) testsListEl.innerHTML = `<p style="color:var(--danger)">Error executing suite: ${escapeHtml(err.message)}</p>`;
+      } finally {
+        if (runBtn) runBtn.disabled = false;
+      }
+    }
+
     // --- AUDIT TRAIL ---
     async function loadAudit() {
       try {
@@ -1504,6 +2072,7 @@
     loadStatus();
     loadDrafts();
     loadByokConfig();
+    loadMcpTools();
     setInterval(loadDrafts, 6000);
   </script>
 </body>

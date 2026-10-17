@@ -359,6 +359,148 @@
         Claude will call <code>tally_status</code>, <code>tally_list_companies</code>, or <code>tally_trial_balance</code> and reply with live numbers from your TallyPrime company!
       </p>
     </div>
+
+    <!-- SELF-DIAGNOSTIC & TROUBLESHOOTING HUB -->
+    <div class="card" id="self-diagnostic" style="border: 2px solid #006ea6; background: #fafcff;">
+      <div class="card-header" style="color: #006ea6; border-bottom: 2px solid rgba(0, 110, 166, 0.2);">
+        <span style="font-size:16px; font-weight:700;">🔍 5-Step Robust Self-Diagnostic Checklist</span>
+        <span class="badge badge-rec">Self-Help & Diagnostics</span>
+      </div>
+
+      <p style="color:#374151; font-size:13.5px; margin-top:8px; margin-bottom:14px;">
+        Follow these 5 self-diagnostic checks in order if Claude Desktop does not show the hammer icon (🔨) or fails to query TallyPrime:
+      </p>
+
+      <!-- CHECK 1 -->
+      <div style="background:#ffffff; border:1px solid var(--border); border-radius:8px; padding:14px; margin-bottom:12px;">
+        <h4 style="font-size:14px; font-weight:700; color:#111827; display:flex; align-items:center; gap:8px;">
+          <span style="background:#006ea6; color:#fff; width:22px; height:22px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:12px;">1</span>
+          Check Claude Desktop Log Files
+        </h4>
+        <p style="font-size:13px; color:#475569; margin:6px 0 8px;">
+          Claude writes MCP startup and runtime logs to disk. If an error occurs, it is recorded here:
+        </p>
+        <ul class="step-list" style="margin-bottom:8px;">
+          <li><strong>Windows Log Path:</strong>
+            <pre style="margin:4px 0;"><button class="copy-btn" onclick="navigator.clipboard.writeText('%APPDATA%\\Claude\\logs\\mcp.log')">Copy</button><code>%APPDATA%\Claude\logs\mcp.log</code></pre>
+            <em style="font-size:12px; color:var(--muted);">(Also check: <code>%APPDATA%\Claude\logs\mcp-server-tally.log</code>)</em>
+          </li>
+          <li><strong>macOS Log Path:</strong>
+            <pre style="margin:4px 0;"><button class="copy-btn" onclick="navigator.clipboard.writeText('~/Library/Logs/Claude/mcp.log')">Copy</button><code>~/Library/Logs/Claude/mcp.log</code></pre>
+          </li>
+          <li><strong>Linux Log Path:</strong>
+            <pre style="margin:4px 0;"><button class="copy-btn" onclick="navigator.clipboard.writeText('~/.config/Claude/logs/mcp.log')">Copy</button><code>~/.config/Claude/logs/mcp.log</code></pre>
+          </li>
+        </ul>
+      </div>
+
+      <!-- CHECK 2 -->
+      <div style="background:#ffffff; border:1px solid var(--border); border-radius:8px; padding:14px; margin-bottom:12px;">
+        <h4 style="font-size:14px; font-weight:700; color:#111827; display:flex; align-items:center; gap:8px;">
+          <span style="background:#006ea6; color:#fff; width:22px; height:22px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:12px;">2</span>
+          Verify TallyPrime XML/ODBC Connectivity Settings
+        </h4>
+        <p style="font-size:13px; color:#475569; margin:6px 0;">
+          TallyPrime must be configured to accept local XML-over-HTTP requests:
+        </p>
+        <ol class="step-list" style="margin-bottom:8px;">
+          <li>Open <strong>TallyPrime</strong>.</li>
+          <li>Press <strong>F1 (Help) ▸ Settings ▸ Connectivity</strong>.</li>
+          <li>Under <strong>Client/Server configuration</strong>, ensure:
+            <ul style="margin-left:16px; margin-top:4px;">
+              <li><strong>TallyPrime acts as:</strong> <code>Both</code> (or <code>Server</code>)</li>
+              <li><strong>Enable ODBC:</strong> <code>Yes</code></li>
+              <li><strong>Port:</strong> <code>9000</code></li>
+            </ul>
+          </li>
+          <li>If you changed settings, press Enter to save and restart TallyPrime.</li>
+          <li><strong>Browser Test:</strong> Open <a href="http://127.0.0.1:9000" target="_blank" style="color:#006ea6; font-weight:600;">http://127.0.0.1:9000</a> in Chrome/Edge. If Tally is running, it will return an XML response.</li>
+        </ol>
+      </div>
+
+      <!-- CHECK 3 -->
+      <div style="background:#ffffff; border:1px solid var(--border); border-radius:8px; padding:14px; margin-bottom:12px;">
+        <h4 style="font-size:14px; font-weight:700; color:#111827; display:flex; align-items:center; gap:8px;">
+          <span style="background:#006ea6; color:#fff; width:22px; height:22px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:12px;">3</span>
+          Ensure At Least One Company is Loaded in Tally
+        </h4>
+        <p style="font-size:13px; color:#475569; margin:6px 0;">
+          If the Gateway of Tally displays <em>"Select Company"</em> without an active company loaded, all accounting queries (ledgers, day book, trial balance) will return empty. Make sure your active company is open in Tally before asking Claude.
+        </p>
+      </div>
+
+      <!-- CHECK 4 -->
+      <div style="background:#ffffff; border:1px solid var(--border); border-radius:8px; padding:14px; margin-bottom:12px;">
+        <h4 style="font-size:14px; font-weight:700; color:#111827; display:flex; align-items:center; gap:8px;">
+          <span style="background:#006ea6; color:#fff; width:22px; height:22px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:12px;">4</span>
+          Terminate Stale Claude Desktop Processes
+        </h4>
+        <p style="font-size:13px; color:#475569; margin:6px 0;">
+          Closing the Claude window does not terminate the background process on Windows. If Claude hasn't picked up config changes:
+        </p>
+        <pre style="margin:6px 0;"><button class="copy-btn" onclick="navigator.clipboard.writeText('taskkill /IM Claude.exe /F')">Copy Command</button><code>taskkill /IM Claude.exe /F</code></pre>
+        <p style="font-size:12px; color:var(--muted); margin-top:4px;">
+          Run this in Command Prompt or PowerShell, then relaunch Claude Desktop from Start.
+        </p>
+      </div>
+
+      <!-- CHECK 5 -->
+      <div style="background:#ffffff; border:1px solid var(--border); border-radius:8px; padding:14px; margin-bottom:16px;">
+        <h4 style="font-size:14px; font-weight:700; color:#111827; display:flex; align-items:center; gap:8px;">
+          <span style="background:#006ea6; color:#fff; width:22px; height:22px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:12px;">5</span>
+          1-Click Test Tools Directly in TallyMCP Companion UI
+        </h4>
+        <p style="font-size:13px; color:#475569; margin:6px 0 10px;">
+          Before troubleshooting Claude, verify that TallyMCP can query Tally on your computer right now:
+        </p>
+        <a href="/#mcp-test" style="display:inline-flex; align-items:center; gap:8px; background:#006ea6; color:#ffffff; padding:8px 16px; border-radius:6px; font-size:13px; font-weight:600; text-decoration:none;">
+          🧪 Open Companion UI MCP Tester & Pre-Push Suite →
+        </a>
+      </div>
+
+      <!-- COMMON ERRORS TABLE -->
+      <h3 style="font-size:14.5px; font-weight:700; color:#111827; margin:20px 0 10px;">
+        🚨 Decoded Error Reference & Quick Fixes
+      </h3>
+      <div style="overflow-x:auto;">
+        <table style="width:100%; border-collapse:collapse; font-size:12.5px; text-align:left;">
+          <thead>
+            <tr style="background:#f1f5f9; border-bottom:2px solid var(--border);">
+              <th style="padding:10px; color:#334155;">Error / Symptom in Claude or Log</th>
+              <th style="padding:10px; color:#334155;">Root Cause</th>
+              <th style="padding:10px; color:#334155;">Immediate Solution</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr style="border-bottom:1px solid var(--border);">
+              <td style="padding:10px; font-family:monospace; color:#dc2626; font-size:12px;">spawn tally-mcp ENOENT</td>
+              <td style="padding:10px; color:#475569;">Windows cannot find <code>tally-mcp</code> in your system PATH.</td>
+              <td style="padding:10px; color:#15803d; font-weight:600;">Use full escaped path in config: <code>"command": "C:\\Users\\&lt;Name&gt;\\AppData\\Local\\Programs\\TallyMCP\\tally-mcp.exe"</code>.</td>
+            </tr>
+            <tr style="border-bottom:1px solid var(--border);">
+              <td style="padding:10px; font-family:monospace; color:#dc2626; font-size:12px;">SyntaxError: Unexpected token in JSON</td>
+              <td style="padding:10px; color:#475569;">Typo in <code>claude_desktop_config.json</code> (trailing comma or missing quote).</td>
+              <td style="padding:10px; color:#15803d; font-weight:600;">Check comma placement; remove any trailing comma before <code>}</code>.</td>
+            </tr>
+            <tr style="border-bottom:1px solid var(--border);">
+              <td style="padding:10px; font-family:monospace; color:#dc2626; font-size:12px;">ECONNREFUSED 127.0.0.1:9000</td>
+              <td style="padding:10px; color:#475569;">TallyPrime is closed or HTTP server is inactive.</td>
+              <td style="padding:10px; color:#15803d; font-weight:600;">Start TallyPrime and enable Connectivity > Server on port 9000.</td>
+            </tr>
+            <tr style="border-bottom:1px solid var(--border);">
+              <td style="padding:10px; color:#b45309; font-weight:600;">Hammer icon (🔨) missing</td>
+              <td style="padding:10px; color:#475569;">Claude was not fully restarted after editing config.</td>
+              <td style="padding:10px; color:#15803d; font-weight:600;">Quit Claude from Windows taskbar tray or run <code>taskkill /IM Claude.exe /F</code>, then relaunch.</td>
+            </tr>
+            <tr>
+              <td style="padding:10px; color:#b45309; font-weight:600;">"No active company found"</td>
+              <td style="padding:10px; color:#475569;">Tally has no company open in Gateway.</td>
+              <td style="padding:10px; color:#15803d; font-weight:600;">Load your company in TallyPrime, then re-run your prompt.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
   </div>
 
   <script>

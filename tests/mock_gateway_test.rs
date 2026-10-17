@@ -61,4 +61,97 @@ mod tests {
         let decoded = decode_tally_response(&bytes);
         assert_eq!(decoded, "Tal");
     }
+
+    #[test]
+    fn test_parse_company_names_cdata_and_attributes() {
+        // Test CDATA wrapping and COMPANY attributes (common in production TallyPrime XML)
+        let sample_xml = r#"<ENVELOPE>
+            <BODY>
+                <DATA>
+                    <COLLECTION>
+                        <COMPANY NAME="Attribute Company Pvt Ltd">
+                            <NAME><![CDATA[CDATA Company Ltd]]></NAME>
+                        </COMPANY>
+                    </COLLECTION>
+                </DATA>
+            </BODY>
+        </ENVELOPE>"#;
+
+        let companies = parse_company_names(sample_xml);
+        assert!(companies.contains(&"Attribute Company Pvt Ltd".to_string()));
+        assert!(companies.contains(&"CDATA Company Ltd".to_string()));
+    }
+
+    #[test]
+    fn test_parse_company_names_svcurrentcompany() {
+        // When only header/staticvariables contains the current active company
+        let sample_xml = r#"<ENVELOPE>
+            <BODY>
+                <DESC>
+                    <STATICVARIABLES>
+                        <SVCURRENTCOMPANY>Single Active Enterprise</SVCURRENTCOMPANY>
+                    </STATICVARIABLES>
+                </DESC>
+                <DATA>
+                    <COLLECTION></COLLECTION>
+                </DATA>
+            </BODY>
+        </ENVELOPE>"#;
+
+        let companies = parse_company_names(sample_xml);
+        assert_eq!(companies, vec!["Single Active Enterprise"]);
+    }
+
+    #[test]
+    fn test_parse_ledger_names_cdata_and_attributes() {
+        let sample_xml = r#"<ENVELOPE>
+            <BODY>
+                <DATA>
+                    <COLLECTION>
+                        <LEDGER NAME="HDFC Bank Current A/c">
+                            <DSPACCNAME><![CDATA[State Bank of India]]></DSPACCNAME>
+                        </LEDGER>
+                    </COLLECTION>
+                </DATA>
+            </BODY>
+        </ENVELOPE>"#;
+
+        let ledgers = parse_ledger_names(sample_xml);
+        assert!(ledgers.contains(&"HDFC Bank Current A/c".to_string()));
+        assert!(ledgers.contains(&"State Bank of India".to_string()));
+    }
+
+    #[test]
+    fn test_dechunk_http_body() {
+        use tally_mcp::tally::client::dechunk_http_body;
+
+        // Chunk 1: size 5 (hello), Chunk 2: size 6 ( world), Terminal chunk: 0
+        let raw = b"5\r\nhello\r\n6\r\n world\r\n0\r\n\r\n";
+        let dechunked = dechunk_http_body(raw);
+        assert_eq!(String::from_utf8_lossy(&dechunked), "hello world");
+    }
+
+    #[tokio::test]
+    async fn test_status_when_offline() {
+        use tally_mcp::config::TallyConfig;
+        use tally_mcp::tally::client::TallyClient;
+
+        let config = TallyConfig {
+            host: "127.0.0.1".to_string(),
+            port: 1, // unreachable port
+            ..Default::default()
+        };
+
+        let client = TallyClient::new(config);
+        let status = client
+            .status()
+            .await
+            .expect("Status call should succeed even when offline");
+        assert!(
+            !status.reachable,
+            "Should cleanly report unreachable without error panic"
+        );
+        assert!(status.loaded_companies.is_empty());
+        assert!(status.error.is_some(), "Should contain error description");
+    }
 }

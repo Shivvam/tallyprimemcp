@@ -122,7 +122,7 @@ impl CompanionUiServer {
                     let _ = tx.send(res);
                 }
             });
-            rx.recv_timeout(Duration::from_millis(1500))
+            rx.recv_timeout(Duration::from_millis(5000))
                 .ok()
                 .and_then(|r| r.ok())
                 .unwrap_or_default()
@@ -849,6 +849,306 @@ impl CompanionUiServer {
                 let header =
                     Header::from_bytes(&b"Content-Type"[..], &b"application/json"[..]).unwrap();
                 let resp = Response::from_string(outcome.to_string()).with_header(header);
+                let _ = request.respond(resp);
+                continue;
+            }
+
+            // List all MCP functions with schema and metadata
+            if url_path == "/api/mcp/tools" && method == "GET" {
+                let mcp = self.mcp_server.read().unwrap();
+                let tools_meta = mcp.list_tools_metadata();
+                let payload = json!({
+                    "success": true,
+                    "count": tools_meta.len(),
+                    "tools": tools_meta,
+                });
+
+                let header =
+                    Header::from_bytes(&b"Content-Type"[..], &b"application/json"[..]).unwrap();
+                let resp = Response::from_string(payload.to_string()).with_header(header);
+                let _ = request.respond(resp);
+                continue;
+            }
+
+            // Test an MCP function directly from Companion UI
+            if url_path == "/api/mcp/test-tool" && method == "POST" {
+                let mut body = String::new();
+                let _ = request.as_reader().read_to_string(&mut body);
+
+                let parsed: Result<serde_json::Value, _> = serde_json::from_str(&body);
+                let mut outcome = json!({ "success": false, "error": "Invalid request payload" });
+                let mut status_code = 400;
+
+                if let Ok(val) = parsed {
+                    let tool_name = val
+                        .get("tool")
+                        .and_then(|t| t.as_str())
+                        .unwrap_or("")
+                        .trim()
+                        .to_string();
+                    let arguments = val
+                        .get("arguments")
+                        .cloned()
+                        .unwrap_or(serde_json::Value::Null);
+
+                    if tool_name.is_empty() {
+                        outcome = json!({ "success": false, "error": "Tool name cannot be empty" });
+                    } else {
+                        let mcp = self.mcp_server.read().unwrap().clone();
+                        let start = std::time::Instant::now();
+
+                        let (tx, rx) = std::sync::mpsc::channel();
+                        let tool_name_clone = tool_name.clone();
+                        let args_clone = arguments.clone();
+                        std::thread::spawn(move || {
+                            if let Ok(rt) = tokio::runtime::Builder::new_current_thread()
+                                .enable_all()
+                                .build()
+                            {
+                                let res = rt.block_on(async move {
+                                    mcp.call_tool(&tool_name_clone, args_clone, json!(1)).await
+                                });
+                                let _ = tx.send(res);
+                            }
+                        });
+
+                        match rx.recv_timeout(Duration::from_secs(35)) {
+                            Ok(res) => {
+                                let latency_ms = start.elapsed().as_millis();
+                                let is_error = res["result"]["isError"].as_bool().unwrap_or(false)
+                                    || res.get("error").is_some();
+                                let content_text = res["result"]["content"]
+                                    .as_array()
+                                    .and_then(|arr| arr.first())
+                                    .and_then(|item| item["text"].as_str())
+                                    .unwrap_or_else(|| {
+                                        res["error"]["message"].as_str().unwrap_or("")
+                                    })
+                                    .to_string();
+
+                                self.audit.log(
+                                    "companion_ui_test_tool",
+                                    None,
+                                    None,
+                                    &format!(
+                                        "Tested tool: {} (latency: {}ms, is_error: {})",
+                                        tool_name, latency_ms, is_error
+                                    ),
+                                );
+
+                                outcome = json!({
+                                    "success": !is_error,
+                                    "tool": tool_name,
+                                    "latency_ms": latency_ms,
+                                    "is_error": is_error,
+                                    "raw_text": content_text,
+                                    "response": res,
+                                });
+                                status_code = 200;
+                            }
+                            Err(_) => {
+                                outcome = json!({
+                                    "success": false,
+                                    "tool": tool_name,
+                                    "error": "Timeout",
+                                    "message": format!("Tool execution for '{}' timed out after 35 seconds", tool_name)
+                                });
+                                status_code = 504;
+                            }
+                        }
+                    }
+                }
+
+                let header =
+                    Header::from_bytes(&b"Content-Type"[..], &b"application/json"[..]).unwrap();
+                let resp = Response::from_string(outcome.to_string())
+                    .with_header(header)
+                    .with_status_code(status_code);
+                let _ = request.respond(resp);
+                continue;
+            }
+
+            // Run pre-push automated diagnostic suite of common GET/read MCP functions
+            if url_path == "/api/mcp/test-suite" && method == "POST" {
+                let mcp = self.mcp_server.read().unwrap().clone();
+                let start_all = std::time::Instant::now();
+
+                let (tx, rx) = std::sync::mpsc::channel();
+                std::thread::spawn(move || {
+                    if let Ok(rt) = tokio::runtime::Builder::new_current_thread()
+                        .enable_all()
+                        .build()
+                    {
+                        let suite_res = rt.block_on(async move {
+                            let mut tests = Vec::new();
+                            let mut active_company_detected = None;
+
+                            // Test 1: tally_status
+                            let t1_start = std::time::Instant::now();
+                            let t1_resp = mcp.call_tool("tally_status", json!({}), json!(1)).await;
+                            let t1_lat = t1_start.elapsed().as_millis();
+                            let t1_err = t1_resp["result"]["isError"].as_bool().unwrap_or(false)
+                                || t1_resp.get("error").is_some();
+                            let t1_text = t1_resp["result"]["content"]
+                                .as_array()
+                                .and_then(|a| a.first())
+                                .and_then(|i| i["text"].as_str())
+                                .unwrap_or("");
+                            let t1_status_val: serde_json::Value =
+                                serde_json::from_str(t1_text).unwrap_or(serde_json::Value::Null);
+                            let t1_reachable = !t1_err
+                                && t1_status_val
+                                    .get("reachable")
+                                    .and_then(|r| r.as_bool())
+                                    .unwrap_or(false);
+                            let t1_detail_err = t1_status_val
+                                .get("error")
+                                .and_then(|e| e.as_str())
+                                .unwrap_or("Connection refused or unreachable on port 9000");
+
+                            tests.push(json!({
+                                "name": "System Status & Reachability Check",
+                                "tool": "tally_status",
+                                "passed": t1_reachable,
+                                "latency_ms": t1_lat,
+                                "details": t1_text,
+                                "error": if !t1_reachable {
+                                    Some(format!("TallyPrime gateway unreachable: {}. Ensure Tally is open and port 9000 is active.", t1_detail_err))
+                                } else {
+                                    None
+                                }
+                            }));
+
+                            // Test 2: tally_list_companies
+                            let t2_start = std::time::Instant::now();
+                            let t2_resp = mcp.call_tool("tally_list_companies", json!({}), json!(2)).await;
+                            let t2_lat = t2_start.elapsed().as_millis();
+                            let t2_err = t2_resp["result"]["isError"].as_bool().unwrap_or(false)
+                                || t2_resp.get("error").is_some();
+                            let t2_text = t2_resp["result"]["content"]
+                                .as_array()
+                                .and_then(|a| a.first())
+                                .and_then(|i| i["text"].as_str())
+                                .unwrap_or("");
+
+                            let companies_parsed: Vec<String> = serde_json::from_str(t2_text).unwrap_or_default();
+                            let t2_passed = !t2_err && !companies_parsed.is_empty();
+                            if let Some(first) = companies_parsed.first() {
+                                active_company_detected = Some(first.clone());
+                            }
+
+                            let t2_err_msg = if !t1_reachable {
+                                Some("TallyPrime is offline — cannot query companies. Launch TallyPrime and open a company.".to_string())
+                            } else if t2_err {
+                                let err_snippet = if !t2_text.is_empty() { t2_text } else { "Tally XML query failed" };
+                                Some(format!("Tally query error: {}", err_snippet))
+                            } else if companies_parsed.is_empty() {
+                                Some("Zero companies loaded in TallyPrime. Open your company in Gateway of Tally (Alt+F3).".to_string())
+                            } else {
+                                None
+                            };
+
+                            tests.push(json!({
+                                "name": "Get List of Companies",
+                                "tool": "tally_list_companies",
+                                "passed": t2_passed,
+                                "latency_ms": t2_lat,
+                                "count": companies_parsed.len(),
+                                "items": companies_parsed,
+                                "details": t2_text,
+                                "error": t2_err_msg
+                            }));
+
+                            // Test 3: tally_list_ledgers
+                            let comp_arg = active_company_detected.clone().unwrap_or_default();
+                            let t3_start = std::time::Instant::now();
+                            let t3_resp = mcp.call_tool("tally_list_ledgers", json!({ "company": comp_arg }), json!(3)).await;
+                            let t3_lat = t3_start.elapsed().as_millis();
+                            let t3_err = t3_resp["result"]["isError"].as_bool().unwrap_or(false)
+                                || t3_resp.get("error").is_some();
+                            let t3_text = t3_resp["result"]["content"]
+                                .as_array()
+                                .and_then(|a| a.first())
+                                .and_then(|i| i["text"].as_str())
+                                .unwrap_or("");
+                            let ledgers_parsed: Vec<String> = serde_json::from_str(t3_text).unwrap_or_default();
+                            let t3_passed = !t3_err && !ledgers_parsed.is_empty();
+
+                            let t3_err_msg = if !t1_reachable {
+                                Some("TallyPrime is offline — cannot query ledgers.".to_string())
+                            } else if t3_err {
+                                let err_snippet = if !t3_text.is_empty() { t3_text } else { "Tally ledger query failed" };
+                                Some(format!("Tally query error: {}", err_snippet))
+                            } else if ledgers_parsed.is_empty() {
+                                Some(format!("No ledgers found for company '{}'. Ensure company is loaded in Tally.", comp_arg))
+                            } else {
+                                None
+                            };
+
+                            tests.push(json!({
+                                "name": "Get List of Ledgers",
+                                "tool": "tally_list_ledgers",
+                                "company": comp_arg,
+                                "passed": t3_passed,
+                                "latency_ms": t3_lat,
+                                "count": ledgers_parsed.len(),
+                                "details": if ledgers_parsed.len() > 10 {
+                                    format!("{} ledgers found (first 10: {})", ledgers_parsed.len(), ledgers_parsed[..10].join(", "))
+                                } else {
+                                    t3_text.to_string()
+                                },
+                                "error": t3_err_msg
+                            }));
+
+                            tests
+                        });
+                        let _ = tx.send(suite_res);
+                    }
+                });
+
+                let tests = rx
+                    .recv_timeout(Duration::from_secs(45))
+                    .unwrap_or_else(|_| {
+                        vec![json!({
+                            "name": "Suite Timeout",
+                            "tool": "all",
+                            "passed": false,
+                            "latency_ms": 45000,
+                            "error": "Test suite execution timed out after 45 seconds"
+                        })]
+                    });
+
+                let total_latency = start_all.elapsed().as_millis();
+                let passed_count = tests
+                    .iter()
+                    .filter(|t| t["passed"].as_bool().unwrap_or(false))
+                    .count();
+                let total_count = tests.len();
+                let all_passed = passed_count == total_count;
+
+                self.audit.log(
+                    "companion_ui_test_suite",
+                    None,
+                    None,
+                    &format!(
+                        "Ran pre-push test suite: {}/{} passed in {}ms",
+                        passed_count, total_count, total_latency
+                    ),
+                );
+
+                let payload = json!({
+                    "success": true,
+                    "all_passed": all_passed,
+                    "passed_count": passed_count,
+                    "total_count": total_count,
+                    "total_latency_ms": total_latency,
+                    "tests": tests,
+                    "summary": format!("{}/{} MCP GET tests passed ({}ms)", passed_count, total_count, total_latency)
+                });
+
+                let header =
+                    Header::from_bytes(&b"Content-Type"[..], &b"application/json"[..]).unwrap();
+                let resp = Response::from_string(payload.to_string()).with_header(header);
                 let _ = request.respond(resp);
                 continue;
             }

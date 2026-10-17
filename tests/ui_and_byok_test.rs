@@ -312,6 +312,77 @@ mod ui_and_byok_tests {
             index_html.contains("claude_desktop_config.json"),
             "Must guide on Claude desktop config"
         );
+        assert!(
+            index_html.contains("tabbtn-tools"),
+            "Must contain MCP Functions & Testing tab button"
+        );
+        assert!(
+            index_html.contains("tab-tools"),
+            "Must contain tab-tools section"
+        );
+        assert!(
+            index_html.contains("tally_list_companies"),
+            "Must provide testing for tally_list_companies"
+        );
+        assert!(
+            index_html.contains("runPrePushDiagnosticSuite"),
+            "Must provide pre-push diagnostic suite runner"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_mcp_functions_metadata_and_testing() {
+        use serde_json::json;
+        use tally_mcp::config::Config;
+        use tally_mcp::mcp::McpServer;
+
+        let config = Config::default();
+        let mcp = McpServer::new(config);
+
+        // 1. Check list_tools_metadata
+        let tools_meta = mcp.list_tools_metadata();
+        assert!(!tools_meta.is_empty(), "Tools metadata should not be empty");
+
+        // Verify tally_list_companies is registered as read-only / GET method
+        let list_comp = tools_meta
+            .iter()
+            .find(|t| t["name"] == "tally_list_companies")
+            .expect("tally_list_companies must be present in tools metadata");
+        assert_eq!(list_comp["access"], "read");
+        assert_eq!(list_comp["is_get"], true);
+
+        // Verify tally_status is registered as read-only / GET method
+        let status_tool = tools_meta
+            .iter()
+            .find(|t| t["name"] == "tally_status")
+            .expect("tally_status must be present in tools metadata");
+        assert_eq!(status_tool["access"], "read");
+        assert_eq!(status_tool["is_get"], true);
+
+        // 2. Test calling tally_status tool
+        let status_resp = mcp.call_tool("tally_status", json!({}), json!(101)).await;
+        assert_eq!(status_resp["id"], 101);
+        let content_arr = status_resp["result"]["content"]
+            .as_array()
+            .expect("Status response should contain content array");
+        let status_text = content_arr[0]["text"]
+            .as_str()
+            .expect("Should have text in content");
+        assert!(
+            status_text.contains("reachable"),
+            "Status text must contain reachability status: {}",
+            status_text
+        );
+
+        // 3. Test calling tally_list_companies tool
+        let comp_resp = mcp
+            .call_tool("tally_list_companies", json!({}), json!(102))
+            .await;
+        assert_eq!(comp_resp["id"], 102);
+        assert!(
+            comp_resp.get("result").is_some(),
+            "list_companies tool must return a result object"
+        );
     }
 
     #[test]
@@ -362,5 +433,42 @@ mod ui_and_byok_tests {
             !exe.is_empty(),
             "Resolved executable path must not be empty"
         );
+    }
+
+    #[test]
+    fn test_companion_ui_mcp_api_endpoints() {
+        std::env::set_var("TALLY_NO_OPEN", "1");
+        let config = Config::default();
+        let ui_server = CompanionUiServer::new(config);
+
+        let port = 19876;
+        std::thread::spawn(move || {
+            let _ = ui_server.run(port);
+        });
+
+        std::thread::sleep(std::time::Duration::from_millis(200));
+
+        let url_tools = format!("http://127.0.0.1:{}/api/mcp/tools", port);
+        if let Ok(resp) = ureq::get(&url_tools).call() {
+            let body: serde_json::Value = resp.into_body().read_json().expect("Valid JSON");
+            assert_eq!(body["success"], true);
+            let tools = body["tools"].as_array().expect("tools array");
+            assert!(tools.iter().any(|t| t["name"] == "tally_list_companies"));
+            assert!(tools.iter().any(|t| t["name"] == "tally_status"));
+        }
+
+        // Test POST /api/mcp/test-tool for tally_status
+        let url_test = format!("http://127.0.0.1:{}/api/mcp/test-tool", port);
+        if let Ok(resp) = ureq::post(&url_test)
+            .header("content-type", "application/json")
+            .send_json(serde_json::json!({
+                "tool": "tally_status",
+                "arguments": {}
+            }))
+        {
+            let body: serde_json::Value = resp.into_body().read_json().expect("Valid JSON");
+            assert_eq!(body["tool"], "tally_status");
+            assert!(body.get("latency_ms").is_some());
+        }
     }
 }

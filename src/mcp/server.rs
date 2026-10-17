@@ -147,7 +147,7 @@ impl McpServer {
         }
     }
 
-    fn list_tools(&self) -> Vec<Value> {
+    pub fn list_tools(&self) -> Vec<Value> {
         let mut tools = vec![
             json!({
                 "name": "tally_status",
@@ -301,7 +301,113 @@ impl McpServer {
         tools
     }
 
-    async fn call_tool(&self, name: &str, arguments: Value, id: Value) -> Value {
+    pub fn list_tools_metadata(&self) -> Vec<Value> {
+        let base_tools = self.list_tools();
+        let mut list = Vec::new();
+        for t in base_tools {
+            let name = t
+                .get("name")
+                .and_then(|n| n.as_str())
+                .unwrap_or("")
+                .to_string();
+            let desc = t
+                .get("description")
+                .and_then(|d| d.as_str())
+                .unwrap_or("")
+                .to_string();
+            let schema = t.get("inputSchema").cloned().unwrap_or(json!({}));
+
+            let (display_name, access, is_get, sample_args) = match name.as_str() {
+                "tally_status" => ("Tally System Status", "read", true, json!({})),
+                "tally_list_companies" => ("Get List of Companies", "read", true, json!({})),
+                "tally_set_active_company" => (
+                    "Set Active Company",
+                    "session",
+                    false,
+                    json!({ "company": "Acme Trading Pvt Ltd" }),
+                ),
+                "tally_list_ledgers" => (
+                    "Get List of Ledgers",
+                    "read",
+                    true,
+                    json!({ "company": "" }),
+                ),
+                "tally_trial_balance" => (
+                    "Get Trial Balance",
+                    "read",
+                    true,
+                    json!({ "company": "", "from_date": "", "to_date": "" }),
+                ),
+                "tally_day_book" => (
+                    "Get Day Book",
+                    "read",
+                    true,
+                    json!({ "company": "", "from_date": "", "to_date": "" }),
+                ),
+                "tally_preview_draft" => (
+                    "Preview Voucher Draft",
+                    "read",
+                    true,
+                    json!({ "draft_id": "d_sample" }),
+                ),
+                "tally_draft_voucher" => (
+                    "Draft Voucher",
+                    "draft",
+                    false,
+                    json!({
+                        "company": "Acme Trading Pvt Ltd",
+                        "voucher_type": "Payment",
+                        "date": "20250401",
+                        "number": "PV-001",
+                        "party_ledger": "Acme Supplier",
+                        "entries": [
+                            { "ledger": "Acme Supplier", "amount": "1000.00" },
+                            { "ledger": "Bank Account", "amount": "-1000.00" }
+                        ],
+                        "narration": "Sample payment voucher"
+                    }),
+                ),
+                "tally_commit_draft" => (
+                    "Commit Approved Draft",
+                    "write",
+                    false,
+                    json!({ "draft_id": "d_sample" }),
+                ),
+                "tally_discard_draft" => (
+                    "Discard Voucher Draft",
+                    "draft",
+                    false,
+                    json!({ "draft_id": "d_sample" }),
+                ),
+                "tally_extract_document" => (
+                    "Extract Invoice / Document",
+                    "read/ai",
+                    true,
+                    json!({ "file_path": "C:\\path\\to\\invoice.pdf" }),
+                ),
+                "tally_run_report" => (
+                    "Run Pack Report",
+                    "read",
+                    true,
+                    json!({ "report_name": "outstanding_ageing", "parameters": {} }),
+                ),
+                _ => (name.as_str(), "read", true, json!({})),
+            };
+
+            list.push(json!({
+                "name": name,
+                "display_name": display_name,
+                "description": desc,
+                "input_schema": schema,
+                "access": access,
+                "is_get": is_get,
+                "sample_args": sample_args,
+            }));
+        }
+        list
+    }
+
+    pub async fn call_tool(&self, name: &str, arguments: Value, id: Value) -> Value {
         // Check if tool is a dynamically registered pack tool
         if let Some(pt) = self.packs.find_tool(name) {
             match self.packs.execute_template(pt, &arguments) {
