@@ -821,11 +821,12 @@ pub fn chat(
 
         let text_opt = resp_json["choices"][0]["message"]["content"]
             .as_str()
-            .or_else(|| resp_json["choices"][0]["text"].as_str());
+            .or_else(|| resp_json["choices"][0]["text"].as_str())
+            .or_else(|| resp_json["candidates"][0]["content"]["parts"][0]["text"].as_str());
 
         let text = match text_opt {
-            Some(t) => t.to_string(),
-            None => {
+            Some(t) if !t.trim().is_empty() => t.to_string(),
+            _ => {
                 if let Some(arr) = resp_json["choices"][0]["message"]["content"].as_array() {
                     let mut combined = String::new();
                     for part in arr {
@@ -835,6 +836,50 @@ pub fn chat(
                     }
                     if !combined.is_empty() {
                         combined
+                    } else if let Some(rc) =
+                        resp_json["choices"][0]["message"]["reasoning_content"].as_str()
+                    {
+                        if !rc.trim().is_empty() {
+                            rc.to_string()
+                        } else {
+                            "No response text received from model.".to_string()
+                        }
+                    } else {
+                        "No response text received from model.".to_string()
+                    }
+                } else if let Some(parts) =
+                    resp_json["candidates"][0]["content"]["parts"].as_array()
+                {
+                    let mut combined = String::new();
+                    for part in parts {
+                        if let Some(txt) = part.get("text").and_then(|t| t.as_str()) {
+                            combined.push_str(txt);
+                        }
+                    }
+                    if !combined.is_empty() {
+                        combined
+                    } else {
+                        "No response text received from model.".to_string()
+                    }
+                } else if let Some(rc) =
+                    resp_json["choices"][0]["message"]["reasoning_content"].as_str()
+                {
+                    if !rc.trim().is_empty() {
+                        rc.to_string()
+                    } else {
+                        "No response text received from model.".to_string()
+                    }
+                } else if let Some(refusal) = resp_json["choices"][0]["message"]["refusal"].as_str()
+                {
+                    format!("Model refusal: {}", refusal)
+                } else if let Some(finish_reason) =
+                    resp_json["choices"][0]["finish_reason"].as_str()
+                {
+                    if finish_reason != "stop" {
+                        format!(
+                            "No response content received from model (finish_reason: '{}').",
+                            finish_reason
+                        )
                     } else {
                         "No response text received from model.".to_string()
                     }

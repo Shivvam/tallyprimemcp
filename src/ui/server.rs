@@ -1590,6 +1590,15 @@ impl CompanionUiServer {
 
                             match rx.recv_timeout(Duration::from_secs(5)) {
                                 Ok(Ok(im)) => {
+                                    let format_tally_err = |raw: String| {
+                                        if raw.contains("Voucher date is missing")
+                                            || raw.contains("retry Split")
+                                        {
+                                            format!("{} (Tally Educational Mode restriction: vouchers can only be dated on the 1st, 2nd, or 31st of any month; also verify your company's active Financial Year period via Alt+F2 in Tally)", raw)
+                                        } else {
+                                            raw
+                                        }
+                                    };
                                     if im.created > 0 {
                                         let _ = self.journal.record_commit_result(
                                             &draft,
@@ -1598,9 +1607,10 @@ impl CompanionUiServer {
                                         );
                                         outcome = json!({ "success": true, "outcome": "Voucher created in Tally" });
                                     } else {
-                                        let err_msg = im.error_message.unwrap_or_else(|| {
+                                        let raw_msg = im.error_message.unwrap_or_else(|| {
                                             "Tally rejected voucher".to_string()
                                         });
+                                        let err_msg = format_tally_err(raw_msg);
                                         let _ = self.journal.record_commit_result(
                                             &draft,
                                             DraftStatus::Failed,
@@ -1610,7 +1620,14 @@ impl CompanionUiServer {
                                     }
                                 }
                                 Ok(Err(e)) => {
-                                    let err_msg = e.to_string();
+                                    let raw_msg = e.to_string();
+                                    let err_msg = if raw_msg.contains("Voucher date is missing")
+                                        || raw_msg.contains("retry Split")
+                                    {
+                                        format!("{} (Tally Educational Mode restriction: vouchers can only be dated on the 1st, 2nd, or 31st of any month; also verify your company's active Financial Year period via Alt+F2 in Tally)", raw_msg)
+                                    } else {
+                                        raw_msg
+                                    };
                                     let _ = self.journal.record_commit_result(
                                         &draft,
                                         DraftStatus::Failed,

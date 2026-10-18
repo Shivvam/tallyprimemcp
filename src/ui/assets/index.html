@@ -1999,7 +1999,11 @@
           closeDraftModal();
           loadDrafts();
         } else {
-          showBanner("Error committing voucher: " + (data.error || "Unknown"), "error");
+          let errMsg = data.error || "Unknown";
+          if (errMsg.includes("Voucher date is missing") || errMsg.includes("retry Split")) {
+            errMsg = errMsg + " (Note: Tally Educational Mode only permits voucher dates on the 1st, 2nd, or 31st of any month; also verify your company's active Financial Year period via Alt+F2)";
+          }
+          showBanner("Error committing voucher: " + errMsg, "error");
         }
       } catch (e) {
         showBanner("Commit failed: " + e.message, "error");
