@@ -19,7 +19,9 @@
 6. Prerequisite: TallyPrime open with company loaded; Connectivity > HTTP server enabled, port 9000.
 
 ## MCP config (stdio)
-{"mcpServers":{"tally":{"command":"tally-mcp","args":["serve"]}}}
+{"mcpServers":{"tallymcp.pro":{"command":"tally-mcp","args":["serve"]}}}
+*(Legacy identifier `"tally"` is also supported)*
+
 
 ## Agent rules
 1. Call tally_set_active_company before querying.

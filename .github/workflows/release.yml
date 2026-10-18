@@ -291,10 +291,11 @@ jobs:
           \`\`\`
 
           **Claude Desktop Config (\`claude_desktop_config.json\`):**
+          *(Server identifier is `tallymcp.pro`; legacy alias `tally` is also supported)*
           \`\`\`json
           {
             "mcpServers": {
-              "tally": {
+              "tallymcp.pro": {
                 "command": "C:\\\\Users\\\\<YOUR_USER>\\\\AppData\\\\Local\\\\Programs\\\\TallyMCP\\\\tally-mcp.exe",
                 "args": ["serve"]
               }

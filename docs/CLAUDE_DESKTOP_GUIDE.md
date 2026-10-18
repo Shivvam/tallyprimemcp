@@ -70,11 +70,14 @@ A comprehensive, production-grade guide to connecting **Claude Desktop** with **
 
 ### Step 2: Add TallyMCP to `claude_desktop_config.json`
 
+> [!NOTE]
+> **Server Identifier:** We recommend `"tallymcp.pro"` as the standard server identifier across all clients. The legacy alias `"tally"` is also supported.
+
 #### If your configuration file is empty:
 ```json
 {
   "mcpServers": {
-    "tally": {
+    "tallymcp.pro": {
       "command": "tally-mcp",
       "args": ["serve"]
     }
@@ -84,7 +87,7 @@ A comprehensive, production-grade guide to connecting **Claude Desktop** with **
 
 #### If your file already has other settings:
 > [!IMPORTANT]
-> **Do not overwrite existing keys** such as `preferences` or other MCP servers. Insert `"tally"` inside the `"mcpServers"` object, ensuring valid JSON formatting (no missing or trailing commas).
+> **Do not overwrite existing keys** such as `preferences` or other MCP servers. Insert `"tallymcp.pro"` inside the `"mcpServers"` object, ensuring valid JSON formatting (no missing or trailing commas).
 
 ```json
 {
@@ -93,7 +96,7 @@ A comprehensive, production-grade guide to connecting **Claude Desktop** with **
   },
   "coworkUserFilesPath": "C:\\Users\\User\\Claude",
   "mcpServers": {
-    "tally": {
+    "tallymcp.pro": {
       "command": "tally-mcp",
       "args": ["serve"]
     }
@@ -107,7 +110,7 @@ If Windows fails to find `tally-mcp`, specify the absolute path to your binary. 
 ```json
 {
   "mcpServers": {
-    "tally": {
+    "tallymcp.pro": {
       "command": "C:\\Users\\<YourUsername>\\AppData\\Local\\Programs\\TallyMCP\\tally-mcp.exe",
       "args": ["serve"]
     }

@@ -196,6 +196,42 @@ sequenceDiagram
 
 If the process crashes between steps, drafts stuck in `committing` are reconciled against Tally by GUID on the next startup or `tally-mcp doctor`, then verified or reverted.
 
+### Visual Demo: Claude Connector & Human Approval Modal
+
+```text
+┌── Claude Desktop ────────────────────────────────────────────────────────────────────────┐
+│ User: "Draft a payment voucher for Rent of ₹25,000 paid via HDFC Bank on 2026-10-18."     │
+│                                                                                           │
+│ 🤖 Claude (tallymcp.pro):                                                                 │
+│ Calling tally_draft_voucher(type="Payment", date="20261018", ...)                          │
+│                                                                                           │
+│ ✅ Draft vch_01J9 created in local write-ahead journal.                                   │
+│ ⚠️ Human approval required before posting to TallyPrime:                                  │
+│ 🔗 http://127.0.0.1:9190/approve?id=vch_01J9&token=8f3c...                                │
+└──────────────────────────────────────────────────────────────────────────────────────────┘
+                                      │
+                         (Click URL opens local browser)
+                                      ▼
+┌── TallyMCP Companion UI (127.0.0.1:9190) ─────────────────────────────────────────────────┐
+│  📋 Voucher Draft Approval                                                                │
+│  ───────────────────────────────────────────────────────────────────────────────────────  │
+│  Draft ID: vch_01J942A8   Type: Payment   Date: 2026-10-18   Status: PENDING REVIEW       │
+│                                                                                           │
+│  Ledger Entries:                                                                          │
+│  ┌────────────────────────┬─────────────┬──────────────┬───────────────┐                  │
+│  │ Ledger Name            │ Debit (₹)   │ Credit (₹)   │ Current Bal   │                  │
+│  ├────────────────────────┼─────────────┼──────────────┼───────────────┤                  │
+│  │ Office Rent            │   25,000.00 │            - │    75,000 Dr  │                  │
+│  │ HDFC Bank Account      │           - │    25,000.00 │  4,82,100 Dr  │                  │
+│  ├────────────────────────┼─────────────┼──────────────┼───────────────┤                  │
+│  │ Total (Balanced: ₹0.00)│   25,000.00 │    25,000.00 │               │                  │
+│  └────────────────────────┴─────────────┴──────────────┴───────────────┘                  │
+│                                                                                           │
+│  Actions:                                                                                 │
+│  [ ❌ Discard Draft ]                    [ ✅ Approve & Commit to TallyPrime (Port 9000) ]│
+└───────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
 ---
 
 ## Requirements
@@ -251,8 +287,12 @@ Download the official Windows installer (`.msi`) or portable binary (`.exe`) fro
 | Platform | Recommended Artifact | Alternative |
 |---|---|---|
 | **Windows x64** | `tally-mcp-<version>-x64.msi` (Per-user MSI installer) | `tally-mcp.exe` (Standalone portable) |
-| **Linux x86_64** | `tally-mcp-<version>-linux-x64.tar.gz` | `cargo install tally-mcp` |
-| **macOS (arm64)** | `tally-mcp-<version>-darwin-arm64.tar.gz` | `cargo install tally-mcp` |
+| **Linux x86_64** | Windows primary; precompiled release coming soon | `cargo install tally-mcp` / Source build |
+| **macOS (arm64)** | Windows primary; precompiled release coming soon | `cargo install tally-mcp` / Source build |
+
+> [!NOTE]
+> **Platform Availability:** Windows is currently the primary prebuilt platform with official `.msi` and `.exe` release assets. Linux and macOS precompiled artifacts are coming soon; you can build from source immediately on Linux/macOS using `cargo build --release`.
+
 
 > [!NOTE]
 > **Windows SmartScreen & Integrity:** Windows binaries are currently unsigned while our EV Authenticode certificate is being processed (see [Roadmap](#roadmap)). When running the `.msi` or `.exe` for the first time, Windows SmartScreen may display an alert. Always verify the SHA-256 hash against `checksums.txt` published on GitHub Releases, then click **More info → Run anyway**.
@@ -311,6 +351,8 @@ TallyMCP can export a pre-packaged **`.mcpb` bundle** for zero-config, one-click
 
 #### Option B: Client Manual Configurations
 
+> 💡 **Server Identifier:** We recommend `"tallymcp.pro"` as the standard server key across all clients. The legacy alias `"tally"` is also supported.
+
 <details open>
 <summary><b>Claude Desktop (JSON Config)</b></summary>
 
@@ -319,7 +361,7 @@ Edit `%APPDATA%\Claude\claude_desktop_config.json`:
 ```json
 {
   "mcpServers": {
-    "tally": {
+    "tallymcp.pro": {
       "command": "C:\\Users\\<YourUsername>\\AppData\\Local\\Programs\\TallyMCP\\tally-mcp.exe",
       "args": ["serve"]
     }
@@ -339,7 +381,7 @@ Fully restart Claude Desktop after saving.
 2. Go to **Edit > Settings**.
 3. Navigate to **Integration > Plugins** (or **Developer > Add MCP Server**).
 4. Click **Add** button and choose **Add MCP Server**:
-   - **Name**: `tally`
+   - **Name**: `tallymcp.pro`
    - **Command**: `tally-mcp` (or `C:\Users\<YourUsername>\AppData\Local\Programs\TallyMCP\tally-mcp.exe`)
    - **Arguments**: `["serve"]`
 </details>
@@ -352,7 +394,7 @@ In your Gemini MCP settings or `~/.gemini/mcp_config.json`:
 ```json
 {
   "mcpServers": {
-    "tally": {
+    "tallymcp.pro": {
       "command": "tally-mcp",
       "args": ["serve"]
     }
@@ -369,7 +411,7 @@ In your Gemini MCP settings or `~/.gemini/mcp_config.json`:
 ```json
 {
   "mcpServers": {
-    "tally": {
+    "tallymcp.pro": {
       "command": "tally-mcp",
       "args": ["serve"]
     }
@@ -388,7 +430,7 @@ Add to `~/.codeium/windsurf/mcp_config.json`:
 ```json
 {
   "mcpServers": {
-    "tally": {
+    "tallymcp.pro": {
       "command": "tally-mcp",
       "args": ["serve"]
     }
@@ -404,7 +446,7 @@ Cline Settings → MCP Servers → Add:
 
 | Field | Value |
 |---|---|
-| Name | `tally` |
+| Name | `tallymcp.pro` |
 | Command | `tally-mcp` |
 | Arguments | `["serve"]` |
 </details>
