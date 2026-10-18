@@ -54,6 +54,7 @@ pub fn build_voucher_import_xml(draft: &VoucherDraft) -> String {
           <VOUCHER VCHTYPE="{}" ACTION="Create">
             <GUID>{}</GUID>
             <DATE>{}</DATE>
+            <EFFECTIVEDATE>{}</EFFECTIVEDATE>
             <VOUCHERTYPENAME>{}</VOUCHERTYPENAME>
             <VOUCHERNUMBER>{}</VOUCHERNUMBER>
             <PARTYLEDGERNAME>{}</PARTYLEDGERNAME>
@@ -67,6 +68,7 @@ pub fn build_voucher_import_xml(draft: &VoucherDraft) -> String {
         company_escaped,
         vch_type_escaped,
         guid,
+        draft.date,
         draft.date,
         vch_type_escaped,
         number_escaped,

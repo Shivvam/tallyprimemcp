@@ -518,5 +518,47 @@ mod ui_and_byok_tests {
             assert_eq!(body["success"], true);
             assert_eq!(body["write_mode"], "approve");
         }
+
+        // Test POST /api/drafts/commit allows retrying a Failed draft
+        let journal = JournalManager::new().expect("journal");
+        let failed_draft_id = format!("d_retry_test_{}", uuid::Uuid::new_v4().simple());
+        let draft = VoucherDraft {
+            draft_id: failed_draft_id.clone(),
+            company: "Acme Corp".to_string(),
+            voucher_type: "Purchase".to_string(),
+            date: "20261001".to_string(),
+            number: "TEST-002".to_string(),
+            party_ledger: "Acme Corp".to_string(),
+            entries: vec![
+                VoucherEntry {
+                    ledger: "Purchases".to_string(),
+                    amount: Decimal::from(-100),
+                },
+                VoucherEntry {
+                    ledger: "Acme Corp".to_string(),
+                    amount: Decimal::from(100),
+                },
+            ],
+            narration: "Retry test".to_string(),
+            idempotency_key: "idemp_retry".to_string(),
+            content_hash: "hash_retry".to_string(),
+            status: DraftStatus::Failed,
+            tally_guid: Some("guid-retry".to_string()),
+        };
+        journal.save_draft(&draft).expect("save failed draft");
+
+        let url_commit = format!("http://127.0.0.1:{}/api/drafts/commit", port);
+        if let Ok(resp) = ureq::post(&url_commit)
+            .header("content-type", "application/json")
+            .send_json(serde_json::json!({
+                "draft_id": failed_draft_id
+            }))
+        {
+            let body: serde_json::Value = resp.into_body().read_json().expect("Valid JSON");
+            // Since Tally is offline in unit test, it will fail posting to Tally,
+            // but it should NOT fail with "Draft is not in Approved state"
+            let err = body["error"].as_str().unwrap_or("");
+            assert_ne!(err, "Draft is not in Approved state", "Failed draft should transition to Approved and attempt post, not be rejected as unapproved");
+        }
     }
 }

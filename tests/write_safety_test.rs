@@ -83,6 +83,8 @@ mod write_safety_tests {
         assert!(xml.contains("<SVCURRENTCOMPANY>Acme Trading Pvt Ltd</SVCURRENTCOMPANY>"));
         assert!(xml.contains(r#"<VOUCHER VCHTYPE="Purchase" ACTION="Create">"#));
         assert!(xml.contains("<GUID>guid-test-123</GUID>"));
+        assert!(xml.contains("<DATE>20261012</DATE>"));
+        assert!(xml.contains("<EFFECTIVEDATE>20261012</EFFECTIVEDATE>"));
         assert!(xml.contains("<VOUCHERNUMBER>INV-1042</VOUCHERNUMBER>"));
         assert!(xml.contains("<LEDGERNAME>Acme Corp</LEDGERNAME>"));
         assert!(xml.contains("<AMOUNT>531.00</AMOUNT>"));

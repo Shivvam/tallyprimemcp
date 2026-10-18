@@ -1553,9 +1553,11 @@ impl CompanionUiServer {
                 if let Ok(val) = parsed {
                     let draft_id = val.get("draft_id").and_then(|d| d.as_str()).unwrap_or("");
                     if let Ok(mut draft) = self.journal.get_draft(draft_id) {
-                        // Human confirmation directly from the Companion UI approves pending drafts
+                        // Human confirmation directly from the Companion UI approves pending or previously failed drafts
                         if draft.status == DraftStatus::PendingApproval
                             || draft.status == DraftStatus::NeedsReview
+                            || draft.status == DraftStatus::Failed
+                            || draft.status == DraftStatus::NeedsReconcile
                         {
                             draft.status = DraftStatus::Approved;
                             let _ = self.journal.save_draft(&draft);
@@ -1596,14 +1598,32 @@ impl CompanionUiServer {
                                         );
                                         outcome = json!({ "success": true, "outcome": "Voucher created in Tally" });
                                     } else {
-                                        outcome = json!({ "success": false, "error": im.error_message.unwrap_or_else(|| "Tally rejected voucher".to_string()) });
+                                        let err_msg = im.error_message.unwrap_or_else(|| "Tally rejected voucher".to_string());
+                                        let _ = self.journal.record_commit_result(
+                                            &draft,
+                                            DraftStatus::Failed,
+                                            &err_msg,
+                                        );
+                                        outcome = json!({ "success": false, "error": err_msg });
                                     }
                                 }
                                 Ok(Err(e)) => {
-                                    outcome = json!({ "success": false, "error": e.to_string() });
+                                    let err_msg = e.to_string();
+                                    let _ = self.journal.record_commit_result(
+                                        &draft,
+                                        DraftStatus::Failed,
+                                        &err_msg,
+                                    );
+                                    outcome = json!({ "success": false, "error": err_msg });
                                 }
                                 Err(_) => {
-                                    outcome = json!({ "success": false, "error": "Tally request timed out" });
+                                    let err_msg = "Tally request timed out".to_string();
+                                    let _ = self.journal.record_commit_result(
+                                        &draft,
+                                        DraftStatus::Failed,
+                                        &err_msg,
+                                    );
+                                    outcome = json!({ "success": false, "error": err_msg });
                                 }
                             }
                         } else {
@@ -1788,10 +1808,58 @@ impl CompanionUiServer {
                                 .cloned()
                                 .unwrap_or_else(|| "None".to_string());
 
+                            let mut extra_data = String::new();
+                            let msg_lower = message.to_lowercase();
+                            if reachable && active_comp != "None" {
+                                if msg_lower.contains("day book")
+                                    || msg_lower.contains("daybook")
+                                    || msg_lower.contains("voucher")
+                                {
+                                    let req_xml = crate::tally::envelope::build_day_book_xml(&active_comp, None, None);
+                                    let (dtx, drx) = std::sync::mpsc::channel();
+                                    let tally_c = tally_arc.clone();
+                                    std::thread::spawn(move || {
+                                        if let Ok(rt) = tokio::runtime::Builder::new_current_thread().enable_all().build() {
+                                            let res = rt.block_on(async move {
+                                                tally_c.execute_raw_xml(&req_xml, Duration::from_secs(10)).await
+                                            });
+                                            let _ = dtx.send(res);
+                                        }
+                                    });
+                                    if let Ok(Ok(raw)) = drx.recv_timeout(Duration::from_secs(12)) {
+                                        let vchs = crate::tally::client::parse_day_book_vouchers(&raw);
+                                        let vch_slice: Vec<_> = vchs.into_iter().take(20).collect();
+                                        if !vch_slice.is_empty() {
+                                            extra_data = format!(
+                                                "\nRecent Day Book Vouchers:\n{}",
+                                                serde_json::to_string_pretty(&vch_slice).unwrap_or_default()
+                                            );
+                                        }
+                                    }
+                                } else if msg_lower.contains("trial balance") {
+                                    let req_xml = crate::tally::envelope::build_trial_balance_xml(&active_comp, None, None);
+                                    let (dtx, drx) = std::sync::mpsc::channel();
+                                    let tally_c = tally_arc.clone();
+                                    std::thread::spawn(move || {
+                                        if let Ok(rt) = tokio::runtime::Builder::new_current_thread().enable_all().build() {
+                                            let res = rt.block_on(async move {
+                                                tally_c.execute_raw_xml(&req_xml, Duration::from_secs(10)).await
+                                            });
+                                            let _ = dtx.send(res);
+                                        }
+                                    });
+                                    if let Ok(Ok(raw)) = drx.recv_timeout(Duration::from_secs(12)) {
+                                        let formatted = crate::tally::client::format_report_response("Trial Balance", &raw);
+                                        extra_data = format!("\nTrial Balance Summary:\n{}", formatted);
+                                    }
+                                }
+                            }
+
                             let tally_ctx = format!(
-                                "Tally Server: http://{}:{}\nReachable: {}\nLatency: {}ms\nActive Company: {}\nOpen Companies: {}",
+                                "Tally Server: http://{}:{}\nReachable: {}\nLatency: {}ms\nActive Company: {}\nOpen Companies: {}{}",
                                 cfg.tally.host, cfg.tally.port, reachable, latency, active_comp,
-                                if loaded_companies.is_empty() { "None (no company open)".to_string() } else { loaded_companies.join(", ") }
+                                if loaded_companies.is_empty() { "None (no company open)".to_string() } else { loaded_companies.join(", ") },
+                                extra_data
                             );
 
                             let (tx, rx) = std::sync::mpsc::channel();

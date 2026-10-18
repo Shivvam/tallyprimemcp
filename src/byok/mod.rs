@@ -624,10 +624,39 @@ pub fn chat(
                 .read_json()
                 .map_err(|e| ExtractError::ParseError(e.to_string()))?;
 
-            let text = resp_json["content"][0]["text"]
-                .as_str()
-                .unwrap_or("No response text received from Claude.");
-            return Ok(text.to_string());
+            if let Some(err_obj) = resp_json.get("error") {
+                let msg = if let Some(m) = err_obj.get("message").and_then(|v| v.as_str()) {
+                    m.to_string()
+                } else if let Some(s) = err_obj.as_str() {
+                    s.to_string()
+                } else {
+                    err_obj.to_string()
+                };
+                return Err(ExtractError::RequestFailed("anthropic".to_string(), msg));
+            }
+
+            let text_opt = resp_json["content"][0]["text"].as_str();
+            let text = match text_opt {
+                Some(t) => t.to_string(),
+                None => {
+                    if let Some(arr) = resp_json["content"].as_array() {
+                        let mut combined = String::new();
+                        for part in arr {
+                            if let Some(txt) = part.get("text").and_then(|t| t.as_str()) {
+                                combined.push_str(txt);
+                            }
+                        }
+                        if !combined.is_empty() {
+                            combined
+                        } else {
+                            "No response text received from Claude.".to_string()
+                        }
+                    } else {
+                        "No response text received from Claude.".to_string()
+                    }
+                }
+            };
+            return Ok(text);
         }
 
         // OpenAI / Gemini / Ollama compatible
@@ -779,10 +808,42 @@ pub fn chat(
             .read_json()
             .map_err(|e| ExtractError::ParseError(e.to_string()))?;
 
-        let text = resp_json["choices"][0]["message"]["content"]
+        if let Some(err_obj) = resp_json.get("error") {
+            let msg = if let Some(m) = err_obj.get("message").and_then(|v| v.as_str()) {
+                m.to_string()
+            } else if let Some(s) = err_obj.as_str() {
+                s.to_string()
+            } else {
+                err_obj.to_string()
+            };
+            return Err(ExtractError::RequestFailed(api_key_provider.clone(), msg));
+        }
+
+        let text_opt = resp_json["choices"][0]["message"]["content"]
             .as_str()
-            .unwrap_or("No response text received from model.");
-        Ok(text.to_string())
+            .or_else(|| resp_json["choices"][0]["text"].as_str());
+
+        let text = match text_opt {
+            Some(t) => t.to_string(),
+            None => {
+                if let Some(arr) = resp_json["choices"][0]["message"]["content"].as_array() {
+                    let mut combined = String::new();
+                    for part in arr {
+                        if let Some(txt) = part.get("text").and_then(|t| t.as_str()) {
+                            combined.push_str(txt);
+                        }
+                    }
+                    if !combined.is_empty() {
+                        combined
+                    } else {
+                        "No response text received from model.".to_string()
+                    }
+                } else {
+                    "No response text received from model.".to_string()
+                }
+            }
+        };
+        Ok(text)
     }
 
     #[cfg(not(feature = "byok"))]
