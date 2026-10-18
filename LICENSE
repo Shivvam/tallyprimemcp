@@ -1,22 +1,27 @@
-MIT License (Non-Commercial)
+# Dual License: MIT OR Apache-2.0
+
+TallyMCP is 100% free and open-source software, licensed under either of:
+
+- **MIT License** ([LICENSE-MIT](LICENSE-MIT) or <https://opensource.org/licenses/MIT>)
+- **Apache License, Version 2.0** ([LICENSE-APACHE](LICENSE-APACHE) or <https://www.apache.org/licenses/LICENSE-2.0>)
+
+at your option.
+
+---
+
+## MIT License
 
 Copyright (c) 2026 Shivam and TallyMCP Contributors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
-in the Software for non-commercial purposes, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, and sublicense copies of the Software,
-and to permit persons to whom the Software is furnished to do so, subject to the
-following conditions:
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
 The above copyright notice and this permission notice shall be included in all
 copies or substantial portions of the Software.
-
-NON-COMMERCIAL RESTRICTION: Commercial use, commercial redistribution, resale, or
-incorporation of the Software into paid commercial products or hosted SaaS offerings
-is strictly prohibited without prior written authorization from the copyright holder.
-Personal use, open-source research, and internal use by businesses interacting with
-their own local TallyPrime accounting records are permitted.
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -25,3 +30,21 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+---
+
+## Apache License, Version 2.0
+
+Copyright 2026 Shivam and TallyMCP Contributors
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    https://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.

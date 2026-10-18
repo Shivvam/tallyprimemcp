@@ -31,4 +31,4 @@
 - Full docs: https://www.tallymcp.pro/docs
 - Tool reference: https://www.tallymcp.pro/tools
 - Source: https://github.com/Shivvam/tallyprimemcp
-- License: MIT (Non-Commercial)   Version: 1.0.0   Updated: 2026-10-17
+- License: MIT OR Apache-2.0   Version: 1.0.1   Updated: 2026-10-18

@@ -9,40 +9,52 @@
 
 ## Reporting a Vulnerability
 
-Please **do not** open a public GitHub issue for security vulnerabilities.
+Please **do not** open a public GitHub issue or public discussion for potential security vulnerabilities.
 
-To report a vulnerability privately:
+To report a vulnerability privately, use one of the following channels:
 
-1. Go to the [Security Advisories](https://github.com/Shivvam/tallyprimemcp/security/advisories/new) page on GitHub.
+### Option 1: GitHub Private Vulnerability Reporting (Preferred)
+1. Navigate to the [Security Advisories](https://github.com/Shivvam/tallyprimemcp/security/advisories/new) tab on GitHub.
 2. Click **Report a vulnerability**.
-3. Fill in the details: affected component, reproduction steps, potential impact, and any suggested fix.
+3. Provide details: affected component, reproduction steps, potential impact, and suggested mitigation.
 
-You will receive an acknowledgement within **72 hours**. We aim to release a patch within **14 days** of a confirmed critical vulnerability.
+### Option 2: Direct Email
+If you do not have a GitHub account or prefer email:
+- **Email:** `security@tallymcp.pro` (with subject line: `[SECURITY] TallyMCP Vulnerability Report`)
+
+### Response Timelines & SLA
+- **Initial acknowledgement:** Within **48 to 72 hours**.
+- **Triage & severity assessment:** Within **5 business days**.
+- **Patch release:** Within **14 business days** for confirmed critical or high severity vulnerabilities.
+
+---
 
 ## Scope
 
-In scope:
-- Authentication bypass or token prediction in the loopback approval UI
-- Vulnerabilities allowing an MCP tool call to commit a write to TallyPrime without human approval
-- Information disclosure of API keys or accounting data outside the configured egress allow-list
-- Crash or data-corruption bugs in the write-ahead journal or atomic rename path
-- DNS rebinding or CSRF bypasses in the companion UI server
+### In Scope
+- Authentication bypass or HMAC token prediction in the loopback approval UI (`src/ui/`)
+- Any path allowing an MCP tool call to commit or write to TallyPrime without explicit human approval
+- Leaks of sensitive keys or accounting data outside configured egress boundaries
+- Write-ahead journal corruption or atomic rename failures risking data loss
+- DNS rebinding, CSRF, or Host header validation bypasses in the local companion UI
 
-Out of scope:
-- Issues that require physical access to the machine running TallyMCP
-- Vulnerabilities in TallyPrime itself
-- Issues in third-party LLM provider APIs (Anthropic, OpenAI, Google)
+### Out of Scope
+- Physical access attacks on the host machine running TallyMCP
+- Unpatched vulnerabilities in TallyPrime itself or the Windows operating system
+- Social engineering attacks
+- Third-party LLM provider API failures (Anthropic, OpenAI, Google)
 
-## Security Design Summary
+---
 
-TallyMCP enforces safety outside the AI model:
+## Security Design Principles
 
-- **No LLM commit path:** No MCP tool can post to Tally without a separate human-initiated HTTP request to the loopback approval server.
-- **One-time HMAC token:** Each draft approval URL carries a random token invalidated after first use.
-- **Host header enforcement:** The companion UI rejects requests whose `Host` header is not `127.0.0.1` or `localhost`.
-- **Egress allow-list:** Outbound connections are limited to `127.0.0.1`, configured Tally host, and AI provider endpoints (only when BYOK document extraction is enabled).
-- **No telemetry:** Zero external connections are made by the core MCP server.
+TallyMCP is designed from the ground up to prevent AI agents from altering financial records autonomously:
 
-## Disclosure Credit
+- **No LLM commit path:** No MCP tool has the ability to post data to Tally directly. Every write requires a human click on a local, token-gated approval UI.
+- **One-time HMAC token:** Each draft approval URL is bound to a single-use random HMAC token.
+- **Strict Host header enforcement:** The loopback approval server rejects all requests whose `Host` header is not `127.0.0.1` or `localhost`.
+- **Egress isolation:** Outbound network connections are strictly restricted to `127.0.0.1` and configured Tally LAN IP. Core server contains zero telemetry.
 
-Responsible disclosures will be credited in the release notes unless the reporter prefers anonymity.
+## Responsible Disclosure & Attribution
+
+Security researchers who responsibly disclose vulnerabilities will be credited in release notes and the project advisory hall of fame (unless anonymity is requested).
