@@ -169,7 +169,8 @@ impl CompanionUiServer {
             }
 
             let guide_content = match url_path.as_str() {
-                "/" | "/index.html" => Some(UI_HTML),
+                "/" | "/index.html" | "/approve" => Some(UI_HTML),
+                _ if url_path.starts_with("/approve") => Some(UI_HTML),
                 "/guide-claude.html" | "/guide/claude" => Some(GUIDE_CLAUDE_HTML),
                 "/guide-chatgpt.html" | "/guide/chatgpt" => Some(GUIDE_CHATGPT_HTML),
                 "/guide-gemini.html" | "/guide/gemini" => Some(GUIDE_GEMINI_HTML),
@@ -948,7 +949,7 @@ impl CompanionUiServer {
 
                 let claude_config = json!({
                     "mcpServers": {
-                        "tally": {
+                        "tallymcp.pro": {
                             "command": current_exe_cmd,
                             "args": serve_args
                         }
@@ -957,7 +958,7 @@ impl CompanionUiServer {
 
                 let cursor_config = json!({
                     "mcpServers": {
-                        "tally": {
+                        "tallymcp.pro": {
                             "command": "tally-mcp",
                             "args": serve_args
                         }
@@ -966,7 +967,7 @@ impl CompanionUiServer {
 
                 let windsurf_config = json!({
                     "mcpServers": {
-                        "tally": {
+                        "tallymcp.pro": {
                             "command": "tally-mcp",
                             "args": serve_args
                         }
@@ -975,7 +976,7 @@ impl CompanionUiServer {
 
                 let cline_config = json!({
                     "mcpServers": {
-                        "tally": {
+                        "tallymcp.pro": {
                             "command": "tally-mcp",
                             "args": serve_args,
                             "disabled": false,
@@ -1040,7 +1041,7 @@ impl CompanionUiServer {
                             "all": "ChatGPT Desktop ▸ Edit ▸ Settings ▸ Integration ▸ Plugins ▸ Add MCP Server"
                         },
                         "json": serde_json::to_string_pretty(&json!({
-                            "name": "tally",
+                            "name": "tallymcp.pro",
                             "type": "stdio",
                             "command": "tally-mcp",
                             "args": serve_args
@@ -1053,7 +1054,7 @@ impl CompanionUiServer {
                         },
                         "json": serde_json::to_string_pretty(&json!({
                             "mcpServers": {
-                                "tally": {
+                                "tallymcp.pro": {
                                     "command": "tally-mcp",
                                     "args": serve_args
                                 }
@@ -1551,7 +1552,21 @@ impl CompanionUiServer {
 
                 if let Ok(val) = parsed {
                     let draft_id = val.get("draft_id").and_then(|d| d.as_str()).unwrap_or("");
-                    if let Ok(draft) = self.journal.get_draft(draft_id) {
+                    if let Ok(mut draft) = self.journal.get_draft(draft_id) {
+                        // Human confirmation directly from the Companion UI approves pending drafts
+                        if draft.status == DraftStatus::PendingApproval
+                            || draft.status == DraftStatus::NeedsReview
+                        {
+                            draft.status = DraftStatus::Approved;
+                            let _ = self.journal.save_draft(&draft);
+                            self.audit.log(
+                                "companion_ui_approve",
+                                Some(draft_id),
+                                Some(&draft.company),
+                                "human_confirmed_in_ui",
+                            );
+                        }
+
                         if draft.status == DraftStatus::Approved {
                             let tally = self.tally.read().unwrap().clone();
                             let xml = build_voucher_import_xml(&draft);
@@ -1593,6 +1608,72 @@ impl CompanionUiServer {
                             }
                         } else {
                             outcome = json!({ "success": false, "error": "Draft is not in Approved state" });
+                        }
+                    }
+                }
+
+                let header =
+                    Header::from_bytes(&b"Content-Type"[..], &b"application/json"[..]).unwrap();
+                let resp = Response::from_string(outcome.to_string()).with_header(header);
+                let _ = request.respond(resp);
+                continue;
+            }
+
+            if url_path == "/api/drafts/discard" && method == "POST" {
+                let mut body = String::new();
+                let _ = request.as_reader().read_to_string(&mut body);
+
+                let parsed: Result<serde_json::Value, _> = serde_json::from_str(&body);
+                let mut outcome = json!({ "success": false, "error": "Invalid request" });
+
+                if let Ok(val) = parsed {
+                    let draft_id = val.get("draft_id").and_then(|d| d.as_str()).unwrap_or("");
+                    if let Ok(mut draft) = self.journal.get_draft(draft_id) {
+                        draft.status = DraftStatus::Discarded;
+                        if self.journal.save_draft(&draft).is_ok() {
+                            self.audit.log(
+                                "companion_ui_discard",
+                                Some(draft_id),
+                                Some(&draft.company),
+                                "human_discarded",
+                            );
+                            outcome = json!({ "success": true, "draft_id": draft_id });
+                        }
+                    }
+                }
+
+                let header =
+                    Header::from_bytes(&b"Content-Type"[..], &b"application/json"[..]).unwrap();
+                let resp = Response::from_string(outcome.to_string()).with_header(header);
+                let _ = request.respond(resp);
+                continue;
+            }
+
+            if url_path == "/api/safety/config" && method == "POST" {
+                let mut body = String::new();
+                let _ = request.as_reader().read_to_string(&mut body);
+
+                let parsed: Result<serde_json::Value, _> = serde_json::from_str(&body);
+                let mut outcome = json!({ "success": false, "error": "Invalid request" });
+
+                if let Ok(val) = parsed {
+                    if let Some(mode) = val.get("write_mode").and_then(|m| m.as_str()) {
+                        if mode == "off" || mode == "approve" || mode == "auto_under_limit" {
+                            let mut cfg = self.config.write().unwrap();
+                            cfg.safety.write_mode = mode.to_string();
+                            if let Err(e) = crate::config::save_config(&cfg) {
+                                outcome = json!({ "success": false, "error": format!("Failed to save config: {}", e) });
+                            } else {
+                                self.audit.log(
+                                    "safety_mode_update",
+                                    None,
+                                    None,
+                                    &format!("write_mode_changed_to_{}", mode),
+                                );
+                                outcome = json!({ "success": true, "write_mode": mode });
+                            }
+                        } else {
+                            outcome = json!({ "success": false, "error": "Invalid write_mode. Expected 'off', 'approve', or 'auto_under_limit'" });
                         }
                     }
                 }

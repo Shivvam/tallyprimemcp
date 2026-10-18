@@ -336,9 +336,46 @@
       <div class="card">
         <div class="card-header">
           <h2><span>🌐</span> TallyPrime Target URL (Localhost or LAN)</h2>
-          <span class="tag">Step 1 of Setup</span>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <a href="javascript:void(0)" onclick="toggleLanIpGuide()" class="step-guide-link" title="How to find IP address of the machine running Tally">Guide: Find IP (ipconfig) ▾</a>
+            <span class="tag">Step 1 of Setup</span>
+          </div>
         </div>
-        <p class="desc">Connect to TallyPrime on this computer (<code>127.0.0.1</code>) or across your local area network (LAN IP, e.g. <code>192.168.1.50</code>). Changes are saved to <code>config.toml</code>.</p>
+        <p class="desc">
+          Connect to TallyPrime on this computer (<code>127.0.0.1</code>) or across your local area network (LAN IP, e.g. <code>192.168.1.50</code>). Changes are saved to <code>config.toml</code>.
+          <a href="javascript:void(0)" onclick="toggleLanIpGuide()" style="color:var(--primary); font-weight:600; text-decoration:none; margin-left:6px; display:inline-flex; align-items:center; gap:4px;">
+            <span>🔍</span> How to know IP address of the machine running Tally? (Run <code>ipconfig</code>) ▾
+          </a>
+        </p>
+
+        <!-- LAN IP LOOKUP GUIDE (RUN IPCONFIG) -->
+        <div id="lan-ip-guide" style="display:none; background:var(--cream); border:1px solid rgba(0, 110, 166, 0.25); border-left:4px solid var(--primary); border-radius:8px; padding:14px 18px; margin-bottom:16px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <strong style="color:#111827; font-size:13.5px; display:flex; align-items:center; gap:6px;">
+              <span>💻</span> How to Know the IP Address of the Machine Running Tally:
+            </strong>
+            <button type="button" onclick="toggleLanIpGuide()" style="background:none; border:none; cursor:pointer; font-size:18px; line-height:1; color:var(--muted); padding:0 4px;" title="Close">&times;</button>
+          </div>
+          <p style="font-size:12.5px; color:#374151; margin-bottom:10px;">
+            If TallyPrime is running on another machine across your local network (e.g. office server or desktop PC), find its LAN IP address by running <code>ipconfig</code> on that machine:
+          </p>
+          <ol style="margin-left:20px; font-size:13px; line-height:1.7; color:#1e293b;">
+            <li>On the computer <strong>running TallyPrime</strong>, open Command Prompt (Press <kbd style="background:#fff; border:1px solid #cbd5e1; border-radius:3px; padding:1px 5px; font-size:11px; font-family:inherit;">Win + R</kbd>, type <code>cmd</code>, and press <strong>Enter</strong>).</li>
+            <li>In the Command Prompt window, type:
+              <div style="display:inline-flex; align-items:center; gap:6px; margin:4px 0;">
+                <code style="font-weight:700; font-size:13px; background:#fff; padding:3px 10px; border:1px solid rgba(0,110,166,0.3); border-radius:4px; color:var(--primary);">ipconfig</code>
+                <button type="button" class="btn btn-sm btn-outline" style="padding:2px 8px; font-size:11px;" onclick="copyCommand('ipconfig', this)">📋 Copy</button>
+              </div>
+              and press <strong>Enter</strong>.
+            </li>
+            <li>Locate the <strong>IPv4 Address</strong> line under your active connection (e.g. <em>Wireless LAN adapter Wi-Fi</em> or <em>Ethernet adapter</em>). It usually looks like <code>192.168.1.50</code> or <code>192.168.X.X</code>.</li>
+            <li>Enter that IP address in the <strong>Tally Host / IP Address</strong> field below (with Port <code>9000</code>), then click <strong>Save &amp; Connect</strong>!</li>
+          </ol>
+          <div style="margin-top:10px; font-size:12px; color:var(--muted); border-top:1px dashed rgba(0,110,166,0.25); padding-top:8px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+            <span>💡 <em>Prerequisite: Make sure TallyPrime on that machine has Connectivity enabled (F1 ▸ Settings ▸ Connectivity ▸ Both or Server on port 9000) and Windows Firewall allows port 9000.</em></span>
+            <a href="/guide-claude.html#find-lan-ip" target="_blank" style="color:var(--primary); font-weight:600; text-decoration:none;">Detailed LAN Guide ↗</a>
+          </div>
+        </div>
         
         <div style="display:grid; grid-template-columns: 2fr 1fr auto; gap: 12px; align-items: flex-end;">
           <div class="form-group" style="margin-bottom:0;">
@@ -371,9 +408,13 @@
             <li>Press <code>Ctrl + A</code> to save and restart TallyPrime if prompted.</li>
             <li>Open at least one Company in TallyPrime, then click <strong>Ping</strong> or <strong>Save &amp; Connect</strong> above!</li>
           </ol>
-          <div style="margin-top:8px;">
+          <div style="margin-top:8px; display:flex; gap:12px; flex-wrap:wrap; align-items:center;">
             <a href="/guide-claude.html" target="_blank" style="color:var(--primary); font-weight:600; text-decoration:none;">
               📖 Step-by-Step TallyPrime Connection Guide ↗
+            </a>
+            <span style="color:var(--muted);">•</span>
+            <a href="javascript:void(0)" onclick="toggleLanIpGuide()" style="color:var(--primary); font-weight:600; text-decoration:none;">
+              🔍 How to know IP address of machine running Tally? (Run ipconfig) ▾
             </a>
           </div>
         </div>
@@ -435,7 +476,7 @@
   "preferences": { ... },
   "coworkUserFilesPath": "C:\\Users\\ASUS\\Claude"<span style="color:#dc2626; font-weight:700; font-size:14px;">,</span>
 <span class="highlight-add">  "mcpServers": {
-    "tally": {
+    "tallymcp.pro": {
       "command": "tally-mcp",
       "args": ["serve"]
     }
@@ -631,10 +672,35 @@
       <div class="card">
         <div class="card-header">
           <h2><span>📋</span> Pending Voucher Approvals (Human-in-the-Loop)</h2>
-          <button class="btn btn-sm btn-outline" onclick="loadDrafts()">Refresh Drafts</button>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <div id="safety-mode-badge" class="badge">Write Mode: Loading...</div>
+            <button class="btn btn-sm btn-outline" onclick="loadDrafts()">Refresh Drafts</button>
+          </div>
         </div>
         <p class="desc">Deterministic write-safety queue. Vouchers created by MCP clients remain staged until human confirmation.</p>
+
+        <!-- Safety Mode Alert / Quick Switcher -->
+        <div id="safety-mode-alert" style="display:none; margin-bottom:16px;"></div>
+
         <div id="drafts-container">Loading drafts from local store...</div>
+      </div>
+    </div>
+
+    <!-- DRAFT DETAILS & APPROVAL MODAL -->
+    <div id="draft-modal" style="display:none; position:fixed; z-index:9999; left:0; top:0; width:100%; height:100%; background:rgba(15,23,42,0.6); backdrop-filter:blur(2px); overflow-y:auto; padding:20px 10px;">
+      <div style="background:#ffffff; max-width:680px; margin:40px auto; border-radius:12px; box-shadow:0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04); border:1px solid var(--border); overflow:hidden;">
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:16px 20px; border-bottom:1px solid var(--border); background:#fafafa;">
+          <h3 id="modal-draft-title" style="margin:0; font-size:16px; font-weight:700; color:#111827; display:flex; align-items:center; gap:8px;">
+            <span>📋</span> Voucher Draft Details
+          </h3>
+          <button type="button" onclick="closeDraftModal()" style="background:none; border:none; font-size:22px; line-height:1; cursor:pointer; color:var(--muted); padding:0 6px;">&times;</button>
+        </div>
+        <div id="modal-draft-body" style="padding:20px; max-height:calc(85vh - 140px); overflow-y:auto;">
+          <!-- Content populated dynamically -->
+        </div>
+        <div id="modal-draft-actions" style="display:flex; justify-content:flex-end; gap:8px; padding:14px 20px; border-top:1px solid var(--border); background:#f8fafc;">
+          <!-- Action buttons populated dynamically -->
+        </div>
       </div>
     </div>
 
@@ -1242,6 +1308,25 @@
       saveTallyTarget();
     }
 
+    function toggleLanIpGuide() {
+      const box = document.getElementById("lan-ip-guide");
+      if (!box) return;
+      const isHidden = box.style.display === "none" || box.style.display === "";
+      box.style.display = isHidden ? "block" : "none";
+      if (isHidden) {
+        box.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      }
+    }
+
+    function copyCommand(text, btn) {
+      navigator.clipboard.writeText(text);
+      if (btn) {
+        const orig = btn.innerHTML;
+        btn.innerHTML = "✓ Copied!";
+        setTimeout(() => { btn.innerHTML = orig; }, 2000);
+      }
+    }
+
     async function reconnectTally() {
       const btn = document.getElementById("btn-reconnect");
       btn.disabled = true;
@@ -1612,41 +1697,125 @@
     }
 
     // --- DRAFTS ---
+    // --- DRAFTS & WRITE SAFETY ---
+    let cachedDraftsList = [];
+
+    function getDraftTotalAmount(d) {
+      if (d.amount !== undefined && d.amount !== null && !isNaN(parseFloat(d.amount))) {
+        return Math.abs(parseFloat(d.amount));
+      }
+      if (Array.isArray(d.entries) && d.entries.length > 0) {
+        const posSum = d.entries.reduce((sum, e) => {
+          const v = parseFloat(e.amount) || 0;
+          return sum + (v > 0 ? v : 0);
+        }, 0);
+        if (posSum > 0) return posSum;
+        const maxVal = Math.max(...d.entries.map(e => Math.abs(parseFloat(e.amount) || 0)));
+        return maxVal > 0 ? maxVal : 0;
+      }
+      return 0;
+    }
+
+    async function updateSafetyModeUI() {
+      try {
+        const res = await fetch("/api/status");
+        const st = await res.json();
+        const mode = st.write_mode || "off";
+        const badge = document.getElementById("safety-mode-badge");
+        const alertBox = document.getElementById("safety-mode-alert");
+        if (badge) {
+          badge.textContent = "Write Mode: " + mode.toUpperCase();
+          badge.className = mode === "off" ? "badge badge-danger" : "badge badge-success";
+        }
+        if (alertBox) {
+          if (mode === "off") {
+            alertBox.style.display = "block";
+            alertBox.className = "notice-box notice-warning";
+            alertBox.innerHTML = `
+              <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                <div>
+                  <strong>⚠️ Write Safety Mode is set to OFF:</strong> Vouchers cannot be committed to Tally until safety mode allows writes. Switch write mode to <strong>Approve</strong> (Human-in-the-Loop) to enable posting.
+                </div>
+                <button type="button" class="btn btn-sm btn-primary" onclick="setSafetyWriteMode('approve')">Switch to 'Approve' Mode</button>
+              </div>
+            `;
+          } else {
+            alertBox.style.display = "none";
+          }
+        }
+      } catch (e) {
+        console.error("Error updating safety mode UI:", e);
+      }
+    }
+
+    async function setSafetyWriteMode(mode) {
+      try {
+        const res = await fetch("/api/safety/config", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ write_mode: mode })
+        });
+        const data = await res.json();
+        if (data.success) {
+          showBanner("Write safety mode updated to '" + mode + "'.", "success");
+          updateSafetyModeUI();
+          loadStatus();
+        } else {
+          showBanner("Failed to update safety mode: " + (data.error || "Unknown"), "error");
+        }
+      } catch (e) {
+        showBanner("Error: " + e.message, "error");
+      }
+    }
+
     async function loadDrafts() {
       try {
+        updateSafetyModeUI();
         const res = await fetch("/api/drafts");
         const drafts = await res.json();
+        cachedDraftsList = drafts || [];
         const container = document.getElementById("drafts-container");
         const countBadge = document.getElementById("drafts-count-badge");
 
         if (countBadge) {
-          if (drafts.length > 0) {
+          if (cachedDraftsList.length > 0) {
             countBadge.style.display = "inline-block";
-            countBadge.textContent = drafts.length;
+            countBadge.textContent = cachedDraftsList.length;
           } else {
             countBadge.style.display = "none";
           }
         }
 
-        if (!drafts || drafts.length === 0) {
+        if (!cachedDraftsList || cachedDraftsList.length === 0) {
           container.innerHTML = "<p style=\"color:var(--muted); padding:16px 0;\">No pending voucher drafts staged. Vouchers prepared by AI assistants will appear here for human confirmation.</p>";
           return;
         }
 
         let html = "";
-        drafts.forEach(d => {
+        cachedDraftsList.forEach(d => {
+          const amt = getDraftTotalAmount(d);
+          const amtStr = "₹" + amt.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+          const isApproved = d.status === 'Approved' || d.status === 'approved';
+          const statusBadge = isApproved 
+            ? '<span class="badge badge-success" style="font-size:11px;">✓ Approved</span>'
+            : `<span class="badge badge-warning" style="font-size:11px;">⏳ Pending Approval</span>`;
+
           html += `
             <div class="card" style="border-color:rgba(0,110,166,0.3); margin-bottom:12px; padding:16px;">
-              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+              <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px; flex-wrap:wrap; gap:8px;">
                 <div>
-                  <strong>${escapeHtml(d.voucher_type)}</strong> • <span class="tag">${escapeHtml(d.party_ledger)}</span>
-                  <span style="font-size:12px; color:var(--muted); margin-left:6px;">${escapeHtml(d.date)}</span>
+                  <strong style="font-size:15px; color:#111827;">${escapeHtml(d.voucher_type)}</strong> • <span class="tag">${escapeHtml(d.party_ledger)}</span>
+                  <span style="font-size:12px; color:var(--muted); margin-left:6px;">Date: ${escapeHtml(d.date || '')}</span>
+                  <div style="margin-top:4px;">${statusBadge} <span style="font-size:11.5px; color:var(--muted); margin-left:6px;">ID: <code>${escapeHtml(d.draft_id)}</code></span></div>
                 </div>
-                <div style="font-weight:700; color:var(--primary); font-size:15px;">₹${escapeHtml(String(d.amount))}</div>
+                <div style="font-weight:700; color:var(--primary); font-size:17px;">${amtStr}</div>
               </div>
-              <p style="font-size:12.5px; color:var(--muted); margin-bottom:10px;">${escapeHtml(d.narration || "No narration")}</p>
-              <div style="display:flex; gap:8px;">
-                <button class="btn btn-sm btn-primary" onclick="commitDraft('${escapeHtml(d.draft_id)}')">Confirm &amp; Post to Tally</button>
+              <p style="font-size:12.5px; color:var(--muted); margin-bottom:12px;"><strong>Narration:</strong> ${escapeHtml(d.narration || "No narration")}</p>
+              <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+                <button type="button" class="btn btn-sm btn-primary" onclick="commitDraft('${escapeHtml(d.draft_id)}')">⚡ Confirm &amp; Post to Tally</button>
+                <button type="button" class="btn btn-sm btn-outline" onclick="openDraftDetails('${escapeHtml(d.draft_id)}')">🔍 See Details</button>
+                ${!isApproved ? `<button type="button" class="btn btn-sm btn-secondary" onclick="approveDraft('${escapeHtml(d.draft_id)}', '${escapeHtml(d.content_hash)}')">✓ Approve</button>` : ''}
+                <button type="button" class="btn btn-sm btn-danger" onclick="discardDraft('${escapeHtml(d.draft_id)}')">✕ Discard</button>
               </div>
             </div>
           `;
@@ -1654,6 +1823,166 @@
         container.innerHTML = html;
       } catch (e) {
         console.error("Error loading drafts:", e);
+      }
+    }
+
+    function openDraftDetails(draftId, optionalHash) {
+      const draft = cachedDraftsList.find(d => d.draft_id === draftId);
+      const modal = document.getElementById("draft-modal");
+      if (!modal) return;
+
+      if (!draft) {
+        loadDrafts().then(() => {
+          const reDraft = cachedDraftsList.find(d => d.draft_id === draftId);
+          if (reDraft) renderDraftModal(reDraft);
+          else showBanner("Draft not found: " + draftId, "error");
+        });
+        return;
+      }
+      renderDraftModal(draft);
+    }
+
+    function renderDraftModal(d) {
+      const modal = document.getElementById("draft-modal");
+      const title = document.getElementById("modal-draft-title");
+      const body = document.getElementById("modal-draft-body");
+      const actions = document.getElementById("modal-draft-actions");
+      const amt = getDraftTotalAmount(d);
+      const amtStr = "₹" + amt.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      const isApproved = d.status === 'Approved' || d.status === 'approved';
+
+      title.innerHTML = `<span>📋</span> Voucher Draft: <code>${escapeHtml(d.draft_id)}</code>`;
+
+      let entriesHtml = "";
+      let totalDebits = 0;
+      let totalCredits = 0;
+      if (Array.isArray(d.entries) && d.entries.length > 0) {
+        d.entries.forEach(e => {
+          const val = parseFloat(e.amount) || 0;
+          const isDebit = val < 0;
+          const displayVal = Math.abs(val).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+          if (isDebit) totalDebits += Math.abs(val);
+          else totalCredits += Math.abs(val);
+
+          entriesHtml += `
+            <tr>
+              <td style="font-weight:600; color:#111827; padding:8px 10px;">${escapeHtml(e.ledger)}</td>
+              <td style="text-align:right; color:#0f766e; font-weight:600; padding:8px 10px;">${isDebit ? '₹' + displayVal : '-'}</td>
+              <td style="text-align:right; color:#b45309; font-weight:600; padding:8px 10px;">${!isDebit ? '₹' + displayVal : '-'}</td>
+            </tr>
+          `;
+        });
+      } else {
+        entriesHtml = `<tr><td colspan="3" style="text-align:center; color:var(--muted); padding:10px;">No detailed ledger breakdown</td></tr>`;
+      }
+
+      const isBalanced = Math.abs(totalDebits - totalCredits) < 0.01;
+      const balanceHtml = isBalanced 
+        ? `<span class="badge badge-success" style="font-size:11px;">✓ Balanced (₹${totalDebits.toLocaleString('en-IN', { minimumFractionDigits: 2 })} == ₹${totalCredits.toLocaleString('en-IN', { minimumFractionDigits: 2 })})</span>`
+        : `<span class="badge badge-danger" style="font-size:11px;">⚠️ Unbalanced (Debits: ₹${totalDebits.toFixed(2)}, Credits: ₹${totalCredits.toFixed(2)})</span>`;
+
+      body.innerHTML = `
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:12px; margin-bottom:16px; background:#f8fafc; padding:14px; border-radius:8px; border:1px solid var(--border);">
+          <div><div class="stat-label">Voucher Type</div><strong style="font-size:15px; color:var(--primary);">${escapeHtml(d.voucher_type)}</strong></div>
+          <div><div class="stat-label">Voucher Date</div><strong>${escapeHtml(d.date || 'N/A')}</strong></div>
+          <div><div class="stat-label">Total Amount</div><strong style="font-size:16px; color:#111827;">${amtStr}</strong></div>
+          <div><div class="stat-label">Target Company</div><strong>${escapeHtml(d.company || 'Active')}</strong></div>
+          <div><div class="stat-label">Party Ledger</div><strong>${escapeHtml(d.party_ledger || 'N/A')}</strong></div>
+          <div><div class="stat-label">Status</div><div>${isApproved ? '<span class="badge badge-success">✓ Approved</span>' : '<span class="badge badge-warning">⏳ Pending Approval</span>'}</div></div>
+        </div>
+
+        <div style="margin-bottom:16px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <div class="stat-label" style="margin-bottom:0;">Double-Entry Ledger Breakdown</div>
+            ${balanceHtml}
+          </div>
+          <table style="width:100%; border:1px solid var(--border); border-radius:6px; overflow:hidden;">
+            <thead>
+              <tr style="background:#f1f5f9;">
+                <th style="padding:8px 10px;">Ledger Account</th>
+                <th style="text-align:right; padding:8px 10px;">Debit (Dr)</th>
+                <th style="text-align:right; padding:8px 10px;">Credit (Cr)</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${entriesHtml}
+            </tbody>
+            <tfoot>
+              <tr style="background:#f8fafc; font-weight:700;">
+                <td style="padding:8px 10px;">Total</td>
+                <td style="text-align:right; color:#0f766e; padding:8px 10px;">₹${totalDebits.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                <td style="text-align:right; color:#b45309; padding:8px 10px;">₹${totalCredits.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+
+        <div style="margin-bottom:14px;">
+          <div class="stat-label">Narration</div>
+          <div style="background:#f8fafc; border:1px solid var(--border); border-radius:6px; padding:10px 14px; font-size:13px; color:#374151;">
+            ${escapeHtml(d.narration || "No narration provided")}
+          </div>
+        </div>
+
+        <div style="margin-bottom:14px;">
+          <div class="stat-label">Cryptographic Content HMAC Hash</div>
+          <code style="word-break:break-all; font-size:11.5px; display:block; padding:6px 10px;">${escapeHtml(d.content_hash || 'N/A')}</code>
+        </div>
+      `;
+
+      actions.innerHTML = `
+        <button type="button" class="btn btn-outline" onclick="closeDraftModal()">Close</button>
+        <button type="button" class="btn btn-danger" onclick="discardDraft('${escapeHtml(d.draft_id)}')">✕ Discard</button>
+        ${!isApproved ? `<button type="button" class="btn btn-secondary" onclick="approveDraft('${escapeHtml(d.draft_id)}', '${escapeHtml(d.content_hash)}')">✓ Approve Only</button>` : ''}
+        <button type="button" class="btn btn-primary" onclick="commitDraft('${escapeHtml(d.draft_id)}')">⚡ Confirm &amp; Post to Tally</button>
+      `;
+
+      modal.style.display = "block";
+    }
+
+    function closeDraftModal() {
+      const modal = document.getElementById("draft-modal");
+      if (modal) modal.style.display = "none";
+    }
+
+    async function approveDraft(draftId, contentHash) {
+      try {
+        const res = await fetch("/api/drafts/approve", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ draft_id: draftId, content_hash: contentHash })
+        });
+        const data = await res.json();
+        if (data.success) {
+          showBanner("Draft " + draftId + " approved successfully!", "success");
+          closeDraftModal();
+          loadDrafts();
+        } else {
+          showBanner("Approval failed: " + (data.error || "Unknown"), "error");
+        }
+      } catch (e) {
+        showBanner("Approval error: " + e.message, "error");
+      }
+    }
+
+    async function discardDraft(draftId) {
+      if (!confirm("Are you sure you want to discard draft " + draftId + "?")) return;
+      try {
+        const res = await fetch("/api/drafts/discard", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ draft_id: draftId })
+        });
+        const data = await res.json();
+        if (data.success) {
+          showBanner("Draft " + draftId + " discarded.", "info");
+          closeDraftModal();
+          loadDrafts();
+        } else {
+          showBanner("Discard failed: " + (data.error || "Unknown"), "error");
+        }
+      } catch (e) {
+        showBanner("Discard error: " + e.message, "error");
       }
     }
 
@@ -1666,7 +1995,8 @@
         });
         const data = await res.json();
         if (data.success) {
-          showBanner("Voucher successfully committed to TallyPrime!", "success");
+          showBanner("Voucher successfully posted into TallyPrime!", "success");
+          closeDraftModal();
           loadDrafts();
         } else {
           showBanner("Error committing voucher: " + (data.error || "Unknown"), "error");
@@ -2380,6 +2710,17 @@
     loadMcpTools();
     selectApiPreset("companies");
     setInterval(loadDrafts, 6000);
+
+    // Handle approval links: /approve?draft_id=...&hash=...
+    const urlParams = new URLSearchParams(window.location.search);
+    if (window.location.pathname.startsWith("/approve") || urlParams.has("draft_id")) {
+      switchTab("drafts");
+      const draftId = urlParams.get("draft_id");
+      const hash = urlParams.get("hash");
+      if (draftId) {
+        setTimeout(() => openDraftDetails(draftId, hash), 350);
+      }
+    }
   </script>
 </body>
 </html>

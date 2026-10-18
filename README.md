@@ -222,7 +222,7 @@ If the process crashes between steps, drafts stuck in `committing` are reconcile
 | Requirement | Details |
 |---|---|
 | **OS** | Windows 10/11 (x64), Linux (x86_64), or macOS (Apple Silicon, arm64). TallyPrime itself runs on Windows; `tally-mcp` can run directly on the same PC/laptop or from any machine connected to the same network (even Wi-Fi). |
-| **TallyPrime** | Release 5.0+ recommended; Releases 4.x and 3.x supported; Releases 1.x/2.x and Tally.ERP 9 best-effort. Silver, Gold, and Edit Log editions. |
+| **TallyPrime** | Release 7.2 (latest / current release), 6.x, 5.0+ recommended; Releases 4.x and 3.x supported; Releases 1.x/2.x and Tally.ERP 9 best-effort. Silver, Gold, and Edit Log editions. |
 | **Tally HTTP/XML** | Must be enabled ([step 1](#1-enable-tallyprimes-xml-server)) |
 | **MCP client** | Any client that launches stdio MCP servers |
 | **Build from source** | Rust 1.80+; on Windows, Visual Studio 2022 Build Tools (C++ workload and Windows SDK) |
@@ -234,7 +234,7 @@ If the process crashes between steps, drafts stuck in `committing` are reconcile
 ### 1. Enable TallyPrime's XML server
 
 <details open>
-<summary><b>TallyPrime Release 3.0+ (including 4.x and 5.x)</b></summary>
+<summary><b>TallyPrime Release 7.2 (Latest), 6.x, 5.x, 4.x & 3.0+</b></summary>
 
 1. Open TallyPrime and load your company.
 2. Press **F1: Help → Settings → Connectivity → Client/Server configuration**.
@@ -687,7 +687,7 @@ Still stuck? Run `tally-mcp doctor` and attach the output (company names redacte
 | Area | Detail |
 |---|---|
 | **Platform** | TallyPrime runs on Windows. `tally-mcp` ships for Windows, Linux, and macOS (arm64) and reaches Tally directly on the same PC or across any machine on the same network (Wi-Fi / LAN) |
-| **Tally versions** | Tested on Release 5.0+ (including Edit Log), 4.x, 3.x. Backwards-compatible with 2.x/1.x and Tally.ERP 9 on a best-effort basis |
+| **Tally versions** | Tested on Release 7.2 (Latest), 6.x, 5.0+ (including Edit Log), 4.x, 3.x. Backwards-compatible with 2.x/1.x and Tally.ERP 9 on a best-effort basis |
 | **Voucher types** | `Purchase`, `Sales`, `Payment`, `Receipt`, `Journal`, with debit/credit balancing and multi-ledger entries. CGST/SGST/IGST supported through explicit ledger mapping |
 | **Inventory** | Stock item mutations and stock journals are planned. Read-only inventory queries work via tool packs |
 | **Draft isolation** | Drafts live only in the local journal and are invisible in Tally until a human approves them |

@@ -265,7 +265,7 @@
   },
   "coworkUserFilesPath": "C:\\Users\\ASUS\\Claude"<span style="color:#dc2626; font-weight:700; font-size:14px;">,</span>
 <span class="highlight-add">  "mcpServers": {
-    "tally": {
+    "tallymcp.pro": {
       "command": "tally-mcp",
       "args": ["serve"]
     }
@@ -285,7 +285,7 @@
 
       <h3 style="font-size:14px; font-weight:600; margin:16px 0 8px;">Snippet to Copy:</h3>
       <pre><button class="copy-btn" onclick="copySnippet('code-mcp-servers')">📋 Copy mcpServers Block</button><code id="code-mcp-servers">  "mcpServers": {
-    "tally": {
+    "tallymcp.pro": {
       "command": "tally-mcp",
       "args": ["serve"]
     }
@@ -296,10 +296,24 @@
         <code>"command": "C:\\Users\\&lt;YourUsername&gt;\\AppData\\Local\\Programs\\TallyMCP\\tally-mcp.exe"</code>.
       </p>
 
-      <h3 style="font-size:14px; font-weight:600; margin:20px 0 8px;">Step 3: Save and Restart Claude Desktop</h3>
-      <p style="font-size:13px; color:#374151;">
-        Save the file, then completely restart Claude Desktop (Quit from taskbar tray or Task Manager, then relaunch). In your chat, Claude will now display the tools/hammer icon indicating TallyMCP is active!
+      <h3 style="font-size:14px; font-weight:600; margin:20px 0 8px;">Step 3: Save and Force Restart Claude Desktop</h3>
+      <p style="font-size:13px; color:#374151; line-height:1.6;">
+        Once you add MCP details to your config JSON file, you <strong>must force close and restart Claude Desktop</strong>. Simply closing the window leaves background worker processes active on Windows:
       </p>
+      <ul class="step-list" style="margin-top:8px;">
+        <li><strong>Force Close:</strong> Right-click the Claude icon in the Windows taskbar tray and click <strong>Quit</strong>, or kill it via Command Prompt:
+          <pre style="margin:4px 0;"><button class="copy-btn" onclick="navigator.clipboard.writeText('taskkill /IM Claude.exe /F')">Copy</button><code>taskkill /IM Claude.exe /F</code></pre>
+        </li>
+        <li><strong>Relaunch Claude Desktop:</strong> Start Claude Desktop from the Windows Start menu.</li>
+        <li><strong>Verify Connection in Claude:</strong>
+          <ol style="margin-left:20px; margin-top:4px;">
+            <li>Open any chat conversation in Claude Desktop.</li>
+            <li>In the chat input bar at the bottom, click the <strong>➕ (Plus) button</strong>.</li>
+            <li>Click or hover over <strong>Connectors</strong>.</li>
+            <li>Verify that you see <strong><code>tallymcp.pro</code></strong> listed there with active tools!</li>
+          </ol>
+        </li>
+      </ul>
     </div>
 
     <!-- METHOD 2: ONE CLICK BUNDLE -->
@@ -416,6 +430,28 @@
           <li>If you changed settings, press Enter to save and restart TallyPrime.</li>
           <li><strong>Browser Test:</strong> Open <a href="http://127.0.0.1:9000" target="_blank" style="color:#006ea6; font-weight:600;">http://127.0.0.1:9000</a> in Chrome/Edge. If Tally is running, it will return an XML response.</li>
         </ol>
+
+        <!-- LAN IP LOOKUP GUIDE (RUN IPCONFIG) -->
+        <div id="find-lan-ip" style="background:#f8fafc; border:1px solid var(--border); border-left:4px solid var(--primary); border-radius:8px; padding:14px; margin-top:14px;">
+          <h4 style="font-size:13.5px; font-weight:700; color:var(--primary); margin-bottom:6px; display:flex; align-items:center; gap:6px;">
+            <span>🌐</span> Connecting to Tally across LAN: How to find machine IP address (run ipconfig)
+          </h4>
+          <p style="font-size:13px; color:#475569; margin:6px 0;">
+            If TallyPrime is hosted on a separate machine on your local office network or Wi-Fi (e.g. an accounting server PC):
+          </p>
+          <ol class="step-list" style="margin-bottom:0;">
+            <li>On the computer <strong>running TallyPrime</strong>, press <code>Win + R</code>, type <code>cmd</code>, and press Enter to open Command Prompt.</li>
+            <li>Run:
+              <div style="display:inline-flex; align-items:center; gap:6px; margin:4px 0;">
+                <code style="font-weight:700; font-size:13px; background:#fff; padding:3px 10px; border:1px solid rgba(0,110,166,0.3); border-radius:4px; color:var(--primary);">ipconfig</code>
+                <button type="button" class="copy-btn" style="float:none; padding:2px 8px; font-size:11px;" onclick="navigator.clipboard.writeText('ipconfig')">Copy</button>
+              </div>
+              and press Enter.
+            </li>
+            <li>Look for <strong>IPv4 Address</strong> under your active adapter (e.g. <code>192.168.1.50</code>).</li>
+            <li>In the Companion UI (Step 1) or your MCP config, set Host to that IP address (e.g. <code>192.168.1.50</code>) and Port to <code>9000</code>.</li>
+          </ol>
+        </div>
       </div>
 
       <!-- CHECK 3 -->

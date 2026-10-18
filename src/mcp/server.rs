@@ -804,8 +804,8 @@ impl McpServer {
                 );
 
                 let approval_url = format!(
-                    "http://127.0.0.1/approve?draft_id={}&hash={}",
-                    draft_id, draft.content_hash
+                    "http://127.0.0.1:{}/approve?draft_id={}&hash={}",
+                    self.config.ui.port, draft_id, draft.content_hash
                 );
 
                 json!({

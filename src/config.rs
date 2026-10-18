@@ -112,9 +112,25 @@ pub struct PacksConfig {
     pub disabled: Vec<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UiConfig {
+    #[serde(default)]
     pub auto_open_ui: bool,
+    #[serde(default = "default_ui_port")]
+    pub port: u16,
+}
+
+fn default_ui_port() -> u16 {
+    9190
+}
+
+impl Default for UiConfig {
+    fn default() -> Self {
+        Self {
+            auto_open_ui: false,
+            port: default_ui_port(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -389,7 +405,7 @@ pub fn auto_configure_client(
     }
 
     servers.as_object_mut().unwrap().insert(
-        "tally".to_string(),
+        "tallymcp.pro".to_string(),
         serde_json::json!({
             "command": exe_path.clone(),
             "args": serve_args
@@ -480,7 +496,11 @@ pub fn diagnose_client_config(client: &str) -> ClientDiagnostic {
         }
     };
 
-    let tally_server = val.get("mcpServers").and_then(|s| s.get("tally"));
+    let tally_server = val.get("mcpServers").and_then(|s| {
+        s.get("tallymcp.pro")
+            .or_else(|| s.get("tallymcppro"))
+            .or_else(|| s.get("tally"))
+    });
     if tally_server.is_none() {
         return ClientDiagnostic {
             client: client.to_string(),
@@ -491,7 +511,8 @@ pub fn diagnose_client_config(client: &str) -> ClientDiagnostic {
             command_exists: false,
             has_serve_arg: false,
             is_healthy: false,
-            message: "Config file exists, but 'tally' MCP server is not registered.".to_string(),
+            message: "Config file exists, but 'tallymcp.pro' MCP server is not registered."
+                .to_string(),
         };
     }
 

@@ -357,11 +357,14 @@ pub fn remove_client_integrations() {
                         if let Some(servers) =
                             val.get_mut("mcpServers").and_then(|s| s.as_object_mut())
                         {
-                            if servers.remove("tally").is_some() {
+                            let removed = servers.remove("tallymcp.pro").is_some()
+                                || servers.remove("tallymcppro").is_some()
+                                || servers.remove("tally").is_some();
+                            if removed {
                                 if let Ok(serialized) = serde_json::to_string_pretty(&val) {
                                     let _ = fs::write(&path, serialized);
                                     println!(
-                                        "Removed 'tally' registration from {} ({})",
+                                        "Removed TallyMCP registration from {} ({})",
                                         client,
                                         path.display()
                                     );

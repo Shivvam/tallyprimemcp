@@ -233,11 +233,39 @@ mod ui_and_byok_tests {
             index_html.contains("guide-cline.html"),
             "index.html must link to guide-cline.html"
         );
+        assert!(
+            index_html.contains("ipconfig"),
+            "index.html must provide ipconfig instructions for discovering LAN IP"
+        );
+        assert!(
+            index_html.contains("toggleLanIpGuide"),
+            "index.html must provide toggleLanIpGuide function"
+        );
+        assert!(
+            index_html.contains("tallymcp.pro"),
+            "index.html must use tallymcp.pro as MCP server identifier"
+        );
+        assert!(
+            index_html.contains("draft-modal"),
+            "index.html must contain draft details review modal"
+        );
 
         let claude_guide = include_str!("../src/ui/assets/guide-claude.html");
         assert!(
             claude_guide.contains("Claude Desktop"),
             "Claude guide should mention Claude Desktop"
+        );
+        assert!(
+            claude_guide.contains("ipconfig"),
+            "Claude guide should mention ipconfig for finding LAN IP"
+        );
+        assert!(
+            claude_guide.contains("tallymcp.pro"),
+            "Claude guide must mention tallymcp.pro server identifier"
+        );
+        assert!(
+            claude_guide.contains("Connectors"),
+            "Claude guide must guide user to check Connectors in Claude"
         );
         assert!(
             claude_guide.contains("Add custom connector"),
@@ -469,6 +497,26 @@ mod ui_and_byok_tests {
             let body: serde_json::Value = resp.into_body().read_json().expect("Valid JSON");
             assert_eq!(body["tool"], "tally_status");
             assert!(body.get("latency_ms").is_some());
+        }
+
+        // Test GET /approve route returns UI HTML
+        let url_approve = format!("http://127.0.0.1:{}/approve?draft_id=d_123&hash=abc", port);
+        if let Ok(resp) = ureq::get(&url_approve).call() {
+            let body_str = resp.into_body().read_to_string().expect("HTML body");
+            assert!(body_str.contains("TallyPrime"));
+        }
+
+        // Test POST /api/safety/config to switch write_mode
+        let url_safety = format!("http://127.0.0.1:{}/api/safety/config", port);
+        if let Ok(resp) = ureq::post(&url_safety)
+            .header("content-type", "application/json")
+            .send_json(serde_json::json!({
+                "write_mode": "approve"
+            }))
+        {
+            let body: serde_json::Value = resp.into_body().read_json().expect("Valid JSON");
+            assert_eq!(body["success"], true);
+            assert_eq!(body["write_mode"], "approve");
         }
     }
 }

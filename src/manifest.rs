@@ -30,7 +30,17 @@ impl InstallManifest {
         let path = Self::get_manifest_path();
         if path.exists() {
             if let Ok(content) = fs::read_to_string(&path) {
-                if let Ok(manifest) = serde_json::from_str::<InstallManifest>(&content) {
+                if let Ok(mut manifest) = serde_json::from_str::<InstallManifest>(&content) {
+                    let current_pkg_version = env!("CARGO_PKG_VERSION");
+                    if manifest.current_version != current_pkg_version {
+                        manifest.current_version = current_pkg_version.to_string();
+                        manifest.version_history.push(VersionHistoryEntry {
+                            version: current_pkg_version.to_string(),
+                            installed_at: chrono::Utc::now().to_rfc3339(),
+                            install_source: install_source.to_string(),
+                        });
+                        let _ = manifest.save();
+                    }
                     return manifest;
                 }
             }
