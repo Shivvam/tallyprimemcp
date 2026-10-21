@@ -1884,11 +1884,33 @@
       body.innerHTML = `
         <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:12px; margin-bottom:16px; background:#f8fafc; padding:14px; border-radius:8px; border:1px solid var(--border);">
           <div><div class="stat-label">Voucher Type</div><strong style="font-size:15px; color:var(--primary);">${escapeHtml(d.voucher_type)}</strong></div>
-          <div><div class="stat-label">Voucher Date</div><strong>${escapeHtml(d.date || 'N/A')}</strong></div>
+          <div>
+            <div class="stat-label">Voucher Date</div>
+            <div style="display:flex; align-items:center; gap:6px;">
+              <strong id="draft-date-val">${escapeHtml(d.date || 'N/A')}</strong>
+              <button type="button" class="btn btn-sm btn-outline" style="padding:1px 6px; font-size:11px;" onclick="toggleDateEdit()">✏️ Change</button>
+            </div>
+            <div id="draft-date-edit-panel" style="display:none; margin-top:6px; background:#fff; padding:6px 8px; border-radius:6px; border:1px solid #cbd5e1; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
+              <input type="text" id="draft-date-input" value="${escapeHtml(d.date || '')}" placeholder="YYYYMMDD (e.g. 20261001)" style="font-size:12px; width:100%; padding:4px 6px; border:1px solid #cbd5e1; border-radius:4px; margin-bottom:6px;" />
+              <div style="display:flex; gap:4px; flex-wrap:wrap;">
+                <button type="button" class="btn btn-sm btn-primary" style="padding:2px 8px; font-size:11px;" onclick="saveDateEdit('${escapeHtml(d.draft_id)}')">Save Date</button>
+                <button type="button" class="btn btn-sm btn-secondary" style="padding:2px 8px; font-size:11px;" onclick="quickSetEduDate('${escapeHtml(d.draft_id)}', '${escapeHtml(d.date || '')}')">📅 1st of Month</button>
+                <button type="button" class="btn btn-sm btn-outline" style="padding:2px 6px; font-size:11px;" onclick="toggleDateEdit()">✕</button>
+              </div>
+            </div>
+          </div>
           <div><div class="stat-label">Total Amount</div><strong style="font-size:16px; color:#111827;">${amtStr}</strong></div>
           <div><div class="stat-label">Target Company</div><strong>${escapeHtml(d.company || 'Active')}</strong></div>
           <div><div class="stat-label">Party Ledger</div><strong>${escapeHtml(d.party_ledger || 'N/A')}</strong></div>
           <div><div class="stat-label">Status</div><div>${isApproved ? '<span class="badge badge-success">✓ Approved</span>' : '<span class="badge badge-warning">⏳ Pending Approval</span>'}</div></div>
+        </div>
+
+        <div id="draft-date-edu-alert" style="display:none; margin-bottom:14px; background:#fef3c7; border:1px solid #f59e0b; border-radius:6px; padding:10px 14px; font-size:12.5px; color:#92400e;">
+          <div style="font-weight:700; margin-bottom:4px;">⚠️ Tally Date Restriction Notice</div>
+          <div>Tally rejected this voucher date. If running in <strong>Tally Educational Mode</strong>, vouchers can only be dated on the <strong>1st, 2nd, or 31st</strong> of any month. Also ensure the voucher date falls inside your active company's <strong>Financial Year (Alt+F2 in Tally)</strong>.</div>
+          <div style="margin-top:8px;">
+            <button type="button" class="btn btn-sm btn-primary" onclick="quickFixEduDateAndCommit('${escapeHtml(d.draft_id)}', '${escapeHtml(d.date || '')}')">⚡ Auto-set to 1st of Month &amp; Post to Tally</button>
+          </div>
         </div>
 
         <div style="margin-bottom:16px;">
@@ -1986,6 +2008,80 @@
       }
     }
 
+    function toggleDateEdit() {
+      const panel = document.getElementById("draft-date-edit-panel");
+      if (panel) {
+        panel.style.display = panel.style.display === "none" ? "block" : "none";
+      }
+    }
+
+    async function saveDateEdit(draftId, dateOverride) {
+      const input = document.getElementById("draft-date-input");
+      const val = dateOverride || (input ? input.value : "");
+      if (!val) return;
+      try {
+        const res = await fetch("/api/drafts/update-date", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ draft_id: draftId, date: val })
+        });
+        const data = await res.json();
+        if (data.success) {
+          showBanner("Voucher date updated to " + data.new_date, "success");
+          await loadDrafts();
+          openDraftDetails(draftId);
+        } else {
+          showBanner("Failed to update date: " + (data.error || "Unknown"), "error");
+        }
+      } catch (e) {
+        showBanner("Error updating date: " + e.message, "error");
+      }
+    }
+
+    async function quickSetEduDate(draftId, currentDate) {
+      let dStr = (currentDate || "").replace(/-/g, "");
+      let targetDate;
+      if (dStr.length >= 6) {
+        targetDate = dStr.substring(0, 6) + "01";
+      } else {
+        const now = new Date();
+        const y = now.getFullYear();
+        const m = String(now.getMonth() + 1).padStart(2, '0');
+        targetDate = `${y}${m}01`;
+      }
+      await saveDateEdit(draftId, targetDate);
+    }
+
+    async function quickFixEduDateAndCommit(draftId, currentDate) {
+      let dStr = (currentDate || "").replace(/-/g, "");
+      let targetDate;
+      if (dStr.length >= 6) {
+        targetDate = dStr.substring(0, 6) + "01";
+      } else {
+        const now = new Date();
+        const y = now.getFullYear();
+        const m = String(now.getMonth() + 1).padStart(2, '0');
+        targetDate = `${y}${m}01`;
+      }
+      try {
+        const res = await fetch("/api/drafts/update-date", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ draft_id: draftId, date: targetDate })
+        });
+        const data = await res.json();
+        if (data.success) {
+          showBanner("Voucher date adjusted to " + data.new_date + ". Committing...", "info");
+          await loadDrafts();
+          await commitDraft(draftId);
+        } else {
+          showBanner("Failed to adjust date: " + (data.error || "Unknown"), "error");
+        }
+      } catch (e) {
+        showBanner("Error adjusting date: " + e.message, "error");
+      }
+    }
+
     async function commitDraft(draftId) {
       try {
         const res = await fetch("/api/drafts/commit", {
@@ -2000,8 +2096,11 @@
           loadDrafts();
         } else {
           let errMsg = data.error || "Unknown";
-          if (errMsg.includes("Voucher date is missing") || errMsg.includes("retry Split")) {
+          const isDateError = errMsg.includes("Voucher date is missing") || errMsg.includes("retry Split");
+          if (isDateError) {
             errMsg = errMsg + " (Note: Tally Educational Mode only permits voucher dates on the 1st, 2nd, or 31st of any month; also verify your company's active Financial Year period via Alt+F2)";
+            const eduAlert = document.getElementById("draft-date-edu-alert");
+            if (eduAlert) eduAlert.style.display = "block";
           }
           showBanner("Error committing voucher: " + errMsg, "error");
         }

@@ -105,6 +105,18 @@ mod ui_and_byok_tests {
         // Verify draft loaded
         let loaded = journal.get_draft(&draft_id).expect("Draft should be saved");
         assert_eq!(loaded.status, DraftStatus::PendingApproval);
+        assert_eq!(loaded.date, "20261012");
+
+        // Verify date update recalculates hash and persists
+        let mut updated = loaded.clone();
+        updated.date = "20261001".to_string();
+        updated.content_hash = compute_content_hash(&updated);
+        journal.save_draft(&updated).expect("Failed to save updated draft");
+
+        let reloaded = journal.get_draft(&draft_id).expect("Reload updated draft");
+        assert_eq!(reloaded.date, "20261001");
+        assert_eq!(reloaded.content_hash, updated.content_hash);
+        assert_ne!(reloaded.content_hash, loaded.content_hash);
     }
 
     #[test]

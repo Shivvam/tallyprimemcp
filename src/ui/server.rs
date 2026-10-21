@@ -1543,6 +1543,69 @@ impl CompanionUiServer {
                 continue;
             }
 
+            if url_path == "/api/drafts/update-date" && method == "POST" {
+                let mut body = String::new();
+                let _ = request.as_reader().read_to_string(&mut body);
+
+                let parsed: Result<serde_json::Value, _> = serde_json::from_str(&body);
+                let mut outcome = json!({ "success": false, "error": "Invalid request" });
+
+                if let Ok(val) = parsed {
+                    let draft_id = val.get("draft_id").and_then(|d| d.as_str()).unwrap_or("");
+                    let raw_date = val.get("date").and_then(|d| d.as_str()).unwrap_or("").trim();
+                    let clean_date = raw_date.replace('-', "");
+
+                    if clean_date.len() == 8 && clean_date.chars().all(|c| c.is_ascii_digit()) {
+                        if let Ok(mut draft) = self.journal.get_draft(draft_id) {
+                            draft.date = clean_date.clone();
+                            let total: rust_decimal::Decimal = draft
+                                .entries
+                                .iter()
+                                .filter(|e| e.amount > rust_decimal::Decimal::ZERO)
+                                .map(|e| e.amount)
+                                .sum();
+                            draft.idempotency_key = crate::models::compute_idempotency_key(
+                                &draft.company,
+                                &draft.voucher_type,
+                                &draft.party_ledger,
+                                &draft.number,
+                                &draft.date,
+                                total,
+                            );
+                            draft.content_hash = crate::models::compute_content_hash(&draft);
+                            // Set status to approved so user can directly commit from UI
+                            draft.status = DraftStatus::Approved;
+                            if self.journal.save_draft(&draft).is_ok() {
+                                self.audit.log(
+                                    "companion_ui_update_date",
+                                    Some(draft_id),
+                                    Some(&draft.company),
+                                    &format!("date_updated_to_{}", clean_date),
+                                );
+                                outcome = json!({
+                                    "success": true,
+                                    "draft_id": draft_id,
+                                    "new_date": clean_date,
+                                    "content_hash": draft.content_hash
+                                });
+                            } else {
+                                outcome = json!({ "success": false, "error": "Failed to save updated draft" });
+                            }
+                        } else {
+                            outcome = json!({ "success": false, "error": "Draft not found" });
+                        }
+                    } else {
+                        outcome = json!({ "success": false, "error": "Invalid date format. Expected YYYYMMDD (e.g. 20261001)" });
+                    }
+                }
+
+                let header =
+                    Header::from_bytes(&b"Content-Type"[..], &b"application/json"[..]).unwrap();
+                let resp = Response::from_string(outcome.to_string()).with_header(header);
+                let _ = request.respond(resp);
+                continue;
+            }
+
             if url_path == "/api/drafts/commit" && method == "POST" {
                 let mut body = String::new();
                 let _ = request.as_reader().read_to_string(&mut body);

@@ -52,8 +52,8 @@ pub fn build_voucher_import_xml(draft: &VoucherDraft) -> String {
       <REQUESTDATA>
         <TALLYMESSAGE xmlns:UDF="TallyUDF">
           <VOUCHER VCHTYPE="{}" ACTION="Create">
-            <GUID>{}</GUID>
             <DATE>{}</DATE>
+            <GUID>{}</GUID>
             <EFFECTIVEDATE>{}</EFFECTIVEDATE>
             <VOUCHERTYPENAME>{}</VOUCHERTYPENAME>
             <VOUCHERNUMBER>{}</VOUCHERNUMBER>
@@ -67,8 +67,8 @@ pub fn build_voucher_import_xml(draft: &VoucherDraft) -> String {
 </ENVELOPE>"#,
         company_escaped,
         vch_type_escaped,
-        guid,
         draft.date,
+        guid,
         draft.date,
         vch_type_escaped,
         number_escaped,

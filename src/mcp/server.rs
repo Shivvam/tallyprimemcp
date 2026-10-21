@@ -913,14 +913,23 @@ impl McpServer {
                     });
                 }
 
+                let format_mcp_err = |raw: String| {
+                    if raw.contains("Voucher date is missing") || raw.contains("retry Split") {
+                        format!("{} (Tally Educational Mode restriction: vouchers can only be dated on the 1st, 2nd, or 31st of any month; also verify your company's active Financial Year period via Alt+F2 in Tally)", raw)
+                    } else {
+                        raw
+                    }
+                };
+
                 let xml = build_voucher_import_xml(&draft);
                 let import_resp = match self.tally.post_voucher_xml(&xml).await {
                     Ok(resp) => resp,
                     Err(err) => {
+                        let err_str = format_mcp_err(format!("Failed to post to Tally: {}", err));
                         let _ = self.journal.record_commit_result(
                             &draft,
                             DraftStatus::Approved,
-                            &format!("Failed to post to Tally: {}", err),
+                            &err_str,
                         );
                         self.audit.log(
                             "tally_commit_draft",
@@ -931,15 +940,16 @@ impl McpServer {
                         return json!({
                             "jsonrpc": "2.0",
                             "id": id,
-                            "result": { "isError": true, "content": [{ "type": "text", "text": format!("Failed to post voucher to Tally: {}", err) }] }
+                            "result": { "isError": true, "content": [{ "type": "text", "text": err_str }] }
                         });
                     }
                 };
 
                 if import_resp.errors > 0 || import_resp.created == 0 {
-                    let err_msg = import_resp
+                    let raw_err = import_resp
                         .error_message
                         .unwrap_or_else(|| "Tally rejected voucher creation".to_string());
+                    let err_msg = format_mcp_err(raw_err);
                     let _ =
                         self.journal
                             .record_commit_result(&draft, DraftStatus::Failed, &err_msg);
