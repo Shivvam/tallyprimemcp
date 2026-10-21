@@ -23,7 +23,14 @@ pub fn build_voucher_import_xml(draft: &VoucherDraft) -> String {
         } else {
             "No"
         };
-        let formatted_amount = entry.amount.abs().to_string();
+        // In Tally XML, deemed-positive entries (Debits) must have negative amounts (e.g. -500.00)
+        // and deemed-negative entries (Credits) must have positive amounts (e.g. 500.00)
+        // so that the net sum across all ledger entries strictly balances to zero.
+        let formatted_amount = if entry.amount < Decimal::ZERO {
+            format!("-{}", entry.amount.abs())
+        } else {
+            entry.amount.abs().to_string()
+        };
 
         ledger_entries_xml.push_str(&format!(
             r#"        <ALLLEDGERENTRIES.LIST>
@@ -118,7 +125,11 @@ pub fn parse_import_response(xml: &str) -> ImportResponse {
                         "ERRORS" => {
                             errors = trimmed.parse().unwrap_or(0);
                         }
-                        "LINEERROR" | "EXCEPTIONS" if !trimmed.is_empty() => {
+                        "LINEERROR" if !trimmed.is_empty() => {
+                            error_msg = Some(trimmed.to_string());
+                        }
+                        // Non-numeric exception text if Tally ever emits it as a string
+                        "EXCEPTIONS" if !trimmed.is_empty() && trimmed.parse::<u32>().is_err() => {
                             error_msg = Some(trimmed.to_string());
                         }
                         _ => {}
@@ -131,6 +142,13 @@ pub fn parse_import_response(xml: &str) -> ImportResponse {
             Event::Eof => break,
             _ => {}
         }
+    }
+
+    if errors > 0 && error_msg.is_none() {
+        error_msg = Some(format!(
+            "Tally rejected voucher creation (ERRORS: {}). Check 'tally.imp' in the Tally folder or Gateway of Tally > Import > Exceptions. Ensure voucher date is within the company's active Financial Year (Alt+F2 in Tally) and all ledger names exist.",
+            errors
+        ));
     }
 
     ImportResponse {

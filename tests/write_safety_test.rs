@@ -124,6 +124,24 @@ mod write_safety_tests {
     }
 
     #[test]
+    fn test_parse_import_response_exceptions_counter_not_treated_as_error_msg() {
+        let sample_resp = r#"<RESPONSE>
+            <STATUS>1</STATUS>
+            <CREATED>0</CREATED>
+            <ALTERED>0</ALTERED>
+            <ERRORS>1</ERRORS>
+            <EXCEPTIONS>1</EXCEPTIONS>
+        </RESPONSE>"#;
+
+        let parsed = parse_import_response(sample_resp);
+        assert_eq!(parsed.created, 0);
+        assert_eq!(parsed.errors, 1);
+        // Error message must not be literal "1"
+        assert_ne!(parsed.error_message, Some("1".to_string()));
+        assert!(parsed.error_message.unwrap().contains("ERRORS: 1"));
+    }
+
+    #[test]
     fn test_journal_crash_reconciliation() {
         let manager = JournalManager::new().expect("Failed to create journal manager");
         let mut draft = make_valid_draft();

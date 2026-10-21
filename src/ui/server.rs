@@ -1658,7 +1658,9 @@ impl CompanionUiServer {
                             match rx.recv_timeout(Duration::from_secs(5)) {
                                 Ok(Ok(im)) => {
                                     let format_tally_err = |raw: String| {
-                                        if raw.contains("Voucher date is missing")
+                                        if raw == "1" || raw.trim() == "1" {
+                                            "Tally rejected voucher (ERRORS: 1). Check 'tally.imp' in the Tally folder. Common causes: 1) Date is outside company's active Financial Year (Alt+F2 in Tally), 2) Ledger name mismatch, or 3) Unbalanced entries.".to_string()
+                                        } else if raw.contains("Voucher date is missing")
                                             || raw.contains("retry Split")
                                         {
                                             format!("{} (Tally Educational Mode restriction: vouchers can only be dated on the 1st, 2nd, or 31st of any month; also verify your company's active Financial Year period via Alt+F2 in Tally)", raw)
