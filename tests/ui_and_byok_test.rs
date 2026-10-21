@@ -111,7 +111,9 @@ mod ui_and_byok_tests {
         let mut updated = loaded.clone();
         updated.date = "20261001".to_string();
         updated.content_hash = compute_content_hash(&updated);
-        journal.save_draft(&updated).expect("Failed to save updated draft");
+        journal
+            .save_draft(&updated)
+            .expect("Failed to save updated draft");
 
         let reloaded = journal.get_draft(&draft_id).expect("Reload updated draft");
         assert_eq!(reloaded.date, "20261001");

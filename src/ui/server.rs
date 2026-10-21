@@ -1552,7 +1552,11 @@ impl CompanionUiServer {
 
                 if let Ok(val) = parsed {
                     let draft_id = val.get("draft_id").and_then(|d| d.as_str()).unwrap_or("");
-                    let raw_date = val.get("date").and_then(|d| d.as_str()).unwrap_or("").trim();
+                    let raw_date = val
+                        .get("date")
+                        .and_then(|d| d.as_str())
+                        .unwrap_or("")
+                        .trim();
                     let clean_date = raw_date.replace('-', "");
 
                     if clean_date.len() == 8 && clean_date.chars().all(|c| c.is_ascii_digit()) {
