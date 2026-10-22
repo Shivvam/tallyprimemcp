@@ -188,7 +188,7 @@ impl McpServer {
                         ]
                     }
                 })
-            },
+            }
 
             "resources/list" => json!({
                 "jsonrpc": "2.0",
@@ -231,7 +231,7 @@ impl McpServer {
                         "error": { "code": -32602, "message": format!("Resource not found: {}", uri) }
                     })
                 }
-            },
+            }
 
             "tools/list" => json!({
                 "jsonrpc": "2.0",
@@ -1284,7 +1284,13 @@ impl McpServer {
                     "reachable": reachable
                 });
 
-                self.audit.log_full("tally_get_environment", None, None, "Success", Some(&env_info.to_string()));
+                self.audit.log_full(
+                    "tally_get_environment",
+                    None,
+                    None,
+                    "Success",
+                    Some(&env_info.to_string()),
+                );
                 json!({
                     "jsonrpc": "2.0",
                     "id": id,
@@ -1298,7 +1304,10 @@ impl McpServer {
             }
 
             "tally_diagnose_connection" => {
-                let port = arguments.get("port").and_then(|p| p.as_u64()).unwrap_or(9000);
+                let port = arguments
+                    .get("port")
+                    .and_then(|p| p.as_u64())
+                    .unwrap_or(9000);
                 let status_res = self.tally.status().await;
 
                 let mut checks = Vec::new();
@@ -1360,7 +1369,13 @@ impl McpServer {
                     "first_failure": first_failure
                 });
 
-                self.audit.log_full("tally_diagnose_connection", None, None, "Success", Some(&diag.to_string()));
+                self.audit.log_full(
+                    "tally_diagnose_connection",
+                    None,
+                    None,
+                    "Success",
+                    Some(&diag.to_string()),
+                );
                 json!({
                     "jsonrpc": "2.0",
                     "id": id,
