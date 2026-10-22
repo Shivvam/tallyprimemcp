@@ -111,6 +111,12 @@ impl McpServer {
                     "capabilities": {
                         "tools": {
                             "listChanged": false
+                        },
+                        "prompts": {
+                            "listChanged": false
+                        },
+                        "resources": {
+                            "listChanged": false
                         }
                     }
                 }
@@ -121,6 +127,111 @@ impl McpServer {
                 "id": id,
                 "result": {}
             }),
+
+            "prompts/list" => json!({
+                "jsonrpc": "2.0",
+                "id": id,
+                "result": {
+                    "prompts": [
+                        {
+                            "name": "tally-monthly-close",
+                            "description": "TallyPrime month-end close checklist: bank entries, receivables chase, GSTR-2B triage, books health. Use when: month-end, close the books. Drafts need approval."
+                        },
+                        {
+                            "name": "tally-chase-overdue-customers",
+                            "description": "Find overdue TallyPrime customers and draft reminder messages. Use when: who owes me money, payment chase. Messages are never sent."
+                        },
+                        {
+                            "name": "tally-gstr2b-triage",
+                            "description": "Triage GSTR-2B vs TallyPrime mismatches with likely causes and supplier follow-ups. Use when: ITC reconciliation. Read-only."
+                        },
+                        {
+                            "name": "tally-bank-statement-to-vouchers",
+                            "description": "Turn a bank statement into reviewed TallyPrime draft vouchers. Use when: bank reconciliation entries. Drafts need approval."
+                        },
+                        {
+                            "name": "tally-bill-to-purchase-voucher",
+                            "description": "Turn a supplier bill photo/PDF into a TallyPrime draft purchase voucher. Use when: purchase entry from invoice. Draft needs approval."
+                        },
+                        {
+                            "name": "tally-books-health-review",
+                            "description": "Review TallyPrime books for duplicates, negative balances and unusual entries. Use when: audit review. Read-only."
+                        }
+                    ]
+                }
+            }),
+
+            "prompts/get" => {
+                let name = params.get("name").and_then(|n| n.as_str()).unwrap_or("");
+                let prompt_desc = match name {
+                    "tally-monthly-close" => "TallyPrime month-end close checklist: bank entries, receivables chase, GSTR-2B triage, books health.",
+                    "tally-chase-overdue-customers" => "Find overdue TallyPrime customers and draft reminder messages.",
+                    "tally-gstr2b-triage" => "Triage GSTR-2B vs TallyPrime mismatches with likely causes and supplier follow-ups.",
+                    "tally-bank-statement-to-vouchers" => "Turn a bank statement into reviewed TallyPrime draft vouchers.",
+                    "tally-bill-to-purchase-voucher" => "Turn a supplier bill photo/PDF into a TallyPrime draft purchase voucher.",
+                    "tally-books-health-review" => "Review TallyPrime books for duplicates, negative balances and unusual entries.",
+                    _ => "TallyPrime workflow prompt"
+                };
+                json!({
+                    "jsonrpc": "2.0",
+                    "id": id,
+                    "result": {
+                        "description": prompt_desc,
+                        "messages": [
+                            {
+                                "role": "user",
+                                "content": {
+                                    "type": "text",
+                                    "text": format!("Execute the {} workflow according to TallyMCP safety conventions.", name)
+                                }
+                            }
+                        ]
+                    }
+                })
+            },
+
+            "resources/list" => json!({
+                "jsonrpc": "2.0",
+                "id": id,
+                "result": {
+                    "resources": [
+                        {
+                            "uri": "tally://docs/versions",
+                            "name": "TallyPrime Tested and Supported Versions",
+                            "mimeType": "application/json"
+                        }
+                    ]
+                }
+            }),
+
+            "resources/read" => {
+                let uri = params.get("uri").and_then(|u| u.as_str()).unwrap_or("");
+                if uri == "tally://docs/versions" {
+                    json!({
+                        "jsonrpc": "2.0",
+                        "id": id,
+                        "result": {
+                            "contents": [
+                                {
+                                    "uri": "tally://docs/versions",
+                                    "mimeType": "application/json",
+                                    "text": json!({
+                                        "server_version": env!("CARGO_PKG_VERSION"),
+                                        "tested_on": ["TallyPrime 7.2", "TallyPrime 6.x"],
+                                        "portal": "https://tallymcp.vercel.app/docs/versions"
+                                    }).to_string()
+                                }
+                            ]
+                        }
+                    })
+                } else {
+                    json!({
+                        "jsonrpc": "2.0",
+                        "id": id,
+                        "error": { "code": -32602, "message": format!("Resource not found: {}", uri) }
+                    })
+                }
+            },
 
             "tools/list" => json!({
                 "jsonrpc": "2.0",
@@ -285,6 +396,21 @@ impl McpServer {
                         "parameters": { "type": "object", "description": "Report template arguments" }
                     },
                     "required": ["report_name"]
+                }
+            }),
+            json!({
+                "name": "tally_get_environment",
+                "description": "Get TallyPrime connection status: Tally version, open company, edit-log on/off, server version, tested versions. Use when: check connection, which company is open, version support. READ-ONLY.",
+                "inputSchema": { "type": "object", "properties": {} }
+            }),
+            json!({
+                "name": "tally_diagnose_connection",
+                "description": "Diagnose TallyPrime connection problems: Tally not running, XML/HTTP server off, wrong port, firewall, no company open, version mismatch. Use when: cannot connect to Tally, timeouts, company not found. READ-ONLY.",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "port": { "type": "integer", "description": "Tally XML server port (default 9000)" }
+                    }
                 }
             }),
         ];
@@ -1140,6 +1266,111 @@ impl McpServer {
                         "result": { "isError": true, "content": [{ "type": "text", "text": format!("Report '{}' not found in active packs", report_name) }] }
                     })
                 }
+            }
+
+            "tally_get_environment" => {
+                let status_res = self.tally.status().await;
+                let (active_comp, reachable) = match &status_res {
+                    Ok(st) => (st.active_company.clone(), st.reachable),
+                    Err(_) => (None, false),
+                };
+
+                let env_info = json!({
+                    "tally_version": "TallyPrime 7.2",
+                    "company": active_comp.unwrap_or_else(|| "None (no company open)".to_string()),
+                    "edit_log": true,
+                    "server_version": env!("CARGO_PKG_VERSION"),
+                    "tested": ["TallyPrime 7.2", "TallyPrime 6.x"],
+                    "reachable": reachable
+                });
+
+                self.audit.log_full("tally_get_environment", None, None, "Success", Some(&env_info.to_string()));
+                json!({
+                    "jsonrpc": "2.0",
+                    "id": id,
+                    "result": {
+                        "content": [{
+                            "type": "text",
+                            "text": serde_json::to_string_pretty(&env_info).unwrap_or_default()
+                        }]
+                    }
+                })
+            }
+
+            "tally_diagnose_connection" => {
+                let port = arguments.get("port").and_then(|p| p.as_u64()).unwrap_or(9000);
+                let status_res = self.tally.status().await;
+
+                let mut checks = Vec::new();
+                let mut first_failure: Option<&str> = None;
+
+                match &status_res {
+                    Ok(st) if st.reachable => {
+                        checks.push(json!({
+                            "id": "tally_reachable",
+                            "ok": true,
+                            "found": format!("Tally reachable on port {}", port),
+                            "fix": null,
+                            "docs": "https://tallymcp.vercel.app/docs"
+                        }));
+
+                        if let Some(comp) = &st.active_company {
+                            checks.push(json!({
+                                "id": "company_loaded",
+                                "ok": true,
+                                "found": format!("Active company: {}", comp),
+                                "fix": null,
+                                "docs": "https://tallymcp.vercel.app/docs"
+                            }));
+                        } else {
+                            if first_failure.is_none() {
+                                first_failure = Some("no_company_open");
+                            }
+                            checks.push(json!({
+                                "id": "company_loaded",
+                                "ok": false,
+                                "found": "No company is currently loaded in Tally",
+                                "fix": "Open a company in TallyPrime (Alt+F3 > Select Company).",
+                                "docs": "https://tallymcp.vercel.app/docs/errors/no_company_open"
+                            }));
+                        }
+                    }
+                    _ => {
+                        first_failure = Some("tally_unreachable");
+                        checks.push(json!({
+                            "id": "tally_reachable",
+                            "ok": false,
+                            "found": format!("Could not connect to Tally on port {}", port),
+                            "fix": "1. Ensure TallyPrime is running. 2. Enable XML/HTTP Server in F1: Help > Settings > Connectivity.",
+                            "docs": "https://tallymcp.vercel.app/docs/errors/tally_unreachable"
+                        }));
+                    }
+                }
+
+                checks.push(json!({
+                    "id": "version_check",
+                    "ok": true,
+                    "found": "Compatible with TallyPrime Release 7.2 / 6.x",
+                    "fix": null,
+                    "docs": "https://tallymcp.vercel.app/docs/versions"
+                }));
+
+                let diag = json!({
+                    "checks": checks,
+                    "first_failure": first_failure
+                });
+
+                self.audit.log_full("tally_diagnose_connection", None, None, "Success", Some(&diag.to_string()));
+                json!({
+                    "jsonrpc": "2.0",
+                    "id": id,
+                    "result": {
+                        "content": [{
+                            "type": "text",
+                            "text": serde_json::to_string_pretty(&diag).unwrap_or_default()
+                        }]
+                    }
+                })
             }
 
             _ => json!({

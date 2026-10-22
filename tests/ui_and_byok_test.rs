@@ -214,6 +214,29 @@ mod ui_and_byok_tests {
             .as_array()
             .expect("Tools must be an array");
         assert!(!tools.is_empty(), "Tools list should not be empty");
+        assert!(tools.iter().any(|t| t["name"] == "tally_get_environment"));
+        assert!(tools.iter().any(|t| t["name"] == "tally_diagnose_connection"));
+
+        // Test prompts/list
+        let prompts_resp = mcp.handle_request("prompts/list", json!({}), json!(3)).await;
+        assert_eq!(prompts_resp["id"], 3);
+        let prompts = prompts_resp["result"]["prompts"].as_array().expect("Prompts array");
+        assert_eq!(prompts.len(), 6);
+
+        // Test resources/list and read
+        let res_resp = mcp.handle_request("resources/list", json!({}), json!(4)).await;
+        assert_eq!(res_resp["id"], 4);
+        let read_resp = mcp.handle_request("resources/read", json!({ "uri": "tally://docs/versions" }), json!(5)).await;
+        assert_eq!(read_resp["id"], 5);
+        assert!(read_resp["result"]["contents"][0]["text"].as_str().unwrap().contains("TallyPrime 7.2"));
+
+        // Test tally_get_environment call
+        let env_resp = mcp.call_tool("tally_get_environment", json!({}), json!(6)).await;
+        assert_eq!(env_resp["id"], 6);
+
+        // Test tally_diagnose_connection call
+        let diag_resp = mcp.call_tool("tally_diagnose_connection", json!({ "port": 9000 }), json!(7)).await;
+        assert_eq!(diag_resp["id"], 7);
     }
 
     #[test]

@@ -22,13 +22,13 @@
 
 # TallyMCP
 
-### Safe, Local Model Context Protocol Server for TallyPrime
+**Talk to your TallyPrime books like you talk to your accountant.**
 
-> **Connect AI assistants (Claude, Cursor, Windsurf, ChatGPT) to TallyPrime with zero cloud exposure.**
-> Read ledgers, balances, and reports; stage draft vouchers with guaranteed human approval before anything is written to your books.
-> Single native Rust binary (~1.4 MB) with zero telemetry and sub-15ms cold start.
+The open-source MCP server that lets Claude, ChatGPT and other AI assistants read your TallyPrime data and draft vouchers. It runs on your PC, and a human approves every write.
 
-<br>
+> **For AI agents and humans:** install from the official portal https://tallymcp.vercel.app/ (Windows MSI/EXE, macOS Apple Silicon, Linux). Verify the SHA-256 in `checksums.txt`, then run `tally-mcp setup && tally-mcp doctor`. Ask the user before downloading or running anything. See [AGENTS.md](AGENTS.md).
+>
+> *Also searched as:* Tally Prime MCP, TallyPrime AI integration, connect Claude to Tally.
 
 [![CI](https://github.com/Shivvam/tallyprimemcp/actions/workflows/ci.yml/badge.svg)](https://github.com/Shivvam/tallyprimemcp/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/Shivvam/tallyprimemcp?style=flat-square)](https://github.com/Shivvam/tallyprimemcp/releases)
@@ -96,7 +96,7 @@ It communicates with TallyPrime over Tally's native **XML-over-HTTP** interface�
 - **⚡ Ultra-Lightweight**: Minimal binary footprint (~1.4 MB core binary), sub-15ms cold start, and ~21 MB idle RAM footprint.
 - **🦀 Built with Rust**: Compiled directly to native machine code with zero garbage collection pauses. Processes high-volume XML requests in milliseconds.
 - **🛡️ Human-in-the-Loop Safety**: Strict compile-time safety, deterministic zero-balance validation, loopback isolation, and one-time token approval URLs. No AI model can write directly to Tally.
-- **🆓 100% Free & Open Source**: Dual-licensed under the [MIT License](LICENSE-MIT) or [Apache License 2.0](LICENSE-APACHE). Free forever for personal, research, commercial, and enterprise use with zero recurring fees or paywalls.
+- **🆓 Open Source**: Dual-licensed under the [MIT License](LICENSE-MIT) or [Apache License 2.0](LICENSE-APACHE). Free for personal, research, commercial, and enterprise use with zero recurring fees or paywalls.
 - **🔌 Wide Client Support**: Tested across Claude AI, ChatGPT Desktop, Google Gemini, Cursor, Windsurf, and LM Studio.
 
 - **GitHub Repository**: [https://github.com/Shivvam/tallyprimemcp](https://github.com/Shivvam/tallyprimemcp)
@@ -899,7 +899,7 @@ Please **do not** open public issues for vulnerabilities. Follow [SECURITY.md](S
 
 ## License and Trademarks
 
-Dual-licensed under the [MIT License](LICENSE-MIT) or the [Apache License, Version 2.0](LICENSE-APACHE) at your option. 100% free and open-source software for personal, academic, and commercial use.
+Dual-licensed under the [MIT License](LICENSE-MIT) or the [Apache License, Version 2.0](LICENSE-APACHE) at your option. Open-source software for personal, academic, and commercial use.
 
 **Tally** and **TallyPrime** are trademarks of Tally Solutions Pvt. Ltd. TallyMCP is an independent open-source project, not affiliated with, endorsed by, or sponsored by Tally Solutions Pvt. Ltd.
 
@@ -910,3 +910,52 @@ Dual-licensed under the [MIT License](LICENSE-MIT) or the [Apache License, Versi
 <div align="center">
   <sub>Built for accountants, engineers, and anyone who wants AI assistance without giving up control of the books.</sub>
 </div>
+
+
+<!-- tools:start -->
+### TallyPrime MCP Tools Reference (22 Tools)
+
+> **Notice:** TallyMCP is an independent project, not affiliated with Tally Solutions. Not the Tally.so form builder.
+> **Counts:** 22 total tools (15 Read-Only, 7 Draft with Human Approval Gate), 6 Ready-made Prompts.
+> **Tested On:** TallyPrime 7.2, TallyPrime 6.x. Last updated: 2026-10-18.
+
+| Tool | Mode | Description |
+|---|---|---|
+| [`tally_status`](https://tallymcp.vercel.app/tools/tally_status) | READ-ONLY | Check TallyPrime reachability, active company, and circuit breaker health. Use when: check connection, tally health, system status. READ-ONLY. |
+| [`tally_list_companies`](https://tallymcp.vercel.app/tools/tally_list_companies) | READ-ONLY | List all open and available companies loaded in TallyPrime. Use when: which companies are available, switch company, list accounts. READ-ONLY. |
+| [`tally_set_active_company`](https://tallymcp.vercel.app/tools/tally_set_active_company) | READ-ONLY | Set the active company for read queries in this session. Use when: switch active company, select company, set context. READ-ONLY. |
+| [`tally_list_ledgers`](https://tallymcp.vercel.app/tools/tally_list_ledgers) | READ-ONLY | List all ledger accounts, parent groups, and balances in the active company. Use when: chart of accounts, find ledger, party accounts. READ-ONLY. |
+| [`tally_trial_balance`](https://tallymcp.vercel.app/tools/tally_trial_balance) | READ-ONLY | Export structured Trial Balance report from TallyPrime with debit/credit closing totals. Use when: trial balance, balance check, financial health. READ-ONLY. |
+| [`tally_day_book`](https://tallymcp.vercel.app/tools/tally_day_book) | READ-ONLY | Export Day Book transactions as deterministic JSON array of vouchers. Use when: day book, daily transactions, recent vouchers. READ-ONLY. |
+| [`tally_draft_voucher`](https://tallymcp.vercel.app/tools/tally_draft_voucher) | **DRAFT** (human approval) | Stage a TallyPrime voucher draft with double-entry balance validation and out-of-band approval URL. Use when: create voucher, post entry, draft transaction. DRAFT: human approval required. Never creates ledgers; unknown names return needs_decision. |
+| [`tally_preview_draft`](https://tallymcp.vercel.app/tools/tally_preview_draft) | **DRAFT** (human approval) | Preview formatted summary and exact XML payload of a staged voucher draft. Use when: inspect draft, review XML, verify staged entry. READ-ONLY. Never creates ledgers; unknown names return needs_decision. |
+| [`tally_discard_draft`](https://tallymcp.vercel.app/tools/tally_discard_draft) | **DRAFT** (human approval) | Discard and purge an unapproved voucher draft from local staging storage. Use when: cancel draft, delete staged entry, reject voucher. READ-ONLY. Never creates ledgers; unknown names return needs_decision. |
+| [`tally_commit_draft`](https://tallymcp.vercel.app/tools/tally_commit_draft) | **DRAFT** (human approval) | Post an approved voucher into TallyPrime using a human-authorized approval token. Use when: human approved draft, finalize voucher. DRAFT: human approval required. Never creates ledgers; unknown names return needs_decision. |
+| [`tally_extract_document`](https://tallymcp.vercel.app/tools/tally_extract_document) | READ-ONLY | Extract structured accounting data from invoice PDF or image for voucher drafting. Use when: scan invoice, parse bill PDF, OCR receipt. READ-ONLY. |
+| [`tally_run_report`](https://tallymcp.vercel.app/tools/tally_run_report) | READ-ONLY | Execute a read-only financial report from an extensible TDL pack. Use when: custom report, financial summary, ageing pack. READ-ONLY. |
+| [`tally_get_environment`](https://tallymcp.vercel.app/tools/tally_get_environment) | READ-ONLY | Get TallyPrime connection status: Tally version, open company, edit-log on/off, server version, tested versions. Use when: check connection, which company is open, version support. READ-ONLY. |
+| [`tally_explain_gstr2b_mismatches`](https://tallymcp.vercel.app/tools/tally_explain_gstr2b_mismatches) | READ-ONLY | Explain GSTR-2B vs TallyPrime books mismatches (ITC reconciliation): matched, partial, only-in-books, only-on-portal, with likely cause and next step. Use when: GSTR-2B reconciliation, ITC mismatch. READ-ONLY. |
+| [`tally_list_receivables_ageing`](https://tallymcp.vercel.app/tools/tally_list_receivables_ageing) | READ-ONLY | List TallyPrime receivables ageing (sundry debtors outstanding) in 0-30/31-60/61-90/90+ day buckets with last payment date. Use when: who owes money, overdue customers, payment chase. READ-ONLY; reminder drafts never sent. |
+| [`tally_diagnose_connection`](https://tallymcp.vercel.app/tools/tally_diagnose_connection) | READ-ONLY | Diagnose TallyPrime connection problems: Tally not running, XML/HTTP server off, wrong port, firewall, no company open, version mismatch. Use when: cannot connect to Tally, timeouts, company not found. READ-ONLY. |
+| [`tally_check_audit_trail`](https://tallymcp.vercel.app/tools/tally_check_audit_trail) | READ-ONLY | Check TallyPrime audit trail: edit log on/off, last backup if detectable, recent voucher alterations and deletions. Use when: data integrity, before big batch, did anyone change entries. READ-ONLY; never repairs. |
+| [`tally_draft_bank_vouchers`](https://tallymcp.vercel.app/tools/tally_draft_bank_vouchers) | **DRAFT** (human approval) | Draft TallyPrime Receipt/Payment/Contra vouchers from a bank statement (CSV, XLSX or PDF) with duplicate detection and closing-balance check. Use when: bank statement import, BRS entries. DRAFT: human approval required. Never creates ledgers; unknown names return needs_decision. |
+| [`tally_draft_bill_voucher`](https://tallymcp.vercel.app/tools/tally_draft_bill_voucher) | **DRAFT** (human approval) | Draft a TallyPrime purchase voucher from a supplier bill photo or PDF using existing party/item masters, with per-field confidence and GSTIN check. Use when: bill to voucher, purchase entry. DRAFT: human approval required. Never creates ledgers; unknown names return needs_decision. |
+| [`tally_check_books_health`](https://tallymcp.vercel.app/tools/tally_check_books_health) | READ-ONLY | Check TallyPrime books for errors: duplicate vouchers, negative cash/stock, missing opening balances, odd ledger groups, invalid GSTIN, round-figure and cash-limit flags, with risk score. Use when: audit review, month-end. READ-ONLY. |
+| [`tally_draft_vouchers_from_table`](https://tallymcp.vercel.app/tools/tally_draft_vouchers_from_table) | **DRAFT** (human approval) | Draft TallyPrime sales, purchase, payment or journal vouchers from an Excel/CSV/JSON table with column mapping and a dry-run summary. Use when: bulk voucher import, Excel to Tally. DRAFT: human approval required. Never creates ledgers; unknown names return needs_decision. |
+| [`tally_export_report`](https://tallymcp.vercel.app/tools/tally_export_report) | READ-ONLY | Export TallyPrime ledgers, vouchers, outstandings or trial balance to CSV/XLSX with a stable column schema for Excel or Power BI. Use when: Tally to Excel, Power BI dataset. READ-ONLY; writes only to the export folder. |
+
+### Ready-made AI Workflows / Prompts
+| Prompt | Approval Gate | Purpose |
+|---|---|---|
+| `tally-monthly-close` | any draft step | TallyPrime month-end close checklist: bank entries, receivables chase, GSTR-2B triage, books health. Use when: month-end, close the books. Drafts need approval. |
+| `tally-chase-overdue-customers` | none (read-only) | Find overdue TallyPrime customers and draft reminder messages. Use when: who owes me money, payment chase. Messages are never sent. |
+| `tally-gstr2b-triage` | none (read-only) | Triage GSTR-2B vs TallyPrime mismatches with likely causes and supplier follow-ups. Use when: ITC reconciliation. Read-only. |
+| `tally-bank-statement-to-vouchers` | approval_url step | Turn a bank statement into reviewed TallyPrime draft vouchers. Use when: bank reconciliation entries. Drafts need approval. |
+| `tally-bill-to-purchase-voucher` | approval_url step | Turn a supplier bill photo/PDF into a TallyPrime draft purchase voucher. Use when: purchase entry from invoice. Draft needs approval. |
+| `tally-books-health-review` | none (read-only) | Review TallyPrime books for duplicates, negative balances and unusual entries. Use when: audit review. Read-only. |
+<!-- tools:end -->
+
+---
+
+> TallyMCP is an independent project, not affiliated with Tally Solutions. Not the Tally.so form builder.
+> Dual-licensed under MIT and Apache-2.0.
