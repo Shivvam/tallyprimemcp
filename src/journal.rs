@@ -109,7 +109,12 @@ impl JournalManager {
             if path.extension().and_then(|s| s.to_str()) == Some("json") {
                 if let Ok(content) = fs::read_to_string(&path) {
                     if let Ok(draft) = serde_json::from_str::<VoucherDraft>(&content) {
-                        drafts.push(draft);
+                        // Do not return drafts that have already been committed to Tally or discarded
+                        if draft.status != DraftStatus::Committed
+                            && draft.status != DraftStatus::Discarded
+                        {
+                            drafts.push(draft);
+                        }
                     }
                 }
             }

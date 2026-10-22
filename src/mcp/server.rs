@@ -1017,6 +1017,20 @@ impl McpServer {
                     });
                 }
 
+                if draft.status == DraftStatus::Committed {
+                    return json!({
+                        "jsonrpc": "2.0",
+                        "id": id,
+                        "result": {
+                            "isError": true,
+                            "content": [{
+                                "type": "text",
+                                "text": format!("Commit rejected: Draft '{}' has already been committed to TallyPrime and cannot be re-posted.", draft_id)
+                            }]
+                        }
+                    });
+                }
+
                 if draft.status != DraftStatus::Approved {
                     return json!({
                         "jsonrpc": "2.0",

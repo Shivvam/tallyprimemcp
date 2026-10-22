@@ -1620,6 +1620,36 @@ impl CompanionUiServer {
                 if let Ok(val) = parsed {
                     let draft_id = val.get("draft_id").and_then(|d| d.as_str()).unwrap_or("");
                     if let Ok(mut draft) = self.journal.get_draft(draft_id) {
+                        // Strictly validate that draft is not already committed to TallyPrime
+                        if draft.status == DraftStatus::Committed {
+                            let outcome = json!({
+                                "success": false,
+                                "error": format!("Draft '{}' has already been committed to TallyPrime and cannot be re-posted.", draft_id)
+                            });
+                            let header =
+                                Header::from_bytes(&b"Content-Type"[..], &b"application/json"[..])
+                                    .unwrap();
+                            let resp =
+                                Response::from_string(outcome.to_string()).with_header(header);
+                            let _ = request.respond(resp);
+                            continue;
+                        }
+
+                        // Strictly validate that draft has not been discarded
+                        if draft.status == DraftStatus::Discarded {
+                            let outcome = json!({
+                                "success": false,
+                                "error": format!("Draft '{}' has been discarded and cannot be committed.", draft_id)
+                            });
+                            let header =
+                                Header::from_bytes(&b"Content-Type"[..], &b"application/json"[..])
+                                    .unwrap();
+                            let resp =
+                                Response::from_string(outcome.to_string()).with_header(header);
+                            let _ = request.respond(resp);
+                            continue;
+                        }
+
                         // Human confirmation directly from the Companion UI approves pending or previously failed drafts
                         if draft.status == DraftStatus::PendingApproval
                             || draft.status == DraftStatus::NeedsReview

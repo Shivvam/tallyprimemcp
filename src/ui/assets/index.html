@@ -6,71 +6,496 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     :root {
-      --bg: #ffffff;
+      --bg: #f8fafc;
+      --sidebar-bg: #ffffff;
       --card: #ffffff;
       --card-muted: #fffbe5;
-      --border: rgba(108, 108, 112, 0.2);
+      --border: #e2e8f0;
+      --border-subtle: #f1f5f9;
       --border-focus: #006ea6;
-      --text: #111827;
-      --muted: #6c6c70;
+      --text: #0f172a;
+      --muted: #64748b;
       --primary: #006ea6;
-      --primary-hover: #005a88;
+      --primary-hover: #005682;
+      --primary-light: #e0f2fe;
       --cream: #fffbe5;
       --success: #059669;
       --danger: #dc2626;
       --amber: #d97706;
+      --sidebar-width: 270px;
+      --header-height: 58px;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); padding: 24px 16px; }
-    .container { max-width: 1040px; margin: 0 auto; }
-    
-    header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; padding-bottom: 18px; border-bottom: 1px solid var(--border); margin-bottom: 16px; }
-    .header-left { display: flex; align-items: center; gap: 10px; }
-    .logo { font-size: 20px; font-weight: 700; letter-spacing: -0.5px; color: #111827; }
-    .logo span.brand-mcp { color: var(--primary); }
-    .header-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      overflow: hidden;
+      font-size: 13.5px;
+      line-height: 1.5;
+    }
 
-    .badge { display: inline-flex; align-items: center; gap: 5px; background: var(--cream); color: var(--primary); border: 1px solid rgba(0, 110, 166, 0.3); padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+    .app-shell {
+      display: flex;
+      height: 100vh;
+      width: 100vw;
+      overflow: hidden;
+    }
+
+    /* SIDEBAR */
+    .sidebar {
+      width: var(--sidebar-width);
+      min-width: var(--sidebar-width);
+      height: 100vh;
+      background: var(--sidebar-bg);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      z-index: 100;
+      position: relative;
+    }
+    .sidebar-top {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-shrink: 0;
+    }
+    .sidebar-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .brand-icon-box {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, #006ea6 0%, #0284c7 100%);
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      font-weight: 700;
+      box-shadow: 0 2px 5px rgba(0, 110, 166, 0.25);
+    }
+    .brand-title {
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: -0.4px;
+      color: #0f172a;
+      line-height: 1.1;
+    }
+    .brand-mcp {
+      color: var(--primary);
+    }
+    .brand-badge {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      background: var(--cream);
+      color: var(--primary);
+      border: 1px solid rgba(0, 110, 166, 0.25);
+      padding: 1px 6px;
+      border-radius: 4px;
+      margin-left: 4px;
+    }
+    .sidebar-close-btn {
+      display: none;
+      background: none;
+      border: none;
+      font-size: 22px;
+      color: var(--muted);
+      cursor: pointer;
+      line-height: 1;
+      padding: 2px 6px;
+    }
+
+    /* LIVE CONNECTION STATUS CARD IN SIDEBAR */
+    .sidebar-status-card {
+      margin: 12px 12px 6px;
+      padding: 10px 12px;
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      flex-shrink: 0;
+    }
+    .sidebar-status-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+    .status-indicator-label {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--muted);
+    }
+    .sidebar-company-name {
+      font-size: 12px;
+      font-weight: 600;
+      color: #1e293b;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .dot-indicator {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #94a3b8;
+      flex-shrink: 0;
+    }
+    .dot-indicator.green { background: var(--success); }
+    .dot-indicator.red { background: var(--danger); }
+    .sidebar-status-actions {
+      display: flex;
+      gap: 6px;
+    }
+    .btn-xs {
+      padding: 4px 8px;
+      font-size: 11px;
+      font-weight: 600;
+      border-radius: 4px;
+      cursor: pointer;
+      flex: 1;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      transition: all 0.15s;
+    }
+
+    /* SIDEBAR NAVIGATION LIST */
+    .sidebar-nav-scroll {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px 10px;
+    }
+    .nav-section-title {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: #94a3b8;
+      padding: 10px 8px 4px;
+    }
+    .sidebar-nav {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .tab-btn {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 10px;
+      border-radius: 6px;
+      border: 1px solid transparent;
+      background: transparent;
+      color: #334155;
+      font-size: 12.5px;
+      font-weight: 500;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.15s ease;
+      text-align: left;
+    }
+    .tab-btn:hover {
+      background: #f1f5f9;
+      color: #0f172a;
+    }
+    .tab-btn.active {
+      background: var(--primary-light);
+      color: var(--primary);
+      font-weight: 600;
+      border-color: rgba(0, 110, 166, 0.25);
+    }
+    .tab-btn-inner {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+    .tab-btn-icon {
+      font-size: 15px;
+      flex-shrink: 0;
+      width: 18px;
+      text-align: center;
+    }
+    .tab-btn-label {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .nav-badge {
+      font-size: 10.5px;
+      font-weight: 600;
+      padding: 1px 6px;
+      border-radius: 999px;
+      background: #f1f5f9;
+      color: var(--muted);
+      border: 1px solid var(--border);
+    }
+    .tab-btn.active .nav-badge {
+      background: #ffffff;
+      color: var(--primary);
+      border-color: rgba(0, 110, 166, 0.3);
+    }
+
+    /* STEPPER WIDGET IN SIDEBAR */
+    .stepper-widget {
+      margin-top: 10px;
+      border: 1px solid rgba(0, 110, 166, 0.2);
+      border-radius: 8px;
+      background: var(--cream);
+      overflow: hidden;
+    }
+    .stepper-widget-header {
+      padding: 7px 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      user-select: none;
+      background: rgba(0, 110, 166, 0.05);
+      border-bottom: 1px solid rgba(0, 110, 166, 0.15);
+    }
+    .stepper-widget-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .setup-stepper {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      padding: 6px;
+      background: transparent;
+      border: none;
+      margin: 0;
+    }
+    .step-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 8px;
+      border-radius: 6px;
+      background: #ffffff;
+      border: 1px solid rgba(0, 110, 166, 0.15);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .step-item:hover {
+      border-color: var(--primary);
+      background: #ffffff;
+    }
+    .step-item.active {
+      border-color: var(--primary);
+      background: #ffffff;
+      box-shadow: 0 0 0 1px var(--primary);
+    }
+    .step-item-left {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      min-width: 0;
+      flex: 1;
+    }
+    .step-num {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #e2e8f0;
+      color: #475569;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10.5px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .step-item.active .step-num { background: var(--primary); color: #ffffff; }
+    .step-item.completed .step-num { background: var(--success); color: #ffffff; }
+    .step-title {
+      font-size: 11.5px;
+      font-weight: 600;
+      color: #0f172a;
+      display: block;
+      line-height: 1.2;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .step-sub {
+      font-size: 10px;
+      color: var(--muted);
+      display: block;
+      margin-top: 1px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .step-guide-link {
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--primary);
+      text-decoration: none;
+      padding: 1px 5px;
+      border-radius: 4px;
+      background: rgba(0, 110, 166, 0.08);
+      flex-shrink: 0;
+    }
+    .step-guide-link:hover {
+      text-decoration: underline;
+      background: rgba(0, 110, 166, 0.15);
+    }
+
+    /* MAIN AREA */
+    .main-wrapper {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+      min-width: 0;
+      background: var(--bg);
+    }
+    .topbar {
+      height: var(--header-height);
+      min-height: var(--header-height);
+      background: #ffffff;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 24px;
+      flex-shrink: 0;
+    }
+    .topbar-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+    .mobile-menu-btn {
+      display: none;
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 18px;
+      padding: 4px 8px;
+      cursor: pointer;
+      color: #334155;
+    }
+    .view-header-meta {
+      min-width: 0;
+    }
+    .view-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: #0f172a;
+      letter-spacing: -0.3px;
+      line-height: 1.2;
+    }
+    .view-desc {
+      font-size: 11.5px;
+      color: var(--muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-top: 2px;
+    }
+    .topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .app-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px 24px;
+      min-width: 0;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: var(--cream);
+      color: var(--primary);
+      border: 1px solid rgba(0, 110, 166, 0.3);
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-size: 11.5px;
+      font-weight: 600;
+    }
     .badge-success { background: #ecfdf5; color: var(--success); border: 1px solid rgba(16, 185, 129, 0.4); }
     .badge-danger { background: #fef2f2; color: var(--danger); border: 1px solid rgba(220, 38, 38, 0.3); }
     .badge-warning { background: var(--cream); color: var(--amber); border: 1px solid rgba(217, 119, 6, 0.3); }
 
-    /* SETUP PROGRESS STEPPER */
-    .setup-stepper { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; background: var(--cream); border: 1px solid rgba(0, 110, 166, 0.25); border-radius: 10px; padding: 12px 14px; margin-bottom: 20px; }
-    .step-item { display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; border-radius: 8px; background: #ffffff; border: 1px solid rgba(0, 110, 166, 0.15); cursor: pointer; transition: all 0.15s; }
-    .step-item:hover { border-color: var(--primary); box-shadow: 0 2px 6px rgba(0, 110, 166, 0.08); }
-    .step-item.active { border-color: var(--primary); background: #ffffff; box-shadow: 0 0 0 1px var(--primary); }
-    .step-item-left { display: flex; align-items: center; gap: 8px; }
-    .step-num { width: 24px; height: 24px; border-radius: 50%; background: #e2e8f0; color: #475569; display: flex; align-items: center; justify-content: center; font-size: 11.5px; font-weight: 700; flex-shrink: 0; }
-    .step-item.active .step-num { background: var(--primary); color: #ffffff; }
-    .step-item.completed .step-num { background: var(--success); color: #ffffff; }
-    .step-title { font-size: 12.5px; font-weight: 600; color: #111827; display: block; line-height: 1.2; }
-    .step-sub { font-size: 11px; color: var(--muted); display: block; margin-top: 2px; }
-    .step-guide-link { font-size: 11px; font-weight: 600; color: var(--primary); text-decoration: none; padding: 2px 6px; border-radius: 4px; background: rgba(0, 110, 166, 0.08); flex-shrink: 0; }
-    .step-guide-link:hover { text-decoration: underline; background: rgba(0, 110, 166, 0.15); }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 18px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+    }
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 12px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    h2 { font-size: 15.5px; font-weight: 600; color: #0f172a; display: flex; align-items: center; gap: 8px; }
+    h3 { font-size: 13.5px; font-weight: 600; color: #0f172a; margin-bottom: 8px; }
+    p.desc { font-size: 12.5px; color: var(--muted); margin-bottom: 14px; line-height: 1.5; }
 
-    .tabs { display: flex; gap: 6px; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 8px; overflow-x: auto; }
-    .tab-btn { background: transparent; border: none; color: var(--muted); padding: 8px 14px; font-size: 13.5px; font-weight: 500; cursor: pointer; border-radius: 6px; white-space: nowrap; transition: all 0.15s; }
-    .tab-btn:hover { color: var(--text); background: var(--cream); }
-    .tab-btn.active { background: var(--primary); color: #ffffff; font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+    .stat-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); margin-bottom: 3px; font-weight: 600; }
+    .stat-val { font-size: 14px; font-weight: 600; color: #0f172a; }
 
-    .card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin-bottom: 20px; box-shadow: 0 1px 4px rgba(0,0,0,0.04); }
-    .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid var(--border); padding-bottom: 12px; }
-    h2 { font-size: 16px; font-weight: 600; color: #111827; display: flex; align-items: center; gap: 8px; }
-    h3 { font-size: 14px; font-weight: 600; color: #111827; margin-bottom: 8px; }
-    p.desc { font-size: 13px; color: var(--muted); margin-bottom: 14px; line-height: 1.5; }
-
-    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; }
-    .stat-label { font-size: 12px; color: var(--muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
-    .stat-val { font-size: 15px; font-weight: 600; word-break: break-all; color: var(--primary); }
-
-    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; background: var(--primary); color: white; border: none; padding: 8px 14px; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; transition: background 0.15s; }
-    .btn:hover { background: var(--primary-hover); }
-    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
-    .btn-sm { padding: 5px 10px; font-size: 12px; }
+    .btn {
+      padding: 7px 14px;
+      border-radius: 6px;
+      font-size: 12.5px;
+      font-weight: 500;
+      border: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+      text-decoration: none;
+    }
+    .btn-sm { padding: 5px 10px; font-size: 11.5px; }
+    .btn-primary { background: var(--primary); color: #ffffff; }
+    .btn-primary:hover { background: var(--primary-hover); }
     .btn-secondary { background: var(--cream); border: 1px solid rgba(0, 110, 166, 0.3); color: var(--primary); font-weight: 600; }
     .btn-secondary:hover { background: #fff8cc; }
-    .btn-outline { background: #ffffff; border: 1px solid var(--border); color: var(--text); }
+    .btn-outline { background: #ffffff; border: 1px solid var(--border); color: #334155; }
     .btn-outline:hover { background: var(--cream); border-color: var(--primary); color: var(--primary); }
     .btn-success { background: var(--success); color: #ffffff; font-weight: 600; }
     .btn-success:hover { opacity: 0.9; }
@@ -78,176 +503,294 @@
     .btn-danger:hover { background: #fef2f2; }
 
     .form-group { margin-bottom: 14px; }
-    .form-label { display: block; font-size: 12.5px; font-weight: 600; color: #111827; margin-bottom: 6px; }
-    .form-control { width: 100%; background: #ffffff; border: 1px solid var(--border); color: var(--text); padding: 8px 12px; border-radius: 6px; font-size: 13.5px; outline: none; transition: border-color 0.15s; }
+    .form-label { display: block; font-size: 12px; font-weight: 600; color: #0f172a; margin-bottom: 5px; }
+    .form-control { width: 100%; background: #ffffff; border: 1px solid var(--border); color: var(--text); padding: 7px 11px; border-radius: 6px; font-size: 13px; outline: none; transition: border-color 0.15s; }
     .form-control:focus { border-color: var(--border-focus); box-shadow: 0 0 0 1px var(--border-focus); }
-    .form-hint { font-size: 11.5px; color: var(--muted); margin-top: 4px; line-height: 1.4; }
+    .form-hint { font-size: 11px; color: var(--muted); margin-top: 4px; line-height: 1.4; }
 
-    .dropzone { border: 2px dashed rgba(0, 110, 166, 0.3); border-radius: 8px; padding: 36px 20px; text-align: center; cursor: pointer; transition: all 0.2s; background: var(--cream); }
+    .dropzone { border: 2px dashed rgba(0, 110, 166, 0.3); border-radius: 8px; padding: 32px 20px; text-align: center; cursor: pointer; transition: all 0.2s; background: var(--cream); }
     .dropzone:hover { border-color: var(--primary); background: #fff9d6; }
 
-    table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 13.5px; }
-    th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); }
-    th { background: var(--cream); color: #111827; font-size: 11.5px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
-    tr:hover { background: rgba(255, 251, 229, 0.5); }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
+    th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--border); }
+    th { background: #f8fafc; color: #475569; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+    tr:hover { background: rgba(255, 251, 229, 0.4); }
 
-    pre { background: #f8fafc; padding: 14px; border-radius: 6px; font-size: 12.5px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; overflow-x: auto; color: #0f172a; border: 1px solid var(--border); line-height: 1.5; }
-    code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 12px; background: var(--cream); color: var(--primary); padding: 2px 5px; border-radius: 4px; border: 1px solid rgba(0, 110, 166, 0.2); }
+    pre { background: #f8fafc; padding: 12px; border-radius: 6px; font-size: 12px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; overflow-x: auto; color: #0f172a; border: 1px solid var(--border); line-height: 1.5; }
+    code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 11.5px; background: var(--cream); color: var(--primary); padding: 1px 4px; border-radius: 4px; border: 1px solid rgba(0, 110, 166, 0.2); }
 
-    .banner { padding: 10px 14px; border-radius: 6px; font-size: 13px; margin-bottom: 16px; display: none; align-items: center; justify-content: space-between; }
+    .banner { padding: 9px 14px; border-radius: 6px; font-size: 12.5px; margin: 12px 24px 0; display: none; align-items: center; justify-content: space-between; }
     .banner-success { background: #ecfdf5; color: var(--success); border: 1px solid rgba(16, 185, 129, 0.4); }
     .banner-error { background: #fef2f2; color: var(--danger); border: 1px solid rgba(220, 38, 38, 0.3); }
     .banner-info { background: var(--cream); color: var(--primary); border: 1px solid rgba(0, 110, 166, 0.3); }
 
-    .tag { display: inline-block; background: var(--cream); color: var(--primary); border: 1px solid rgba(0, 110, 166, 0.2); font-size: 11px; padding: 2px 8px; border-radius: 4px; margin-right: 4px; margin-bottom: 4px; }
-    .radio-pill-group { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
-    .radio-pill { cursor: pointer; padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border); font-size: 13px; color: var(--muted); user-select: none; background: #ffffff; }
-    .radio-pill.selected { background: var(--cream); border-color: var(--primary); color: var(--primary); font-weight: 600; }
+    .tag { display: inline-block; background: var(--cream); color: var(--primary); border: 1px solid rgba(0, 110, 166, 0.2); font-size: 11px; padding: 2px 7px; border-radius: 4px; margin-right: 4px; margin-bottom: 4px; }
+    .radio-pill-group { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+    .radio-pill { cursor: pointer; padding: 5px 11px; border-radius: 6px; border: 1px solid var(--border); font-size: 12.5px; color: var(--muted); user-select: none; background: #ffffff; transition: all 0.15s; }
+    .radio-pill:hover { border-color: var(--primary); }
+    .radio-pill.selected { background: var(--primary-light); border-color: var(--primary); color: var(--primary); font-weight: 600; }
 
-    /* NOTICE BOXES */
-    .notice-box { background: var(--cream); border-left: 4px solid var(--primary); padding: 12px 16px; border-radius: 4px; font-size: 13px; color: #1e3a8a; margin: 14px 0; line-height: 1.5; }
-    .notice-warning { background: #fef2f2; border-left: 4px solid var(--danger); color: #991b1b; }
+    .notice-box { background: var(--cream); border-left: 4px solid var(--primary); padding: 12px 14px; border-radius: 4px; font-size: 12.5px; color: #1e3a8a; margin: 12px 0; line-height: 1.5; }
+    .notice-warning { background: #fffdf5; border-left: 4px solid var(--amber); color: #92400e; }
     .notice-success { background: #ecfdf5; border-left: 4px solid var(--success); color: #065f46; }
 
-    /* VISUAL DIFF BOX */
-    .diff-box { border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden; margin: 14px 0; }
-    .diff-header { background: #f1f5f9; padding: 8px 14px; font-size: 12px; font-weight: 600; color: #475569; display: flex; justify-content: space-between; align-items: center; }
-    .diff-content { padding: 14px; background: #ffffff; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 12.5px; line-height: 1.5; }
+    .diff-box { border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden; margin: 12px 0; }
+    .diff-header { background: #f1f5f9; padding: 7px 12px; font-size: 11.5px; font-weight: 600; color: #475569; display: flex; justify-content: space-between; align-items: center; }
+    .diff-content { padding: 12px; background: #ffffff; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 12px; line-height: 1.5; }
     .highlight-add { background: #ecfdf5; color: #065f46; font-weight: 600; display: block; border-left: 3px solid #10b981; padding-left: 8px; margin: 4px 0; }
 
-    /* CHAT UI STYLING (CLAUDE-INSPIRED) */
-    .chat-container { display: flex; flex-direction: column; height: 640px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.04); }
-    .chat-header { padding: 14px 18px; border-bottom: 1px solid var(--border); background: #ffffff; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
-    .chat-messages { flex: 1; overflow-y: auto; padding: 20px 18px; display: flex; flex-direction: column; gap: 16px; background: #fafafa; }
-    .chat-empty { text-align: center; margin: auto 0; padding: 20px; max-width: 720px; align-self: center; }
-    .chat-bubble { max-width: 84%; padding: 12px 16px; border-radius: 10px; font-size: 13.5px; line-height: 1.6; word-break: break-word; }
-    .chat-bubble-user { align-self: flex-end; background: var(--cream); border: 1px solid rgba(0, 110, 166, 0.25); color: #111827; border-bottom-right-radius: 2px; }
-    .chat-bubble-assistant { align-self: flex-start; background: #ffffff; border: 1px solid var(--border); color: #111827; border-bottom-left-radius: 2px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
-    .chat-bubble table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 12.5px; }
-    .chat-bubble th, .chat-bubble td { border: 1px solid var(--border); padding: 6px 10px; text-align: left; }
-    .chat-bubble th { background: var(--cream); font-weight: 600; }
-    .chat-templates { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; margin-top: 16px; text-align: left; }
-    .template-card { background: #ffffff; border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; cursor: pointer; transition: all 0.15s; font-size: 12.5px; color: #1e293b; display: flex; align-items: center; gap: 8px; font-weight: 500; box-shadow: 0 1px 2px rgba(0,0,0,0.02); }
-    .template-card:hover { border-color: var(--primary); background: var(--cream); transform: translateY(-1px); box-shadow: 0 2px 6px rgba(0, 110, 166, 0.1); }
-    .chat-input-bar { padding: 12px 16px; border-top: 1px solid var(--border); background: #ffffff; display: flex; gap: 10px; align-items: flex-end; }
-    .chat-textarea { flex: 1; border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; font-size: 13.5px; font-family: inherit; resize: none; min-height: 44px; max-height: 120px; outline: none; transition: border-color 0.15s; background: #ffffff; color: var(--text); line-height: 1.4; }
+    /* CHAT UI */
+    .chat-container { display: flex; flex-direction: column; height: calc(100vh - 120px); min-height: 520px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.02); }
+    .chat-header { padding: 12px 16px; border-bottom: 1px solid var(--border); background: #ffffff; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; flex-shrink: 0; }
+    .chat-messages { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 16px; background: #fcfcfc; }
+    .chat-empty { max-width: 680px; margin: 20px auto; text-align: center; }
+    .chat-templates { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin-top: 14px; text-align: left; }
+    .template-card { background: #ffffff; border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; font-size: 12.5px; color: #334155; cursor: pointer; transition: all 0.15s; display: flex; align-items: center; gap: 8px; line-height: 1.4; }
+    .template-card:hover { border-color: var(--primary); background: var(--cream); color: var(--primary); transform: translateY(-1px); }
+    .message-row { display: flex; gap: 10px; max-width: 820px; width: 100%; }
+    .message-row.user { align-self: flex-end; justify-content: flex-end; }
+    .message-row.assistant { align-self: flex-start; justify-content: flex-start; }
+    .msg-avatar { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; flex-shrink: 0; }
+    .msg-avatar.user { background: #e0f2fe; color: #0284c7; }
+    .msg-avatar.assistant { background: var(--cream); color: var(--primary); border: 1px solid rgba(0, 110, 166, 0.3); }
+    .msg-bubble { padding: 12px 16px; border-radius: 10px; font-size: 13px; line-height: 1.6; max-width: calc(100% - 44px); }
+    .msg-bubble.user { background: #006ea6; color: #ffffff; border-bottom-right-radius: 2px; }
+    .msg-bubble.assistant { background: #ffffff; color: #1e293b; border: 1px solid var(--border); border-bottom-left-radius: 2px; box-shadow: 0 1px 3px rgba(0,0,0,0.02); }
+    .chat-input-bar { padding: 12px 16px; border-top: 1px solid var(--border); background: #ffffff; display: flex; gap: 10px; align-items: flex-end; flex-shrink: 0; }
+    .chat-textarea { flex: 1; border: 1px solid var(--border); border-radius: 8px; padding: 9px 12px; font-size: 13px; font-family: inherit; resize: none; max-height: 120px; min-height: 38px; outline: none; transition: border-color 0.15s; }
     .chat-textarea:focus { border-color: var(--border-focus); box-shadow: 0 0 0 1px var(--border-focus); }
-    .chat-textarea:disabled { background: #f1f5f9; cursor: not-allowed; }
-    .chat-byok-notice { background: var(--cream); border: 1px solid rgba(0, 110, 166, 0.3); border-radius: 8px; padding: 14px; margin-bottom: 12px; display: flex; align-items: center; gap: 12px; }
+    .chat-byok-notice { background: var(--cream); border: 1px solid rgba(217, 119, 6, 0.3); border-radius: 8px; padding: 12px 14px; margin-bottom: 14px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+
+    /* RESPONSIVENESS */
+    .sidebar-backdrop { display: none; }
+    @media (max-width: 860px) {
+      .sidebar {
+        position: fixed;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        transform: translateX(-100%);
+        transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+      }
+      .sidebar.open { transform: translateX(0); }
+      .sidebar-backdrop.open {
+        display: block;
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.45);
+        backdrop-filter: blur(1px);
+        z-index: 99;
+      }
+      .sidebar-close-btn { display: block; }
+      .mobile-menu-btn { display: flex; }
+      .topbar { padding: 0 16px; }
+      .app-content { padding: 14px 12px; }
+      .banner { margin: 10px 12px 0; }
+    }
   </style>
 </head>
 <body>
-  <div class="container">
-    <!-- NOTIFICATION BANNER -->
-    <div id="banner" class="banner">
-      <span id="banner-text">Notice</span>
-      <button class="btn btn-sm btn-outline" style="border:none;padding:0 6px;" onclick="closeBanner()">✕</button>
-    </div>
+  <!-- Mobile Sidebar Backdrop -->
+  <div class="sidebar-backdrop" id="sidebar-backdrop" onclick="closeSidebar()"></div>
 
-    <!-- HEADER -->
-    <header>
-      <div class="header-left">
-        <div class="logo">Tally<span class="brand-mcp">MCP</span> <span class="badge">Companion UI</span></div>
-        <div id="status-pill" class="badge">Connecting...</div>
-      </div>
-      <div class="header-actions">
-        <button class="btn btn-sm btn-secondary" id="btn-reconnect" onclick="reconnectTally()">
-          <span>🔄</span> Reconnect
-        </button>
-        <button class="btn btn-sm btn-primary" id="btn-sync" onclick="syncAll()">
-          <span>⚡</span> Sync Latest
-        </button>
-        <button class="btn btn-sm btn-outline" onclick="switchTab('connection')">
-          <span>⚙️</span> Tally Target
-        </button>
-        <button class="btn btn-sm btn-outline" onclick="switchTab('tools')">
-          <span>🧪</span> Test MCP
-        </button>
-        <a href="/guides.html" target="_blank" class="btn btn-sm btn-outline" style="text-decoration:none; display:inline-flex; align-items:center; gap:4px;">
-          <span>📚</span> Guides Hub
-        </a>
-      </div>
-    </header>
-
-    <!-- PROGRESSIVE SETUP STEPPER (Step 1 -> Step 2 -> Step 3 -> Step 4 -> Step 5) -->
-    <div class="setup-stepper" id="setup-stepper">
-      <!-- STEP 1 -->
-      <div class="step-item active" id="step-nav-1" onclick="switchTab('connection')">
-        <div class="step-item-left">
-          <div class="step-num" id="step-1-num">1</div>
+  <div class="app-shell">
+    <!-- LEFT SIDEBAR -->
+    <aside class="sidebar" id="app-sidebar">
+      <div class="sidebar-top">
+        <div class="sidebar-brand">
+          <div class="brand-icon-box">⚡</div>
           <div>
-            <span class="step-title">Connect TallyPrime</span>
-            <span class="step-sub" id="step-1-sub">127.0.0.1:9000 or LAN</span>
+            <div class="brand-title">Tally<span class="brand-mcp">MCP</span><span class="brand-badge">Companion</span></div>
           </div>
         </div>
-        <a href="/guide-claude.html" target="_blank" class="step-guide-link" title="TallyPrime connection guide">Guide ↗</a>
+        <button class="sidebar-close-btn" onclick="closeSidebar()" aria-label="Close sidebar">&times;</button>
       </div>
 
-      <!-- STEP 2 -->
-      <div class="step-item" id="step-nav-2" onclick="switchTab('clients')">
-        <div class="step-item-left">
-          <div class="step-num" id="step-2-num">2</div>
-          <div>
-            <span class="step-title">Claude Desktop MCP</span>
-            <span class="step-sub" id="step-2-sub">Local stdio config</span>
+      <!-- LIVE STATUS WIDGET -->
+      <div class="sidebar-status-card">
+        <div class="sidebar-status-header">
+          <span class="status-indicator-label">Tally Gateway</span>
+          <div id="status-pill" class="badge">Connecting...</div>
+        </div>
+        <div class="sidebar-company-name" id="sidebar-active-comp">
+          <span class="dot-indicator"></span> Checking TallyPrime...
+        </div>
+        <div class="sidebar-status-actions">
+          <button class="btn btn-xs btn-secondary" id="btn-reconnect" onclick="reconnectTally()" title="Test link to Tally">
+            <span>🔄</span> Reconnect
+          </button>
+          <button class="btn btn-xs btn-primary" id="btn-sync" onclick="syncAll()" title="Sync all latest data">
+            <span>⚡</span> Sync Latest
+          </button>
+        </div>
+      </div>
+
+      <!-- SIDEBAR NAV SCROLL -->
+      <div class="sidebar-nav-scroll">
+        <nav class="sidebar-nav tabs">
+          <div class="nav-section-title">WORKSPACE</div>
+          <button class="tab-btn active" id="tabbtn-chat" onclick="switchTab('chat')">
+            <span class="tab-btn-inner">
+              <span class="tab-btn-icon">💬</span>
+              <span class="tab-btn-label">AI Chat Assistant</span>
+            </span>
+            <span class="nav-badge" style="background:#ecfdf5; color:#059669; border-color:rgba(16,185,129,0.3);">Live</span>
+          </button>
+          <button class="tab-btn" id="tabbtn-drafts" onclick="switchTab('drafts')">
+            <span class="tab-btn-inner">
+              <span class="tab-btn-icon">📋</span>
+              <span class="tab-btn-label">Voucher Drafts</span>
+            </span>
+            <span id="drafts-count-badge" class="tag" style="margin:0; display:none;">0</span>
+          </button>
+
+          <div class="nav-section-title">MCP &amp; TESTING</div>
+          <button class="tab-btn" id="tabbtn-tools" onclick="switchTab('tools')">
+            <span class="tab-btn-inner">
+              <span class="tab-btn-icon">🧪</span>
+              <span class="tab-btn-label">MCP Functions &amp; Testing</span>
+            </span>
+          </button>
+          <button class="tab-btn" id="tabbtn-connection" onclick="switchTab('connection')">
+            <span class="tab-btn-inner">
+              <span class="tab-btn-icon">🔌</span>
+              <span class="tab-btn-label">Tally Target &amp; Connection</span>
+            </span>
+          </button>
+          <button class="tab-btn" id="tabbtn-clients" onclick="switchTab('clients')">
+            <span class="tab-btn-inner">
+              <span class="tab-btn-icon">🤖</span>
+              <span class="tab-btn-label">Claude Desktop &amp; Clients</span>
+            </span>
+          </button>
+
+          <div class="nav-section-title">CONFIGURATION &amp; AUDIT</div>
+          <button class="tab-btn" id="tabbtn-dropzone" onclick="switchTab('dropzone')">
+            <span class="tab-btn-inner">
+              <span class="tab-btn-icon">⚙️</span>
+              <span class="tab-btn-label">BYOK AI &amp; OCR</span>
+            </span>
+          </button>
+          <button class="tab-btn" id="tabbtn-audit" onclick="switchTab('audit')">
+            <span class="tab-btn-inner">
+              <span class="tab-btn-icon">📜</span>
+              <span class="tab-btn-label">Security Audit Log</span>
+            </span>
+          </button>
+
+          <div class="nav-section-title">DOCUMENTATION</div>
+          <a href="/guides.html" target="_blank" class="tab-btn" style="text-decoration:none;">
+            <span class="tab-btn-inner">
+              <span class="tab-btn-icon">📚</span>
+              <span class="tab-btn-label">Guides Hub</span>
+            </span>
+            <span class="nav-badge">↗</span>
+          </a>
+        </nav>
+
+        <!-- PROGRESSIVE SETUP STEPPER (COLLAPSIBLE WIDGET) -->
+        <div class="stepper-widget">
+          <div class="stepper-widget-header" onclick="toggleStepperCollapse()">
+            <span class="stepper-widget-title"><span>🚀</span> Quick Setup Guide</span>
+            <span id="stepper-toggle-icon" style="font-size:11px; color:var(--primary);">▾</span>
+          </div>
+          <div class="setup-stepper" id="setup-stepper">
+            <!-- STEP 1 -->
+            <div class="step-item active" id="step-nav-1" onclick="switchTab('connection')">
+              <div class="step-item-left">
+                <div class="step-num" id="step-1-num">1</div>
+                <div>
+                  <span class="step-title">Connect TallyPrime</span>
+                  <span class="step-sub" id="step-1-sub">127.0.0.1:9000 or LAN</span>
+                </div>
+              </div>
+              <a href="/guide-claude.html" target="_blank" class="step-guide-link" title="TallyPrime connection guide">Guide ↗</a>
+            </div>
+
+            <!-- STEP 2 -->
+            <div class="step-item" id="step-nav-2" onclick="switchTab('clients')">
+              <div class="step-item-left">
+                <div class="step-num" id="step-2-num">2</div>
+                <div>
+                  <span class="step-title">Claude Desktop MCP</span>
+                  <span class="step-sub" id="step-2-sub">Local stdio config</span>
+                </div>
+              </div>
+              <a href="/guide-claude.html" target="_blank" class="step-guide-link" title="Claude Desktop guide">Guide ↗</a>
+            </div>
+
+            <!-- STEP 3 -->
+            <div class="step-item" id="step-nav-3" onclick="switchTab('dropzone')">
+              <div class="step-item-left">
+                <div class="step-num" id="step-3-num">3</div>
+                <div>
+                  <span class="step-title">Configure BYOK Key</span>
+                  <span class="step-sub" id="step-3-sub">Claude / Gemini / Ollama</span>
+                </div>
+              </div>
+              <a href="/guide-gemini.html" target="_blank" class="step-guide-link" title="AI key setup guide">Guide ↗</a>
+            </div>
+
+            <!-- STEP 4 -->
+            <div class="step-item" id="step-nav-4" onclick="switchTab('chat')">
+              <div class="step-item-left">
+                <div class="step-num" id="step-4-num">4</div>
+                <div>
+                  <span class="step-title">AI Chat with Tally</span>
+                  <span class="step-sub" id="step-4-sub">Interactive Accounting AI</span>
+                </div>
+              </div>
+              <span class="badge" style="font-size:10px; padding:2px 6px;">Chat UI</span>
+            </div>
+
+            <!-- STEP 5 -->
+            <div class="step-item" id="step-nav-5" onclick="switchTab('tools')">
+              <div class="step-item-left">
+                <div class="step-num" id="step-5-num">5</div>
+                <div>
+                  <span class="step-title">Test MCP Functions</span>
+                  <span class="step-sub" id="step-5-sub">Verify Before Push</span>
+                </div>
+              </div>
+              <span class="badge" style="font-size:10px; padding:2px 6px;">Test</span>
+            </div>
           </div>
         </div>
-        <a href="/guide-claude.html" target="_blank" class="step-guide-link" title="Claude Desktop guide">Guide ↗</a>
-      </div>
 
-      <!-- STEP 3 -->
-      <div class="step-item" id="step-nav-3" onclick="switchTab('dropzone')">
-        <div class="step-item-left">
-          <div class="step-num" id="step-3-num">3</div>
-          <div>
-            <span class="step-title">Configure BYOK Key</span>
-            <span class="step-sub" id="step-3-sub">Claude / Gemini / Ollama</span>
+        <div style="padding: 12px 8px 4px; font-size:11px; color:#94a3b8; text-align:center;">
+          TallyMCP • Local Stdio &amp; HTTP
+        </div>
+      </div>
+    </aside>
+
+    <!-- MAIN WRAPPER -->
+    <div class="main-wrapper">
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="mobile-menu-btn" onclick="toggleSidebar()" aria-label="Open menu">☰</button>
+          <div class="view-header-meta">
+            <h1 class="view-title" id="page-title">AI Assistant</h1>
+            <p class="view-desc" id="page-desc">Interactive AI Chat querying live TallyPrime books via MCP &amp; BYOK engine</p>
           </div>
         </div>
-        <a href="/guide-gemini.html" target="_blank" class="step-guide-link" title="AI key setup guide">Guide ↗</a>
-      </div>
-
-      <!-- STEP 4 -->
-      <div class="step-item" id="step-nav-4" onclick="switchTab('chat')">
-        <div class="step-item-left">
-          <div class="step-num" id="step-4-num">4</div>
-          <div>
-            <span class="step-title">AI Chat with Tally</span>
-            <span class="step-sub" id="step-4-sub">Interactive Accounting AI</span>
-          </div>
+        <div class="topbar-right">
+          <span id="topbar-tally-pill" class="badge">Connecting...</span>
+          <a href="/guides.html" target="_blank" class="btn btn-sm btn-outline" style="text-decoration:none;">
+            <span>📚</span> Guides Hub
+          </a>
         </div>
-        <span class="badge" style="font-size:10px; padding:2px 6px;">Chat UI</span>
+      </header>
+
+      <!-- GLOBAL BANNER NOTIFICATION -->
+      <div id="banner" class="banner banner-info">
+        <span id="banner-text">Welcome to TallyMCP Companion</span>
+        <button type="button" onclick="closeBanner()" style="background:none; border:none; cursor:pointer; font-size:16px; font-weight:bold; color:inherit; padding:0 4px;">&times;</button>
       </div>
 
-      <!-- STEP 5 -->
-      <div class="step-item" id="step-nav-5" onclick="switchTab('tools')">
-        <div class="step-item-left">
-          <div class="step-num" id="step-5-num">5</div>
-          <div>
-            <span class="step-title">Test MCP Functions</span>
-            <span class="step-sub" id="step-5-sub">Verify Before Push</span>
-          </div>
-        </div>
-        <span class="badge" style="font-size:10px; padding:2px 6px;">Test</span>
-      </div>
-    </div>
-
-    <!-- NAVIGATION TABS -->
-    <div class="tabs">
-      <button class="tab-btn active" id="tabbtn-chat" onclick="switchTab('chat')">💬 AI Chat</button>
-      <button class="tab-btn" id="tabbtn-tools" onclick="switchTab('tools')">🧪 MCP Functions &amp; Testing</button>
-      <button class="tab-btn" id="tabbtn-connection" onclick="switchTab('connection')">🔌 Tally Target & Connection</button>
-      <button class="tab-btn" id="tabbtn-clients" onclick="switchTab('clients')">🤖 Claude Desktop & Clients</button>
-      <button class="tab-btn" id="tabbtn-dropzone" onclick="switchTab('dropzone')">⚙️ BYOK AI & OCR</button>
-      <button class="tab-btn" id="tabbtn-drafts" onclick="switchTab('drafts')">📋 Voucher Drafts <span id="drafts-count-badge" class="tag" style="margin-left:4px;display:none;">0</span></button>
-      <button class="tab-btn" id="tabbtn-audit" onclick="switchTab('audit')">📜 Audit Log</button>
-      <a href="/guides.html" target="_blank" class="tab-btn" style="text-decoration:none; display:inline-flex; align-items:center; gap:6px; color:var(--primary); font-weight:600;">
-        <span>📚</span> Guides Hub ↗
-      </a>
-    </div>
-
-    <!-- TAB: AI CHAT WITH TALLY (CLAUDE-INSPIRED UI) -->
-    <div id="tab-chat">
+      <!-- MAIN SCROLLABLE CONTENT -->
+      <main class="app-content">
+<div id="tab-chat">
       <!-- BYOK WARNING BANNER (Shown if no key configured) -->
       <div id="chat-byok-warning" class="chat-byok-notice" style="display:none;">
         <div style="font-size:26px;">⚙️</div>
@@ -959,9 +1502,36 @@
         </div>
       </div>
     </div>
+      </main>
+    </div>
   </div>
 
-  <script>
+<script>
+    function toggleSidebar() {
+      const s = document.getElementById("app-sidebar");
+      const b = document.getElementById("sidebar-backdrop");
+      if (s) s.classList.toggle("open");
+      if (b) b.classList.toggle("open");
+    }
+    function closeSidebar() {
+      const s = document.getElementById("app-sidebar");
+      const b = document.getElementById("sidebar-backdrop");
+      if (s) s.classList.remove("open");
+      if (b) b.classList.remove("open");
+    }
+    function toggleStepperCollapse() {
+      const st = document.getElementById("setup-stepper");
+      const icon = document.getElementById("stepper-toggle-icon");
+      if (!st) return;
+      if (st.style.display === "none") {
+        st.style.display = "flex";
+        if (icon) icon.textContent = "▾";
+      } else {
+        st.style.display = "none";
+        if (icon) icon.textContent = "▸";
+      }
+    }
+
     let currentTab = "chat";
     let currentProvider = "anthropic";
     let currentClient = "claude";
@@ -1007,6 +1577,23 @@
       document.getElementById("tab-dropzone").style.display = name === "dropzone" ? "block" : "none";
       document.getElementById("tab-drafts").style.display = name === "drafts" ? "block" : "none";
       document.getElementById("tab-audit").style.display = name === "audit" ? "block" : "none";
+
+      const titleMap = {
+        chat: ["AI Assistant", "Interactive AI Chat querying live TallyPrime books via MCP & BYOK engine"],
+        tools: ["MCP Functions & Testing", "Execute registered MCP tools, test direct Tally API, and run pre-push verification"],
+        connection: ["Tally Target & Link", "Configure local or LAN IP target for TallyPrime XML Server & verify reachability"],
+        clients: ["Claude Desktop & Clients", "Configure local stdio MCP integrations for Claude Desktop, Cursor, Windsurf, Cline"],
+        dropzone: ["BYOK AI & OCR Engine", "Manage multimodal AI API keys (Claude, Gemini, OpenAI, Ollama) and extract invoices"],
+        drafts: ["Voucher Drafts", "Review and human-approve staged voucher entries before committing to TallyPrime"],
+        audit: ["Security Audit Log", "Tamper-evident trail of all tool executions, queries, and draft commits"]
+      };
+      if (titleMap[name]) {
+        const pt = document.getElementById("page-title");
+        const pd = document.getElementById("page-desc");
+        if (pt) pt.textContent = titleMap[name][0];
+        if (pd) pd.textContent = titleMap[name][1];
+      }
+      closeSidebar();
 
       if (name === "tools") loadMcpTools();
       if (name === "clients") loadMcpConfigs();
@@ -1226,12 +1813,20 @@
         const step1Item = document.getElementById("step-nav-1");
         const step1Sub = document.getElementById("step-1-sub");
 
+        const sideComp = document.getElementById("sidebar-active-comp");
+        const topPill = document.getElementById("topbar-tally-pill");
+
         if (data.reachable) {
           pill.textContent = `● Connected (${data.host}:${data.port})`;
           pill.className = "badge badge-success";
           if (chatStatus) {
             chatStatus.textContent = `🟢 Tally: ${data.active_company || "Connected"}`;
             chatStatus.className = "badge badge-success";
+          }
+          if (sideComp) sideComp.innerHTML = `<span class="dot-indicator green"></span> ${escapeHtml(data.active_company || "Connected")}`;
+          if (topPill) {
+            topPill.textContent = `🟢 ${data.active_company || "Connected"}`;
+            topPill.className = "badge badge-success";
           }
           if (step1Item) step1Item.classList.add("completed");
           if (step1Sub) step1Sub.textContent = `Connected: ${data.active_company || data.host + ":" + data.port}`;
@@ -1241,6 +1836,11 @@
           if (chatStatus) {
             chatStatus.textContent = "🔴 Tally Offline";
             chatStatus.className = "badge badge-danger";
+          }
+          if (sideComp) sideComp.innerHTML = `<span class="dot-indicator red"></span> Offline (${data.host}:${data.port})`;
+          if (topPill) {
+            topPill.textContent = "🔴 Tally Offline";
+            topPill.className = "badge badge-danger";
           }
           if (step1Item) step1Item.classList.remove("completed");
           if (step1Sub) step1Sub.textContent = "127.0.0.1:9000 (Offline)";
@@ -1773,7 +2373,12 @@
         updateSafetyModeUI();
         const res = await fetch("/api/drafts");
         const drafts = await res.json();
-        cachedDraftsList = drafts || [];
+        // Do not display drafts that have already been committed to TallyPrime or discarded
+        const pendingDrafts = (drafts || []).filter(d =>
+          d.status !== 'Committed' && d.status !== 'committed' &&
+          d.status !== 'Discarded' && d.status !== 'discarded'
+        );
+        cachedDraftsList = pendingDrafts;
         const container = document.getElementById("drafts-container");
         const countBadge = document.getElementById("drafts-count-badge");
 
@@ -2083,6 +2688,23 @@
     }
 
     async function commitDraft(draftId) {
+      if (!draftId) return;
+
+      // Check if already in-flight to prevent multiple submissions
+      window.committingDrafts = window.committingDrafts || {};
+      if (window.committingDrafts[draftId]) {
+        return;
+      }
+
+      // Check if draft in local cache is already committed
+      const existingDraft = cachedDraftsList.find(d => d.draft_id === draftId);
+      if (existingDraft && (existingDraft.status === 'Committed' || existingDraft.status === 'committed')) {
+        showBanner("Draft " + draftId + " has already been committed to TallyPrime.", "error");
+        await loadDrafts();
+        return;
+      }
+
+      window.committingDrafts[draftId] = true;
       try {
         const res = await fetch("/api/drafts/commit", {
           method: "POST",
@@ -2093,7 +2715,7 @@
         if (data.success) {
           showBanner("Voucher successfully posted into TallyPrime!", "success");
           closeDraftModal();
-          loadDrafts();
+          await loadDrafts();
         } else {
           let errMsg = data.error || "Unknown";
           const isDateError = errMsg.includes("Voucher date is missing") || errMsg.includes("retry Split");
@@ -2103,9 +2725,12 @@
             if (eduAlert) eduAlert.style.display = "block";
           }
           showBanner("Error committing voucher: " + errMsg, "error");
+          await loadDrafts();
         }
       } catch (e) {
         showBanner("Commit failed: " + e.message, "error");
+      } finally {
+        delete window.committingDrafts[draftId];
       }
     }
 
@@ -2827,3 +3452,4 @@
   </script>
 </body>
 </html>
+

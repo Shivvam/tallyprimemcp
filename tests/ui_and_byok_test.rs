@@ -622,5 +622,71 @@ mod ui_and_byok_tests {
             let err = body["error"].as_str().unwrap_or("");
             assert_ne!(err, "Draft is not in Approved state", "Failed draft should transition to Approved and attempt post, not be rejected as unapproved");
         }
+
+        // Test POST /api/drafts/commit strictly rejects an already Committed draft
+        let committed_draft_id = format!("d_committed_test_{}", uuid::Uuid::new_v4().simple());
+        let committed_draft = VoucherDraft {
+            draft_id: committed_draft_id.clone(),
+            company: "Acme Corp".to_string(),
+            voucher_type: "Payment".to_string(),
+            date: "20261001".to_string(),
+            number: "PAY-001".to_string(),
+            party_ledger: "Acme Corp".to_string(),
+            entries: vec![
+                VoucherEntry {
+                    ledger: "Acme Corp".to_string(),
+                    amount: Decimal::from(-50),
+                },
+                VoucherEntry {
+                    ledger: "Cash".to_string(),
+                    amount: Decimal::from(50),
+                },
+            ],
+            narration: "Committed test".to_string(),
+            idempotency_key: "idemp_committed".to_string(),
+            content_hash: "hash_committed".to_string(),
+            status: DraftStatus::Committed,
+            tally_guid: Some("guid-committed".to_string()),
+        };
+        journal
+            .save_draft(&committed_draft)
+            .expect("save committed draft");
+
+        // Verify committed draft is NOT in list_pending_drafts
+        let pending = journal.list_pending_drafts().expect("list pending drafts");
+        assert!(
+            !pending.iter().any(|d| d.draft_id == committed_draft_id),
+            "Committed draft must NOT appear in pending drafts list"
+        );
+
+        // Verify GET /api/drafts endpoint does not return the committed draft
+        let url_drafts = format!("http://127.0.0.1:{}/api/drafts", port);
+        if let Ok(resp) = ureq::get(&url_drafts).call() {
+            let drafts_arr: Vec<serde_json::Value> =
+                resp.into_body().read_json().expect("Valid drafts array");
+            assert!(
+                !drafts_arr
+                    .iter()
+                    .any(|d| d["draft_id"] == committed_draft_id.as_str()),
+                "Committed draft must not be served to the companion UI in /api/drafts"
+            );
+        }
+
+        // Verify POST /api/drafts/commit rejects committing the already committed draft
+        if let Ok(resp) = ureq::post(&url_commit)
+            .header("content-type", "application/json")
+            .send_json(serde_json::json!({
+                "draft_id": committed_draft_id
+            }))
+        {
+            let body: serde_json::Value = resp.into_body().read_json().expect("Valid JSON");
+            assert_eq!(body["success"], false);
+            let err = body["error"].as_str().unwrap_or("");
+            assert!(
+                err.contains("already been committed"),
+                "Expected rejection stating draft has already been committed, got: {}",
+                err
+            );
+        }
     }
 }
