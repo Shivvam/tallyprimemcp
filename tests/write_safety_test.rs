@@ -43,6 +43,7 @@ mod write_safety_tests {
             content_hash: String::new(),
             status: DraftStatus::NeedsReview,
             tally_guid: Some("guid-test-123".to_string()),
+            ..Default::default()
         };
 
         draft.idempotency_key = compute_idempotency_key(

@@ -3,6 +3,7 @@ use std::path::PathBuf;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Config {
+    #[serde(default = "default_schema_version")]
     pub schema_version: u32,
     #[serde(default)]
     pub tally: TallyConfig,
@@ -11,6 +12,20 @@ pub struct Config {
     #[serde(default)]
     pub ai: AiConfig,
     #[serde(default)]
+    pub server: ServerConfig,
+    #[serde(default)]
+    pub toolsets: ToolsetsConfig,
+    #[serde(default)]
+    pub tokens: TokensConfig,
+    #[serde(default)]
+    pub audit: AuditConfig,
+    #[serde(default)]
+    pub schedule: ScheduleConfig,
+    #[serde(default)]
+    pub rules: RulesConfig,
+    #[serde(default)]
+    pub roles: RolesConfig,
+    #[serde(default)]
     pub packs: PacksConfig,
     #[serde(default)]
     pub ui: UiConfig,
@@ -18,19 +33,33 @@ pub struct Config {
     pub logging: LoggingConfig,
     #[serde(default)]
     pub cleanup: CleanupConfig,
+    #[serde(default)]
+    pub clients: Vec<ClientProfile>,
+}
+
+fn default_schema_version() -> u32 {
+    2
 }
 
 impl Default for Config {
     fn default() -> Self {
         Self {
-            schema_version: 1,
+            schema_version: 2,
             tally: TallyConfig::default(),
             safety: SafetyConfig::default(),
             ai: AiConfig::default(),
+            server: ServerConfig::default(),
+            toolsets: ToolsetsConfig::default(),
+            tokens: TokensConfig::default(),
+            audit: AuditConfig::default(),
+            schedule: ScheduleConfig::default(),
+            rules: RulesConfig::default(),
+            roles: RolesConfig::default(),
             packs: PacksConfig::default(),
             ui: UiConfig::default(),
             logging: LoggingConfig::default(),
             cleanup: CleanupConfig::default(),
+            clients: Vec::new(),
         }
     }
 }
@@ -88,9 +117,15 @@ pub struct AiConfig {
     pub profile: String, // "cloud" | "offline"
     pub provider: String,
     pub model: String,
+    #[serde(default = "default_model_fast")]
+    pub model_fast: String,
     pub base_url: String,
     pub extra_allowed_hosts: Vec<String>,
     pub send_ledger_names_for_matching: bool,
+}
+
+fn default_model_fast() -> String {
+    "claude-haiku-5-5".to_string()
 }
 
 impl Default for AiConfig {
@@ -98,10 +133,223 @@ impl Default for AiConfig {
         Self {
             profile: "cloud".to_string(),
             provider: "anthropic".to_string(),
-            model: String::new(),
+            model: "claude-sonnet-5-5".to_string(),
+            model_fast: default_model_fast(),
             base_url: String::new(),
             extra_allowed_hosts: Vec::new(),
             send_ledger_names_for_matching: false,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ServerConfig {
+    pub http_enabled: bool,
+    pub http_bind: String,
+    pub http_port: u16,
+    pub rate_limit_per_min: u32,
+    pub allowed_origins: Vec<String>,
+}
+
+impl Default for ServerConfig {
+    fn default() -> Self {
+        Self {
+            http_enabled: false,
+            http_bind: "127.0.0.1".to_string(),
+            http_port: 7410,
+            rate_limit_per_min: 60,
+            allowed_origins: Vec::new(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ToolsetsConfig {
+    pub enabled: Vec<String>,
+    pub max_rows_default: usize,
+    pub detail_default: String,
+}
+
+impl Default for ToolsetsConfig {
+    fn default() -> Self {
+        Self {
+            enabled: vec!["core".to_string()],
+            max_rows_default: 25,
+            detail_default: "summary".to_string(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TokensConfig {
+    pub max_tokens_hint: usize,
+    pub budget_daily_soft: usize,
+    pub ocr_max_pages: usize,
+    pub ocr_max_edge_px: usize,
+    pub cache_max_mb: usize,
+}
+
+impl Default for TokensConfig {
+    fn default() -> Self {
+        Self {
+            max_tokens_hint: 1500,
+            budget_daily_soft: 0,
+            ocr_max_pages: 5,
+            ocr_max_edge_px: 1568,
+            cache_max_mb: 200,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AuditWeightsConfig {
+    pub inventory: f64,
+    pub vouchers: f64,
+    pub compliance: f64,
+    pub bank: f64,
+    pub related_party: f64,
+    pub cost_centre: f64,
+    pub books: f64,
+}
+
+impl Default for AuditWeightsConfig {
+    fn default() -> Self {
+        Self {
+            inventory: 1.0,
+            vouchers: 1.0,
+            compliance: 1.0,
+            bank: 0.8,
+            related_party: 0.8,
+            cost_centre: 0.6,
+            books: 0.6,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AuditConfig {
+    pub keep_runs: usize,
+    pub materiality_inr: f64,
+    pub neg_timing_days: i64,
+    pub phys_tol_pct: f64,
+    pub phys_tol_inr: f64,
+    pub expected_method: String,
+    pub cc_tol_inr: f64,
+    pub cc_drift_pct: f64,
+    pub dup_days: i64,
+    pub high_value_inr: f64,
+    pub mad_k: f64,
+    pub cash_pay_limit: f64,
+    pub cash_pay_transport_limit: f64,
+    pub cash_recv_limit: f64,
+    pub cash_pay_exempt_ledgers: Vec<String>,
+    pub transporter_ledgers: Vec<String>,
+    pub weekly_off: Vec<String>,
+    pub holidays: Vec<String>,
+    pub work_hours: Vec<String>,
+    pub related_parties: Vec<String>,
+    pub msme_suppliers: Vec<String>,
+    pub brs_stale_days: i64,
+    pub match_tol_inr: f64,
+    pub msme_days: i64,
+    pub itc_unpaid_days: i64,
+    pub benford_min_n: usize,
+    pub yield_between_chunks_ms: u64,
+    #[serde(default)]
+    pub weights: AuditWeightsConfig,
+}
+
+impl Default for AuditConfig {
+    fn default() -> Self {
+        Self {
+            keep_runs: 20,
+            materiality_inr: 100000.0,
+            neg_timing_days: 15,
+            phys_tol_pct: 1.0,
+            phys_tol_inr: 5000.0,
+            expected_method: "avg_cost".to_string(),
+            cc_tol_inr: 1.0,
+            cc_drift_pct: 30.0,
+            dup_days: 3,
+            high_value_inr: 500000.0,
+            mad_k: 6.0,
+            cash_pay_limit: 10000.0,
+            cash_pay_transport_limit: 35000.0,
+            cash_recv_limit: 200000.0,
+            cash_pay_exempt_ledgers: Vec::new(),
+            transporter_ledgers: Vec::new(),
+            weekly_off: vec!["Sun".to_string()],
+            holidays: Vec::new(),
+            work_hours: vec!["09:00".to_string(), "20:00".to_string()],
+            related_parties: Vec::new(),
+            msme_suppliers: Vec::new(),
+            brs_stale_days: 90,
+            match_tol_inr: 1.0,
+            msme_days: 45,
+            itc_unpaid_days: 180,
+            benford_min_n: 300,
+            yield_between_chunks_ms: 50,
+            weights: AuditWeightsConfig::default(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ScheduleConfig {
+    pub audit: String, // "off" | "weekly" | "monthly"
+    pub audit_day: String,
+    pub audit_time: String,
+    pub audit_areas: Vec<String>,
+    pub audit_export: String,
+}
+
+impl Default for ScheduleConfig {
+    fn default() -> Self {
+        Self {
+            audit: "off".to_string(),
+            audit_day: "Mon".to_string(),
+            audit_time: "08:00".to_string(),
+            audit_areas: vec!["all".to_string()],
+            audit_export: "md".to_string(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RulesConfig {
+    pub in_tax_file: String,
+    pub checks_file: String,
+}
+
+impl Default for RulesConfig {
+    fn default() -> Self {
+        Self {
+            in_tax_file: "rules/in-tax-FY2026-27.json".to_string(),
+            checks_file: "rules/audit-checks.json".to_string(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct RolesConfig {
+    pub enforce_maker_checker: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ClientProfile {
+    pub name: String,
+    pub host: String,
+    pub port: u16,
+    pub company: String,
+}
+
+impl Default for ClientProfile {
+    fn default() -> Self {
+        Self {
+            name: String::new(),
+            host: "127.0.0.1".to_string(),
+            port: 9000,
+            company: String::new(),
         }
     }
 }
@@ -190,6 +438,17 @@ pub fn get_local_app_data_dir() -> PathBuf {
     }
 }
 
+pub fn get_client_data_dir(client: Option<&str>) -> PathBuf {
+    let base = get_local_app_data_dir();
+    if let Some(slug) = client {
+        let clean = slug.trim().to_lowercase().replace(' ', "-");
+        if !clean.is_empty() {
+            return base.join("clients").join(clean);
+        }
+    }
+    base
+}
+
 pub fn load_config() -> (Config, PathBuf) {
     let config_dir = get_app_data_dir();
     let config_path = config_dir.join("config.toml");
@@ -204,17 +463,31 @@ pub fn load_config() -> (Config, PathBuf) {
         Config::default()
     };
 
-    // Environment variable overrides (supports connecting to TallyPrime over LAN)
-    if let Ok(host) = std::env::var("TALLY_HOST") {
+    // Environment variable overrides
+    if let Ok(host) = std::env::var("TALLY_HOST").or_else(|_| std::env::var("TALLYMCP_TALLY_HOST"))
+    {
         let trimmed = host.trim();
         if !trimmed.is_empty() {
             config.tally.host = trimmed.to_string();
             config.tally.allow_remote_tally = true;
         }
     }
-    if let Ok(port_str) = std::env::var("TALLY_PORT") {
+    if let Ok(port_str) =
+        std::env::var("TALLY_PORT").or_else(|_| std::env::var("TALLYMCP_TALLY_PORT"))
+    {
         if let Ok(port) = port_str.trim().parse::<u16>() {
             config.tally.port = port;
+        }
+    }
+    if let Ok(mode) = std::env::var("TALLYMCP_SAFETY_WRITE_MODE") {
+        config.safety.write_mode = mode.trim().to_string();
+    }
+    if let Ok(http_en) = std::env::var("TALLYMCP_SERVER_HTTP_ENABLED") {
+        config.server.http_enabled = http_en.trim() == "true" || http_en.trim() == "1";
+    }
+    if let Ok(port_str) = std::env::var("TALLYMCP_SERVER_HTTP_PORT") {
+        if let Ok(port) = port_str.trim().parse::<u16>() {
+            config.server.http_port = port;
         }
     }
 

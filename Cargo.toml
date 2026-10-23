@@ -6,10 +6,14 @@ rust-version = "1.80"
 license = "MIT OR Apache-2.0"
 
 [features]
-default = ["ui", "byok", "packs"]
+default = ["ui", "byok", "packs", "audit", "http", "drafting-plus", "practice"]
 ui    = ["dep:tiny_http", "dep:open"]
 byok  = ["dep:ureq", "dep:keyring"]
 packs = []
+audit = []
+http = []
+drafting-plus = []
+practice = []
 
 [dependencies]
 tokio = { version = "1", default-features = false, features = ["rt", "macros", "io-std", "io-util", "sync", "time", "fs", "net"] }

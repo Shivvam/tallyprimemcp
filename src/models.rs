@@ -2,9 +2,10 @@ use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
 #[serde(rename_all = "snake_case")]
 pub enum DraftStatus {
+    #[default]
     NeedsReview,
     PendingApproval,
     Approved,
@@ -16,10 +17,35 @@ pub enum DraftStatus {
     Failed,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum DraftOrigin {
+    #[default]
+    Manual,
+    Document,
+    Bank,
+    Table,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VoucherEntry {
     pub ledger: String,
-    pub amount: Decimal, // Negative for Debit, Positive for Credit (or vice versa, sums to 0)
+    pub amount: Decimal, // Negative for Debit, Positive for Credit
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BillAllocation {
+    pub ledger: String,
+    pub ref_name: String,
+    pub kind: String, // "new" | "against" | "advance"
+    pub amount: Decimal,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CostCentreAllocation {
+    pub ledger: String,
+    pub centre: String,
+    pub amount: Decimal,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -37,6 +63,141 @@ pub struct VoucherDraft {
     pub status: DraftStatus,
     #[serde(default)]
     pub tally_guid: Option<String>,
+    #[serde(default)]
+    pub origin: DraftOrigin,
+    #[serde(default)]
+    pub warnings: Vec<String>,
+    #[serde(default)]
+    pub reverses: Option<String>,
+    #[serde(default)]
+    pub bill_allocations: Option<Vec<BillAllocation>>,
+    #[serde(default)]
+    pub cost_centres: Option<Vec<CostCentreAllocation>>,
+    #[serde(default)]
+    pub approved_by: Option<String>,
+}
+
+impl Default for VoucherDraft {
+    fn default() -> Self {
+        Self {
+            draft_id: String::new(),
+            company: String::new(),
+            voucher_type: String::new(),
+            date: String::new(),
+            number: String::new(),
+            party_ledger: String::new(),
+            entries: Vec::new(),
+            narration: String::new(),
+            idempotency_key: String::new(),
+            content_hash: String::new(),
+            status: DraftStatus::NeedsReview,
+            tally_guid: None,
+            origin: DraftOrigin::Manual,
+            warnings: Vec::new(),
+            reverses: None,
+            bill_allocations: None,
+            cost_centres: None,
+            approved_by: None,
+        }
+    }
+}
+
+#[allow(dead_code)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct InvoiceLine {
+    pub item_or_ledger: String,
+    pub qty: Option<Decimal>,
+    pub rate: Option<Decimal>,
+    pub amount: Decimal,
+    pub hsn: Option<String>,
+    pub gst_rate: Option<Decimal>,
+    pub godown: Option<String>,
+}
+
+#[allow(dead_code)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct InvoiceDraft {
+    pub draft_id: String,
+    pub invoice_type: String, // "sales", "purchase", "credit_note", "debit_note"
+    pub date: String,
+    pub number: Option<String>,
+    pub party: String,
+    pub lines: Vec<InvoiceLine>,
+    pub place_of_supply: String,
+    pub ref_invoice: Option<String>,
+    pub narration: Option<String>,
+    pub source_handle: Option<String>,
+    pub status: DraftStatus,
+    pub origin: DraftOrigin,
+    pub warnings: Vec<String>,
+}
+
+#[allow(dead_code)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MasterDraft {
+    pub draft_id: String,
+    pub kind: String, // "ledger", "party", "stock_item", "group"
+    pub name: String,
+    pub parent_group: String,
+    pub gstin: Option<String>,
+    pub pan: Option<String>,
+    pub state: Option<String>,
+    pub unit: Option<String>,
+    pub hsn: Option<String>,
+    pub gst_rate: Option<Decimal>,
+    pub valuation_method: Option<String>,
+    pub confirm_not_duplicate: bool,
+    pub status: DraftStatus,
+    pub warnings: Vec<String>,
+}
+
+#[allow(dead_code)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BankRule {
+    pub pattern: String,
+    pub ledger: String,
+    pub voucher_type: String,
+    pub created_from_draft_id: Option<String>,
+    pub approved_by: Option<String>,
+}
+
+#[allow(dead_code)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ResponseEnvelope {
+    pub ok: u8,
+    pub cols: Vec<String>,
+    pub rows: Vec<Vec<serde_json::Value>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tot: Option<serde_json::Value>,
+    pub n: usize,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub more: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub next: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ErrorResponse {
+    pub ok: u8,
+    pub err: String,
+    pub msg: String,
+    pub fix: String,
+}
+
+impl ErrorResponse {
+    pub fn new(err: &str, msg: &str, fix: &str) -> Self {
+        Self {
+            ok: 0,
+            err: err.to_string(),
+            msg: msg.to_string(),
+            fix: fix.to_string(),
+        }
+    }
+
+    #[allow(dead_code)]
+    pub fn to_json(&self) -> serde_json::Value {
+        serde_json::to_value(self).unwrap_or_default()
+    }
 }
 
 #[allow(dead_code)]

@@ -123,6 +123,7 @@ impl JournalManager {
         Ok(drafts)
     }
 
+    #[allow(dead_code)]
     pub fn record_commit_intent(&self, draft: &VoucherDraft) -> Result<(), JournalError> {
         let now = chrono::Utc::now().to_rfc3339();
         let record = JournalRecord {

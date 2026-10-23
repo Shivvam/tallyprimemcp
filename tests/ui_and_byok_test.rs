@@ -98,6 +98,7 @@ mod ui_and_byok_tests {
             content_hash: String::new(),
             status: DraftStatus::PendingApproval,
             tally_guid: Some("guid-test".to_string()),
+            ..Default::default()
         };
         draft.content_hash = compute_content_hash(&draft);
         journal.save_draft(&draft).expect("Failed to save draft");
@@ -207,6 +208,14 @@ mod ui_and_byok_tests {
         assert_eq!(init_resp["id"], 1);
         assert_eq!(init_resp["result"]["serverInfo"]["name"], "tally-mcp");
 
+        // Enable books toolset to test books tools
+        mcp.call_tool(
+            "tally_toolsets",
+            json!({ "action": "enable", "name": "books" }),
+            json!(99),
+        )
+        .await;
+
         // Test tools/list
         let tools_resp = mcp.handle_request("tools/list", json!({}), json!(2)).await;
         assert_eq!(tools_resp["id"], 2);
@@ -227,7 +236,7 @@ mod ui_and_byok_tests {
         let prompts = prompts_resp["result"]["prompts"]
             .as_array()
             .expect("Prompts array");
-        assert_eq!(prompts.len(), 6);
+        assert_eq!(prompts.len(), 8);
 
         // Test resources/list and read
         let res_resp = mcp
@@ -606,6 +615,7 @@ mod ui_and_byok_tests {
             content_hash: "hash_retry".to_string(),
             status: DraftStatus::Failed,
             tally_guid: Some("guid-retry".to_string()),
+            ..Default::default()
         };
         journal.save_draft(&draft).expect("save failed draft");
 
@@ -647,6 +657,7 @@ mod ui_and_byok_tests {
             content_hash: "hash_committed".to_string(),
             status: DraftStatus::Committed,
             tally_guid: Some("guid-committed".to_string()),
+            ..Default::default()
         };
         journal
             .save_draft(&committed_draft)

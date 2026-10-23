@@ -293,6 +293,7 @@ impl TallyClient {
         )
     }
 
+    #[allow(dead_code)]
     pub async fn verify_voucher_exists(
         &self,
         company: &str,
