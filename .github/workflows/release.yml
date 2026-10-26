@@ -66,7 +66,7 @@ jobs:
         run: |
           $ver = "${{ steps.vars.outputs.version }}"
           Copy-Item target/release/tally-mcp.exe -Destination "tally-mcp.exe"
-          Compress-Archive -Path "tally-mcp.exe", "README.md" -DestinationPath "tally-mcp-$ver-windows-x64.zip"
+          Compress-Archive -Path "tally-mcp.exe", "readme.md" -DestinationPath "tally-mcp-$ver-windows-x64.zip"
           Copy-Item "tally-mcp-$ver-windows-x64.zip" -Destination "tally-mcp-windows-x64.zip"
           Copy-Item "tally-mcp-${ver}-x64.msi" -Destination "tally-mcp-windows-x64.msi"
 

@@ -16,6 +16,8 @@ use config::load_config;
 use mcp::McpServer;
 use std::env;
 
+const TOOLS_META_JSON: &str = include_str!("../tools/meta.json");
+
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<String> = env::args().collect();
@@ -80,6 +82,26 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     match subcommand {
+        "tools" => {
+            let md_mode = args.iter().any(|a| a == "--markdown");
+            if md_mode {
+                let tools: Vec<serde_json::Value> =
+                    serde_json::from_str(TOOLS_META_JSON).unwrap_or_default();
+                println!("| Tool | Access | Toolset | Summary |");
+                println!("|---|---|---|---|");
+                for t in tools {
+                    let name = t["name"].as_str().unwrap_or("");
+                    let access = t["access"].as_str().unwrap_or("");
+                    let toolset = t["toolset"].as_str().unwrap_or("");
+                    let summary = t["summary"].as_str().unwrap_or("").replace('|', "\\|");
+                    println!("| `{}` | {} | {} | {} |", name, access, toolset, summary);
+                }
+            } else {
+                println!("{}", TOOLS_META_JSON.trim());
+            }
+            return Ok(());
+        }
+
         "serve" => {
             let (mut config, _) = load_config();
             if let Some(host) = cli_host {

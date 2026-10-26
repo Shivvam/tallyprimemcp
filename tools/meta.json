@@ -1,0 +1,948 @@
+[
+  {
+    "name": "tally_status",
+    "access": "read",
+    "toolset": "core",
+    "summary": "Check TallyPrime reachability, active company, and circuit breaker health. Use when: check connection, tally health, system status. READ-ONLY.",
+    "params": [],
+    "example": "Is TallyPrime connected and what is the current circuit breaker status?",
+    "codes": [
+      "TALLY_UNREACHABLE",
+      "PARSE_ERROR"
+    ]
+  },
+  {
+    "name": "tally_list_companies",
+    "access": "read",
+    "toolset": "core",
+    "summary": "List all open and available companies loaded in TallyPrime. Use when: which companies are available, switch company, list accounts. READ-ONLY.",
+    "params": [],
+    "example": "List all the companies open in TallyPrime right now.",
+    "codes": [
+      "TALLY_UNREACHABLE",
+      "PARSE_ERROR"
+    ]
+  },
+  {
+    "name": "tally_set_active_company",
+    "access": "session",
+    "toolset": "core",
+    "summary": "Set the active company for read queries in this session. Use when: switch active company, select company, set context. READ-ONLY.",
+    "params": [
+      {
+        "n": "company",
+        "t": "str",
+        "req": true,
+        "desc": "company parameter"
+      }
+    ],
+    "example": "Switch active company to 'ABC Traders Pvt Ltd'.",
+    "codes": [
+      "TALLY_UNREACHABLE",
+      "PARSE_ERROR"
+    ]
+  },
+  {
+    "name": "tally_list_ledgers",
+    "access": "read",
+    "toolset": "core",
+    "summary": "List all ledger accounts, parent groups, and balances in the active company. Use when: chart of accounts, find ledger, party accounts. READ-ONLY.",
+    "params": [
+      {
+        "n": "company",
+        "t": "optional str",
+        "req": true,
+        "desc": "company parameter"
+      }
+    ],
+    "example": "List all Sundry Creditors and their current balances.",
+    "codes": [
+      "TALLY_UNREACHABLE",
+      "PARSE_ERROR"
+    ]
+  },
+  {
+    "name": "tally_trial_balance",
+    "access": "read",
+    "toolset": "core",
+    "summary": "Export structured Trial Balance report from TallyPrime with debit/credit closing totals. Use when: trial balance, balance check, financial health. READ-ONLY.",
+    "params": [
+      {
+        "n": "company",
+        "t": "optional str",
+        "req": true,
+        "desc": "company parameter"
+      },
+      {
+        "n": "from_date",
+        "t": "YYYYMMDD",
+        "req": true,
+        "desc": "from_date parameter"
+      },
+      {
+        "n": "to_date",
+        "t": "YYYYMMDD",
+        "req": true,
+        "desc": "to_date parameter"
+      }
+    ],
+    "example": "Generate the trial balance for the current financial year to date.",
+    "codes": [
+      "TALLY_UNREACHABLE",
+      "PARSE_ERROR"
+    ]
+  },
+  {
+    "name": "tally_day_book",
+    "access": "read",
+    "toolset": "core",
+    "summary": "Export Day Book transactions as deterministic JSON array of vouchers. Use when: day book, daily transactions, recent vouchers. READ-ONLY.",
+    "params": [
+      {
+        "n": "company",
+        "t": "optional str",
+        "req": true,
+        "desc": "company parameter"
+      },
+      {
+        "n": "from_date",
+        "t": "YYYYMMDD",
+        "req": true,
+        "desc": "from_date parameter"
+      },
+      {
+        "n": "to_date",
+        "t": "YYYYMMDD",
+        "req": true,
+        "desc": "to_date parameter"
+      }
+    ],
+    "example": "Show me all transactions recorded in the Day Book for yesterday.",
+    "codes": [
+      "TALLY_UNREACHABLE",
+      "PARSE_ERROR"
+    ]
+  },
+  {
+    "name": "tally_draft_voucher",
+    "access": "draft",
+    "toolset": "drafting",
+    "summary": "Stage a TallyPrime voucher draft with double-entry balance validation and out-of-band approval URL. Use when: create voucher, post entry, draft transaction. DRAFT: human approval required.",
+    "params": [
+      {
+        "n": "company",
+        "t": "str",
+        "req": true,
+        "desc": "company parameter"
+      },
+      {
+        "n": "voucher_type",
+        "t": "str",
+        "req": true,
+        "desc": "voucher_type parameter"
+      },
+      {
+        "n": "date",
+        "t": "YYYYMMDD",
+        "req": true,
+        "desc": "date parameter"
+      },
+      {
+        "n": "number",
+        "t": "str",
+        "req": true,
+        "desc": "number parameter"
+      },
+      {
+        "n": "party_ledger",
+        "t": "str",
+        "req": true,
+        "desc": "party_ledger parameter"
+      },
+      {
+        "n": "entries",
+        "t": "list",
+        "req": true,
+        "desc": "entries parameter"
+      },
+      {
+        "n": "narration",
+        "t": "optional str",
+        "req": true,
+        "desc": "narration parameter"
+      },
+      {
+        "n": "allow_create_masters",
+        "t": "any",
+        "req": true,
+        "desc": "allow_create_masters parameter"
+      }
+    ],
+    "example": "Draft a payment voucher for Rs 15,000 to Apex Supplies from HDFC Bank.",
+    "codes": [
+      "TALLY_UNREACHABLE",
+      "PARSE_ERROR"
+    ]
+  },
+  {
+    "name": "tally_preview_draft",
+    "access": "read",
+    "toolset": "audit",
+    "summary": "Preview formatted summary and exact XML payload of a staged voucher draft. Use when: inspect draft, review XML, verify staged entry. READ-ONLY.",
+    "params": [
+      {
+        "n": "draft_id",
+        "t": "str",
+        "req": true,
+        "desc": "draft_id parameter"
+      }
+    ],
+    "example": "Preview staged draft voucher with ID 'dft_98745'.",
+    "codes": [
+      "TALLY_UNREACHABLE",
+      "PARSE_ERROR"
+    ]
+  },
+  {
+    "name": "tally_discard_draft",
+    "access": "draft",
+    "toolset": "insights",
+    "summary": "Discard and purge an unapproved voucher draft from local staging storage. Use when: cancel draft, delete staged entry, reject voucher. READ-ONLY.",
+    "params": [
+      {
+        "n": "draft_id",
+        "t": "str",
+        "req": true,
+        "desc": "draft_id parameter"
+      }
+    ],
+    "example": "Discard draft voucher 'dft_12345'.",
+    "codes": [
+      "TALLY_UNREACHABLE",
+      "PARSE_ERROR"
+    ]
+  },
+  {
+    "name": "tally_commit_draft",
+    "access": "draft",
+    "toolset": "audit",
+    "summary": "Post an approved voucher into TallyPrime using a human-authorized approval token. Use when: human approved draft, finalize voucher. DRAFT: human approval required.",
+    "params": [
+      {
+        "n": "draft_id",
+        "t": "str",
+        "req": true,
+        "desc": "draft_id parameter"
+      },
+      {
+        "n": "auth_token",
+        "t": "str",
+        "req": true,
+        "desc": "auth_token parameter"
+      }
+    ],
+    "example": "Commit draft 'dft_45678' with the human approval token.",
+    "codes": [
+      "TALLY_UNREACHABLE",
+      "PARSE_ERROR"
+    ]
+  },
+  {
+    "name": "tally_extract_document",
+    "access": "read",
+    "toolset": "docs",
+    "summary": "Extract structured accounting data from invoice PDF or image for voucher drafting. Use when: scan invoice, parse bill PDF, OCR receipt. READ-ONLY.",
+    "params": [
+      {
+        "n": "file_path",
+        "t": "str",
+        "req": true,
+        "desc": "file_path parameter"
+      }
+    ],
+    "example": "Extract data from 'invoices/bill_101.pdf' for drafting.",
+    "codes": [
+      "TALLY_UNREACHABLE",
+      "PARSE_ERROR"
+    ]
+  },
+  {
+    "name": "tally_run_report",
+    "access": "read",
+    "toolset": "core",
+    "summary": "Execute a read-only financial report from an extensible TDL pack. Use when: custom report, financial summary, ageing pack. READ-ONLY.",
+    "params": [
+      {
+        "n": "report_name",
+        "t": "str",
+        "req": true,
+        "desc": "report_name parameter"
+      },
+      {
+        "n": "parameters",
+        "t": "optional obj",
+        "req": true,
+        "desc": "parameters parameter"
+      }
+    ],
+    "example": "Run the 'outstanding_ageing' report pack for the current quarter.",
+    "codes": [
+      "TALLY_UNREACHABLE",
+      "PARSE_ERROR"
+    ]
+  },
+  {
+    "name": "tally_get_environment",
+    "access": "read",
+    "toolset": "core",
+    "summary": "Get TallyPrime connection status: Tally version, open company, edit-log on/off, server version, tested versions. Use when: check connection, which company is open, version support. READ-ONLY.",
+    "params": [],
+    "example": "Which Tally company is open, and is my TallyPrime version supported?",
+    "codes": [
+      "TALLY_UNREACHABLE",
+      "PARSE_ERROR"
+    ]
+  },
+  {
+    "name": "tally_explain_gstr2b_mismatches",
+    "access": "read",
+    "toolset": "books",
+    "summary": "Explain GSTR-2B vs TallyPrime books mismatches (ITC reconciliation): matched, partial, only-in-books, only-on-portal, with likely cause and next step. Use when: GSTR-2B reconciliation, ITC mismatch. READ-ONLY.",
+    "params": [
+      {
+        "n": "period",
+        "t": "YYYYMM",
+        "req": true,
+        "desc": "period parameter"
+      },
+      {
+        "n": "bucket",
+        "t": "matched|partial|only_books|only_portal",
+        "req": true,
+        "desc": "bucket parameter"
+      },
+      {
+        "n": "portal_file",
+        "t": "optional path to JSON/XLSX",
+        "req": true,
+        "desc": "portal_file parameter"
+      },
+      {
+        "n": "include_followups",
+        "t": "any",
+        "req": true,
+        "desc": "include_followups parameter"
+      },
+      {
+        "n": "limit",
+        "t": "any",
+        "req": true,
+        "desc": "limit parameter"
+      },
+      {
+        "n": "cursor",
+        "t": "any",
+        "req": true,
+        "desc": "cursor parameter"
+      },
+      {
+        "n": "detail",
+        "t": "summary",
+        "req": true,
+        "desc": "detail parameter"
+      }
+    ],
+    "example": "Reconcile GSTR-2B for September 2026 and list the top 10 mismatches with likely causes. Draft follow-ups for the suppliers.",
+    "codes": [
+      "TALLY_UNREACHABLE",
+      "PARSE_ERROR"
+    ]
+  },
+  {
+    "name": "tally_list_receivables_ageing",
+    "access": "read",
+    "toolset": "books",
+    "summary": "List TallyPrime receivables ageing (sundry debtors outstanding) in 0-30/31-60/61-90/90+ day buckets with last payment date. Use when: who owes money, overdue customers, payment chase. READ-ONLY; reminder drafts never sent.",
+    "params": [
+      {
+        "n": "as_of",
+        "t": "YYYYMMDD",
+        "req": true,
+        "desc": "as_of parameter"
+      },
+      {
+        "n": "buckets",
+        "t": "any",
+        "req": true,
+        "desc": "buckets parameter"
+      },
+      {
+        "n": "min_amount",
+        "t": "any",
+        "req": true,
+        "desc": "min_amount parameter"
+      },
+      {
+        "n": "include_reminders",
+        "t": "any",
+        "req": true,
+        "desc": "include_reminders parameter"
+      },
+      {
+        "n": "limit",
+        "t": "any",
+        "req": true,
+        "desc": "limit parameter"
+      },
+      {
+        "n": "cursor",
+        "t": "any",
+        "req": true,
+        "desc": "cursor parameter"
+      },
+      {
+        "n": "detail",
+        "t": "summary",
+        "req": true,
+        "desc": "detail parameter"
+      }
+    ],
+    "example": "Show customers overdue by more than 60 days, largest first, and draft a polite reminder for each.",
+    "codes": [
+      "TALLY_UNREACHABLE",
+      "PARSE_ERROR"
+    ]
+  },
+  {
+    "name": "tally_diagnose_connection",
+    "access": "read",
+    "toolset": "core",
+    "summary": "Diagnose TallyPrime connection problems: Tally not running, XML/HTTP server off, wrong port, firewall, no company open, version mismatch. Use when: cannot connect to Tally, timeouts, company not found. READ-ONLY.",
+    "params": [
+      {
+        "n": "port",
+        "t": "any",
+        "req": true,
+        "desc": "port parameter"
+      }
+    ],
+    "example": "TallyMCP cannot connect to Tally. Diagnose it and tell me the first fix to try.",
+    "codes": [
+      "TALLY_UNREACHABLE",
+      "PARSE_ERROR"
+    ]
+  },
+  {
+    "name": "tally_check_audit_trail",
+    "access": "read",
+    "toolset": "core",
+    "summary": "Check TallyPrime audit trail: edit log on/off, last backup if detectable, recent voucher alterations and deletions. Use when: data integrity, before big batch, did anyone change entries. READ-ONLY; never repairs.",
+    "params": [
+      {
+        "n": "from",
+        "t": "YYYYMMDD",
+        "req": true,
+        "desc": "from parameter"
+      },
+      {
+        "n": "to",
+        "t": "YYYYMMDD",
+        "req": true,
+        "desc": "to parameter"
+      },
+      {
+        "n": "limit",
+        "t": "any",
+        "req": true,
+        "desc": "limit parameter"
+      },
+      {
+        "n": "detail",
+        "t": "summary",
+        "req": true,
+        "desc": "detail parameter"
+      }
+    ],
+    "example": "Is the edit log on, and what vouchers were altered or deleted this month?",
+    "codes": [
+      "TALLY_UNREACHABLE",
+      "PARSE_ERROR"
+    ]
+  },
+  {
+    "name": "tally_draft_bank_vouchers",
+    "access": "draft",
+    "toolset": "drafting",
+    "summary": "Draft TallyPrime Receipt/Payment/Contra vouchers from a bank statement (CSV, XLSX or PDF) with duplicate detection and closing-balance check. Use when: bank statement import, BRS entries. DRAFT: human approval required.",
+    "params": [
+      {
+        "n": "file_path",
+        "t": "str",
+        "req": true,
+        "desc": "file_path parameter"
+      },
+      {
+        "n": "bank_ledger",
+        "t": "str",
+        "req": true,
+        "desc": "bank_ledger parameter"
+      },
+      {
+        "n": "suspense_ledger",
+        "t": "optional str",
+        "req": true,
+        "desc": "suspense_ledger parameter"
+      },
+      {
+        "n": "dry_run",
+        "t": "any",
+        "req": true,
+        "desc": "dry_run parameter"
+      },
+      {
+        "n": "limit",
+        "t": "any",
+        "req": true,
+        "desc": "limit parameter"
+      },
+      {
+        "n": "cursor",
+        "t": "any",
+        "req": true,
+        "desc": "cursor parameter"
+      },
+      {
+        "n": "allow_create_masters",
+        "t": "any",
+        "req": true,
+        "desc": "allow_create_masters parameter"
+      }
+    ],
+    "example": "Draft vouchers from this HDFC statement for the HDFC Bank ledger. Flag duplicates and anything you cannot map.",
+    "codes": [
+      "TALLY_UNREACHABLE",
+      "PARSE_ERROR"
+    ]
+  },
+  {
+    "name": "tally_check_books_health",
+    "access": "read",
+    "toolset": "core",
+    "summary": "Check TallyPrime books for errors: duplicate vouchers, negative cash/stock, missing opening balances, odd ledger groups, invalid GSTIN, round-figure and cash-limit flags, with risk score. Use when: audit review, month-end. READ-ONLY.",
+    "params": [
+      {
+        "n": "from",
+        "t": "YYYYMMDD",
+        "req": true,
+        "desc": "from parameter"
+      },
+      {
+        "n": "to",
+        "t": "YYYYMMDD",
+        "req": true,
+        "desc": "to parameter"
+      },
+      {
+        "n": "checks",
+        "t": "default all",
+        "req": true,
+        "desc": "checks parameter"
+      },
+      {
+        "n": "cash_limit",
+        "t": "any",
+        "req": true,
+        "desc": "cash_limit parameter"
+      },
+      {
+        "n": "limit",
+        "t": "any",
+        "req": true,
+        "desc": "limit parameter"
+      },
+      {
+        "n": "detail",
+        "t": "summary",
+        "req": true,
+        "desc": "detail parameter"
+      }
+    ],
+    "example": "Check last quarter's books for duplicates, negative balances and unusual cash entries.",
+    "codes": [
+      "TALLY_UNREACHABLE",
+      "PARSE_ERROR"
+    ]
+  },
+  {
+    "name": "tally_draft_vouchers_from_table",
+    "access": "draft",
+    "toolset": "docs",
+    "summary": "Draft TallyPrime sales, purchase, payment or journal vouchers from an Excel/CSV/JSON table with column mapping and a dry-run summary. Use when: bulk voucher import, Excel to Tally. DRAFT: human approval required.",
+    "params": [
+      {
+        "n": "file_path",
+        "t": "or rows[]",
+        "req": true,
+        "desc": "file_path parameter"
+      },
+      {
+        "n": "voucher_type",
+        "t": "sales|purchase|payment|journal",
+        "req": true,
+        "desc": "voucher_type parameter"
+      },
+      {
+        "n": "column_map",
+        "t": "obj",
+        "req": true,
+        "desc": "column_map parameter"
+      },
+      {
+        "n": "dry_run",
+        "t": "any",
+        "req": true,
+        "desc": "dry_run parameter"
+      },
+      {
+        "n": "allow_create_masters",
+        "t": "any",
+        "req": true,
+        "desc": "allow_create_masters parameter"
+      }
+    ],
+    "example": "Import these 150 sales rows as draft vouchers. Do a dry run first.",
+    "codes": [
+      "TALLY_UNREACHABLE",
+      "PARSE_ERROR"
+    ]
+  },
+  {
+    "name": "tally_export_report",
+    "access": "read",
+    "toolset": "core",
+    "summary": "Export TallyPrime ledgers, vouchers, outstandings or trial balance to CSV/XLSX with a stable column schema for Excel or Power BI. Use when: Tally to Excel, Power BI dataset. READ-ONLY; writes only to the export folder.",
+    "params": [
+      {
+        "n": "report",
+        "t": "ledgers|vouchers|outstanding|trial_balance",
+        "req": true,
+        "desc": "report parameter"
+      },
+      {
+        "n": "format",
+        "t": "csv|xlsx",
+        "req": true,
+        "desc": "format parameter"
+      },
+      {
+        "n": "from",
+        "t": "YYYYMMDD",
+        "req": true,
+        "desc": "from parameter"
+      },
+      {
+        "n": "to",
+        "t": "YYYYMMDD",
+        "req": true,
+        "desc": "to parameter"
+      }
+    ],
+    "example": "Export this year's trial balance to Excel.",
+    "codes": [
+      "TALLY_UNREACHABLE",
+      "PARSE_ERROR"
+    ]
+  },
+  {
+    "name": "tally_internal_audit",
+    "access": "read",
+    "toolset": "audit",
+    "summary": "Execute comprehensive transaction-audit pipeline (S0-S9) and generate deterministic report. READ-ONLY.",
+    "params": [
+      {
+        "n": "period",
+        "t": "str",
+        "req": true,
+        "desc": "period parameter"
+      },
+      {
+        "n": "areas",
+        "t": "array",
+        "req": true,
+        "desc": "areas parameter"
+      },
+      {
+        "n": "depth",
+        "t": "str",
+        "req": true,
+        "desc": "depth parameter"
+      }
+    ],
+    "example": "Run full internal transaction audit for this financial year.",
+    "codes": [
+      "TALLY_UNREACHABLE",
+      "PARSE_ERROR"
+    ]
+  },
+  {
+    "name": "tally_toolsets",
+    "access": "session",
+    "toolset": "core",
+    "summary": "List, enable, or disable toolsets dynamically (core, books, audit, drafting, docs, insights). META.",
+    "params": [
+      {
+        "n": "action",
+        "t": "str",
+        "req": true,
+        "desc": "action parameter"
+      },
+      {
+        "n": "name",
+        "t": "str",
+        "req": true,
+        "desc": "name parameter"
+      }
+    ],
+    "example": "Enable the audit toolset for this session.",
+    "codes": [
+      "TALLY_UNREACHABLE",
+      "PARSE_ERROR"
+    ]
+  },
+  {
+    "name": "tally_get_result",
+    "access": "read",
+    "toolset": "core",
+    "summary": "Retrieve stored large result chunk or section by handle. META.",
+    "params": [
+      {
+        "n": "handle",
+        "t": "str",
+        "req": true,
+        "desc": "handle parameter"
+      },
+      {
+        "n": "page",
+        "t": "int",
+        "req": true,
+        "desc": "page parameter"
+      },
+      {
+        "n": "section",
+        "t": "str",
+        "req": true,
+        "desc": "section parameter"
+      }
+    ],
+    "example": "Fetch page 2 of result handle h_123.",
+    "codes": [
+      "TALLY_UNREACHABLE",
+      "PARSE_ERROR"
+    ]
+  },
+  {
+    "name": "tally_stock_check",
+    "access": "read",
+    "toolset": "books",
+    "summary": "Check inventory: negative balances, book vs physical variance, valuation methods, and ageing. READ-ONLY.",
+    "params": [
+      {
+        "n": "kind",
+        "t": "str",
+        "req": true,
+        "desc": "kind parameter"
+      },
+      {
+        "n": "item",
+        "t": "str",
+        "req": true,
+        "desc": "item parameter"
+      },
+      {
+        "n": "godown",
+        "t": "str",
+        "req": true,
+        "desc": "godown parameter"
+      }
+    ],
+    "example": "Check for any negative stock balances in Tally.",
+    "codes": [
+      "TALLY_UNREACHABLE",
+      "PARSE_ERROR"
+    ]
+  },
+  {
+    "name": "tally_voucher_check",
+    "access": "read",
+    "toolset": "books",
+    "summary": "Verify voucher numbering sequence gaps, duplicates, high-value outliers, cash limits, and holidays. READ-ONLY.",
+    "params": [
+      {
+        "n": "kind",
+        "t": "str",
+        "req": true,
+        "desc": "kind parameter"
+      },
+      {
+        "n": "dup_days",
+        "t": "int",
+        "req": true,
+        "desc": "dup_days parameter"
+      }
+    ],
+    "example": "Scan Day Book for voucher sequence gaps and cash payments above 10,000.",
+    "codes": [
+      "TALLY_UNREACHABLE",
+      "PARSE_ERROR"
+    ]
+  },
+  {
+    "name": "tally_ledger_check",
+    "access": "read",
+    "toolset": "books",
+    "summary": "Audit cost centre allocations, related party flows, unrecorded bank items, and suspense balances. READ-ONLY.",
+    "params": [
+      {
+        "n": "kind",
+        "t": "str",
+        "req": true,
+        "desc": "kind parameter"
+      },
+      {
+        "n": "input",
+        "t": "str",
+        "req": true,
+        "desc": "input parameter"
+      }
+    ],
+    "example": "Check uncleared cheques older than 90 days in bank ledgers.",
+    "codes": [
+      "TALLY_UNREACHABLE",
+      "PARSE_ERROR"
+    ]
+  },
+  {
+    "name": "tally_compliance_check",
+    "access": "read",
+    "toolset": "books",
+    "summary": "Verify GSTR-2B ITC matches, blocked credits, TDS deductions, and Section 43B(h) MSME overdue. READ-ONLY.",
+    "params": [
+      {
+        "n": "kind",
+        "t": "str",
+        "req": true,
+        "desc": "kind parameter"
+      },
+      {
+        "n": "gstr2b",
+        "t": "str",
+        "req": true,
+        "desc": "gstr2b parameter"
+      }
+    ],
+    "example": "Check supplier bills pending past 45 days for MSME 43B(h) disallowance.",
+    "codes": [
+      "TALLY_UNREACHABLE",
+      "PARSE_ERROR"
+    ]
+  },
+  {
+    "name": "tally_draft_invoice",
+    "access": "draft",
+    "toolset": "drafting",
+    "summary": "Stage Sales, Purchase, Credit Note, or Debit Note draft with automatic CGST/SGST/IGST tax splits. DRAFT-ONLY.",
+    "params": [
+      {
+        "n": "type",
+        "t": "str",
+        "req": true,
+        "desc": "type parameter"
+      },
+      {
+        "n": "date",
+        "t": "str",
+        "req": true,
+        "desc": "date parameter"
+      },
+      {
+        "n": "party",
+        "t": "str",
+        "req": true,
+        "desc": "party parameter"
+      },
+      {
+        "n": "lines",
+        "t": "array",
+        "req": true,
+        "desc": "lines parameter"
+      },
+      {
+        "n": "place_of_supply",
+        "t": "str",
+        "req": true,
+        "desc": "place_of_supply parameter"
+      }
+    ],
+    "example": "Draft a purchase voucher for supplier Acme Corp with 18% GST.",
+    "codes": [
+      "TALLY_UNREACHABLE",
+      "PARSE_ERROR"
+    ]
+  },
+  {
+    "name": "tally_draft_master",
+    "access": "draft",
+    "toolset": "drafting",
+    "summary": "Stage ledger, party, stock item, or group master with fuzzy Jaro-Winkler duplicate protection. DRAFT-ONLY.",
+    "params": [
+      {
+        "n": "kind",
+        "t": "str",
+        "req": true,
+        "desc": "kind parameter"
+      },
+      {
+        "n": "name",
+        "t": "str",
+        "req": true,
+        "desc": "name parameter"
+      },
+      {
+        "n": "parent_group",
+        "t": "str",
+        "req": true,
+        "desc": "parent_group parameter"
+      }
+    ],
+    "example": "Draft a new Sundry Creditor ledger for ABC Logistics.",
+    "codes": [
+      "TALLY_UNREACHABLE",
+      "PARSE_ERROR"
+    ]
+  },
+  {
+    "name": "tally_cfo_snapshot",
+    "access": "read",
+    "toolset": "audit",
+    "summary": "High-level financial overview: cash, debtor ageing, margin delta, MSME overdue, and 5 risk flags. READ-ONLY.",
+    "params": [
+      {
+        "n": "period",
+        "t": "str",
+        "req": true,
+        "desc": "period parameter"
+      },
+      {
+        "n": "compare",
+        "t": "str",
+        "req": true,
+        "desc": "compare parameter"
+      }
+    ],
+    "example": "Provide CFO executive snapshot comparing current FY to previous period.",
+    "codes": [
+      "TALLY_UNREACHABLE",
+      "PARSE_ERROR"
+    ]
+  }
+]

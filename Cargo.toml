@@ -4,6 +4,12 @@ version = "1.0.1"
 edition = "2021"
 rust-version = "1.80"
 license = "MIT OR Apache-2.0"
+description = "Local MCP server connecting AI agents to TallyPrime. Read books and draft entries with human approval."
+readme = "readme.md"
+keywords = ["mcp", "tally", "tallyprime", "accounting", "claude"]
+categories = ["command-line-utilities"]
+repository = "https://github.com/Shivvam/tallyprimemcp"
+homepage = "https://www.tallymcp.pro"
 
 [features]
 default = ["ui", "byok", "packs", "audit", "http", "drafting-plus", "practice"]
