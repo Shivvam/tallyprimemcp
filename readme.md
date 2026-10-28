@@ -1,6 +1,6 @@
 # TallyMCP
 
-> Open-source MCP server that lets Claude, ChatGPT and other AI apps read your TallyPrime books and draft entries. Runs on your PC. You approve every entry.
+> Open-source MCP server that lets Claude, ChatGPT and other AI apps read your TallyPrime books and draft entries. Connect your accounting workflow using the **tally mcp server claude** integration—runs locally on your PC with zero cloud relay and strict human approval for all draft entries.
 
 | Fact | Value |
 |---|---|
@@ -11,15 +11,16 @@
 | Transport | stdio (default); Streamable HTTP (opt-in) |
 | Default safety | `approve`: AI stages drafts, only a human approves |
 | Telemetry | none |
-| Tools | 31 (14 listed by default) |
+| Tools | 35 (14 listed by default) |
 
 ## Install
+- Claude Desktop: One-click `.mcpb` extension installer (`tally-mcp-1.0.1.mcpb`) from https://github.com/Shivvam/tallyprimemcp/releases (Settings → Extensions → Advance Settings → Install Extension).
 - Windows: MSI or portable `.exe` from https://www.tallymcp.pro/download (no admin rights).
 - macOS/Linux: archive from Releases; put `tally-mcp` on PATH. Source: `cargo build --release --locked`.
 - Tally: Help → Settings → Connectivity → TallyPrime acts as **Both**, port **9000**; open a company.
 
 ```
-tally-mcp setup    # configures Claude Desktop, Cursor, Windsurf
+tally-mcp setup    # configures Claude Desktop (tally mcp server claude stdio), Cursor, Windsurf
 tally-mcp doctor   # 5 checks; fix hints on failure
 ```
 
@@ -59,6 +60,10 @@ tally-mcp doctor   # 5 checks; fix hints on failure
 | `tally_draft_invoice` | draft | drafting | Stage Sales, Purchase, Credit Note, or Debit Note draft with automatic CGST/SGST/IGST tax splits. DRAFT-ONLY. |
 | `tally_draft_master` | draft | drafting | Stage ledger, party, stock item, or group master with fuzzy Jaro-Winkler duplicate protection. DRAFT-ONLY. |
 | `tally_cfo_snapshot` | read | audit | High-level financial overview: cash, debtor ageing, margin delta, MSME overdue, and 5 risk flags. READ-ONLY. |
+| `tally_audit_269ss` | read | audit | Automate Section 269SS compliance audit: scan and summarize cash receipts/journal loans & deposits received where cash accepted >= ₹20,000 for Form 3CD Clause 31(a). READ-ONLY. |
+| `tally_audit_269t` | read | audit | Automate Section 269T compliance audit: scan and summarize cash repayments of loans or deposits where repayment amount >= ₹20,000 for Form 3CD Clause 31(b). READ-ONLY. |
+| `tally_audit_40a3` | read | audit | Automate Section 40A(3) expenditure audit: scan payment vouchers and cash expenses exceeding ₹10,000 (or ₹35,000 for transport contractors) paid to a person in a single day for Form 3CD Clause 21(d) disallowance. READ-ONLY. |
+| `tally_audit_pf_esi` | read | audit | Automate PF & ESI compliance audit: scan employee payroll deduction ledgers vs deposit dates to detect delayed contributions under Section 36(1)(va) and Section 43B of the Income Tax Act. READ-ONLY. |
 <!-- tools:end -->
 
 ## Safety

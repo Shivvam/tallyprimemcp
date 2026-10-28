@@ -51,6 +51,27 @@ A comprehensive, production-grade guide to connecting **Claude Desktop** with **
 
 ## Step-by-Step Setup
 
+### Method 0: One-Click Extension (.mcpb) Installation (Easiest)
+
+> [!TIP]
+> **Claude Desktop Requirements:** Desktop version of Claude AI supports loading of local MCP server. Ensure you have **Pro / Team / Max / Enterprise** subscription of Claude, which supports higher limit compared to Free. MCP makes multiple calls to Tally for validation and inference, which might exhaust free limits quickly. Download Claude Desktop from [claude.ai/download](https://claude.ai/download).
+
+**Direct Download:** [tally-mcp-1.0.1.mcpb](https://github.com/Shivvam/tallyprimemcp/releases/download/v1.0.1/tally-mcp-1.0.1.mcpb)
+
+**One-click installation (via Extension):**
+1. Go to menu > **File** > **Settings**
+2. **Extensions** > **Advance Settings**
+3. Click on **install extension** button
+4. Browse the extension file (with file extension `.mcpb`) downloaded at the start
+5. A dialog window will appear asking: *"Do you want to install Tally Prime?"* Click **Install** button, which would install the Tally MCP Server.
+
+**Verify once configured by checking it on connectors:**
+- Open any new chat in Claude Desktop. Click on the **+** (attachment icon) > **Connectors** (or go to **Settings > Connectors**) to confirm that **tallymcp.pro** (or Tally Prime) is active with a green indicator and tools available.
+
+---
+
+### Method 1: Configuration File Setup (JSON)
+
 ### Step 1: Locate or Open Configuration
 
 #### Method A: Directly inside Claude Desktop (Easiest)

@@ -41,6 +41,9 @@ jobs:
       - name: Run all tests
         run: cargo test
 
+      - name: Build and verify MCPB bundle
+        run: cargo run -- export-mcpb
+
       - name: Verify test count ≥ 19
         run: |
           COUNT=$(cargo test 2>&1 | grep -oP '\d+ passed' | awk '{sum += $1} END {print sum}')

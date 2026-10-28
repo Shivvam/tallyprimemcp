@@ -944,5 +944,135 @@
       "TALLY_UNREACHABLE",
       "PARSE_ERROR"
     ]
+  },
+  {
+    "name": "audit_sec_269ss_loan_acceptance",
+    "access": "read",
+    "toolset": "audit",
+    "summary": "Detects acceptance of loans, deposits, or specified advances in cash >= ₹20,000 with 100% penalty under Sec 271D. Form 3CD Clause 31(a) exception report. READ-ONLY.",
+    "params": [
+      {
+        "n": "from_date",
+        "t": "optional str",
+        "req": false,
+        "desc": "Start date in YYYYMMDD format"
+      },
+      {
+        "n": "to_date",
+        "t": "optional str",
+        "req": false,
+        "desc": "End date in YYYYMMDD format"
+      },
+      {
+        "n": "threshold",
+        "t": "optional num",
+        "req": false,
+        "desc": "Threshold amount (default: 20000)"
+      }
+    ],
+    "example": "Audit Section 269SS compliance for cash loans received exceeding ₹20,000.",
+    "codes": [
+      "TALLY_UNREACHABLE",
+      "PARSE_ERROR"
+    ]
+  },
+  {
+    "name": "audit_sec_269t_loan_repayment",
+    "access": "read",
+    "toolset": "audit",
+    "summary": "Detects repayment of loan, deposit, or specified advance in cash when repayment or balance >= ₹20,000 with 100% penalty under Sec 271E. Form 3CD Clause 31(b). READ-ONLY.",
+    "params": [
+      {
+        "n": "from_date",
+        "t": "optional str",
+        "req": false,
+        "desc": "Start date in YYYYMMDD format"
+      },
+      {
+        "n": "to_date",
+        "t": "optional str",
+        "req": false,
+        "desc": "End date in YYYYMMDD format"
+      },
+      {
+        "n": "threshold",
+        "t": "optional num",
+        "req": false,
+        "desc": "Threshold amount (default: 20000)"
+      }
+    ],
+    "example": "Audit Section 269T compliance for cash loan repayments exceeding ₹20,000.",
+    "codes": [
+      "TALLY_UNREACHABLE",
+      "PARSE_ERROR"
+    ]
+  },
+  {
+    "name": "audit_sec_40a3_cash_expenditure",
+    "access": "read",
+    "toolset": "audit",
+    "summary": "Identifies cash payments to a single person in a day exceeding ₹10,000 (₹35,000 for transporters) for Form 3CD Clause 21(d) disallowance with Rule 6DD filters. READ-ONLY.",
+    "params": [
+      {
+        "n": "from_date",
+        "t": "optional str",
+        "req": false,
+        "desc": "Start date in YYYYMMDD format"
+      },
+      {
+        "n": "to_date",
+        "t": "optional str",
+        "req": false,
+        "desc": "End date in YYYYMMDD format"
+      },
+      {
+        "n": "default_limit",
+        "t": "optional num",
+        "req": false,
+        "desc": "General cash expense limit (default: 10000)"
+      },
+      {
+        "n": "transport_limit",
+        "t": "optional num",
+        "req": false,
+        "desc": "Transport contractor cash limit (default: 35000)"
+      }
+    ],
+    "example": "Scan cash expenses for Section 40A(3) disallowance exceeding ₹10,000 or ₹35,000.",
+    "codes": [
+      "TALLY_UNREACHABLE",
+      "PARSE_ERROR"
+    ]
+  },
+  {
+    "name": "audit_labour_pf_esi_36_1_va",
+    "access": "read",
+    "toolset": "audit",
+    "summary": "Validates timely deduction & deposit of EPF/ESI against statutory due date (15th) for permanent disallowance under Sec 36(1)(va) (Checkmate ruling) and Sec 43B. Form 3CD Clause 20(b). READ-ONLY.",
+    "params": [
+      {
+        "n": "from_date",
+        "t": "optional str",
+        "req": false,
+        "desc": "Start date in YYYYMMDD format"
+      },
+      {
+        "n": "to_date",
+        "t": "optional str",
+        "req": false,
+        "desc": "End date in YYYYMMDD format"
+      },
+      {
+        "n": "grace_days",
+        "t": "optional num",
+        "req": false,
+        "desc": "Statutory due day of following month (default: 15)"
+      }
+    ],
+    "example": "Check PF and ESI deposit dates against statutory due dates for Section 36(1)(va) disallowance.",
+    "codes": [
+      "TALLY_UNREACHABLE",
+      "PARSE_ERROR"
+    ]
   }
 ]

@@ -197,6 +197,9 @@ jobs:
 
           mkdir -p release-files
           find dist -type f -exec cp {} release-files/ \;
+
+          # Build own MCPB extension bundle for Claude Desktop using native Rust
+          cargo run -- export-mcpb "release-files/tally-mcp-${VERSION}.mcpb"
           cd release-files
 
           # Generate SHA256 checksums
@@ -253,6 +256,13 @@ jobs:
                 "sha256": "$(grep "tally-mcp-${VERSION}-darwin-arm64.tar.gz" checksums.txt 2>/dev/null | head -n1 | awk '{print $1}')",
                 "size_bytes": $(wc -c < "tally-mcp-${VERSION}-darwin-arm64.tar.gz" 2>/dev/null || echo 0),
                 "type": "tar.gz"
+              },
+              {
+                "name": "tally-mcp-${VERSION}.mcpb",
+                "url": "https://github.com/Shivvam/tallyprimemcp/releases/download/${TAG}/tally-mcp-${VERSION}.mcpb",
+                "sha256": "$(grep "tally-mcp-${VERSION}.mcpb" checksums.txt 2>/dev/null | head -n1 | awk '{print $1}')",
+                "size_bytes": $(wc -c < "tally-mcp-${VERSION}.mcpb" 2>/dev/null || echo 0),
+                "type": "mcpb"
               },
               {
                 "name": "checksums.txt",

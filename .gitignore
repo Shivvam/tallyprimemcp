@@ -15,6 +15,7 @@
 *.so
 *.dylib
 *.pdb
+*.mcpb
 
 # Operating system files
 .DS_Store

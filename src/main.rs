@@ -6,6 +6,7 @@ mod doctor;
 mod journal;
 mod manifest;
 mod mcp;
+mod mcpb;
 mod models;
 mod packs;
 mod tally;
@@ -245,6 +246,21 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             cleanup::execute_cleanup(&opts)?;
         }
 
+        "export-mcpb" | "build-mcpb" | "mcpb" => {
+            let target_arg = args.get(2).map(|s| std::path::Path::new(s.as_str()));
+            match mcpb::export_bundle_to_file(target_arg) {
+                Ok(path) => {
+                    println!("[✓] Claude Desktop extension bundle (.mcpb) generated successfully!");
+                    println!("    Output:  {}", path.display());
+                    println!("    Version: {}", env!("CARGO_PKG_VERSION"));
+                }
+                Err(e) => {
+                    eprintln!("Failed to export .mcpb bundle: {}", e);
+                    std::process::exit(1);
+                }
+            }
+        }
+
         "ui" => {
             let (mut config, _) = load_config();
             if let Some(host) = cli_host {
@@ -286,6 +302,7 @@ fn print_usage() {
         "  uninstall Cleanly uninstall all app data, shortcuts, PATH, and client integrations"
     );
     println!("  version   Print version, build target, and schema information");
+    println!("  export-mcpb [PATH] Export Claude Desktop extension bundle (.mcpb)");
     println!("  help      Print this usage information");
     println!("\nConnection Options (Local or LAN):");
     println!("  --host <IP/HOST>   TallyPrime target host (default: 127.0.0.1; e.g. 192.168.1.50)");
